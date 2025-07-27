@@ -1,0 +1,1069 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "ClustR",
+    "description": "ClustR's internal API documentation",
+    "termsOfService": "https://clustr-inc.com/terms-of-service/",
+    "contact": {
+      "email": "danielchibuezeolah@gmail.com"
+    },
+    "version": "v1"
+  },
+  "host": "localhost:8000",
+  "schemes": [
+    "http"
+  ],
+  "basePath": "/api/v1",
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+  "Bearer": {
+    "type": "apiKey",
+    "name": "Authorization",
+    "in": "header",
+    "description": "JWT Authorization header using the Bearer scheme. Example: 'Authorization: Bearer {token}'"
+  }
+},
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "paths": {
+    "/accounts/": {
+      "get": {
+        "operationId": "accounts_list",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Account"
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/add-staff/": {
+      "post": {
+        "operationId": "accounts_add_staff",
+        "description": "If the admin edits the permissions for a pre-defined role, the permission for that role\ndefined in the context of that admin is updated on-click.\nThen the id is submitted with the new user information",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/StaffAccount"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/StaffAccount"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/add-user/": {
+      "post": {
+        "operationId": "accounts_add_user",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SubuserAccount"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/SubuserAccount"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/change-password/": {
+      "post": {
+        "operationId": "accounts_change_password",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PasswordChange"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{'detail': 'Password changed successfully'}"
+          },
+          "205": {
+            "description": "{'detail': 'Password changed successfully'}"
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/email-verification/": {
+      "post": {
+        "operationId": "accounts_initialize_email_verification",
+        "description": "",
+        "parameters": [
+          {
+            "name": "verify_mode",
+            "in": "query",
+            "description": "Mode for email verification, choices are: `OTP` or `TOKEN`",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/from-auth/": {
+      "get": {
+        "operationId": "accounts_get_account_information_from_auth",
+        "description": "Endpoint to get the account information by using the data from the auth user instead\nof requiring an ID. This is required for frontend as at the time it requests to load\nthe account information, it doesn't yet know the account id.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Account"
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/import-members/": {
+      "post": {
+        "operationId": "accounts_import_members",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ResidentImportedData"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ResidentImportedData"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/resident-import-template/": {
+      "get": {
+        "operationId": "accounts_get_import_template",
+        "description": "Returns an Excel template file to serve as a starter/guide to users on the format for import",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Account"
+              }
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": []
+    },
+    "/accounts/{id}/": {
+      "get": {
+        "operationId": "accounts_read",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "put": {
+        "operationId": "accounts_update",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "patch": {
+        "operationId": "accounts_partial_update",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        }
+      ]
+    },
+    "/accounts/{id}/approve-account/": {
+      "post": {
+        "operationId": "accounts_approve_resident_account",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Account"
+            }
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        }
+      ]
+    },
+    "/accounts/{id}/change-permissions/": {
+      "post": {
+        "operationId": "accounts_change_permissions",
+        "description": "This API accepts a list of strings defined as codenames for various permission classes\nhere in the backend. This endpoint changes the permissions completely",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "{'detail': 'Successfully changes user permissions'}"
+          }
+        },
+        "tags": [
+          "accounts"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        }
+      ]
+    },
+    "/auth/cluster-signup/": {
+      "post": {
+        "operationId": "auth_cluster-signup_create",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ClusterAdminAccount"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/ClusterAdminAccount"
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/auth/forgot-password/": {
+      "post": {
+        "operationId": "auth_forgot-password_create",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/auth/member-signup/": {
+      "post": {
+        "operationId": "auth_member-signup_create",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OwnerAccount"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/OwnerAccount"
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/auth/reset-password/": {
+      "post": {
+        "operationId": "auth_reset-password_create",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/auth/signin/": {
+      "post": {
+        "operationId": "auth_signin_create",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AuthTokenPair"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/AuthTokenPair"
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/auth/signin/refresh/": {
+      "post": {
+        "operationId": "auth_signin_refresh_create",
+        "description": "Takes a refresh type JSON web token and returns an access type JSON web\ntoken if the refresh token is valid.",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TokenRefresh"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/TokenRefresh"
+            }
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/auth/token-status/": {
+      "post": {
+        "operationId": "auth_token-status_create",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      },
+      "parameters": []
+    },
+    "/roles/": {
+      "get": {
+        "operationId": "roles_list",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Role"
+              }
+            }
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "post": {
+        "operationId": "roles_create",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "parameters": []
+    },
+    "/roles/{id}/": {
+      "get": {
+        "operationId": "roles_read",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "put": {
+        "operationId": "roles_update",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "patch": {
+        "operationId": "roles_partial_update",
+        "description": "",
+        "parameters": [
+          {
+            "name": "data",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/Role"
+            }
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "delete": {
+        "operationId": "roles_delete",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "Account": {
+      "required": [
+        "email_address",
+        "name"
+      ],
+      "type": "object",
+      "properties": {
+        "email_address": {
+          "title": "Email address",
+          "type": "string",
+          "format": "email",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "name": {
+          "title": "Name of user",
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 1
+        },
+        "phone_number": {
+          "title": "Phone number",
+          "description": "The phone number for this subscription in E.164 format. See details: https://www.twilio.com/docs/glossary/what-e164",
+          "type": "string",
+          "readOnly": true,
+          "minLength": 1
+        },
+        "profile_image_url": {
+          "title": "Profile image url",
+          "description": "Profile image of the user.",
+          "type": "string",
+          "format": "uri",
+          "maxLength": 200
+        },
+        "is_verified": {
+          "title": "Is verified?",
+          "description": "Has this user completed email verification flow?",
+          "type": "boolean",
+          "readOnly": true
+        }
+      }
+    },
+    "StaffAccount": {
+      "required": [
+        "email_address",
+        "name",
+        "roles"
+      ],
+      "type": "object",
+      "properties": {
+        "email_address": {
+          "title": "Email address",
+          "type": "string",
+          "format": "email",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "name": {
+          "title": "Name of user",
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 1
+        },
+        "phone_number": {
+          "title": "Phone number",
+          "description": "The phone number for this subscription in E.164 format. See details: https://www.twilio.com/docs/glossary/what-e164",
+          "type": "string",
+          "readOnly": true,
+          "minLength": 1
+        },
+        "profile_image_url": {
+          "title": "Profile image url",
+          "description": "Profile image of the user.",
+          "type": "string",
+          "format": "uri",
+          "maxLength": 200
+        },
+        "is_verified": {
+          "title": "Is verified?",
+          "description": "Has this user completed email verification flow?",
+          "type": "boolean",
+          "readOnly": true
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "x-nullable": true
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "SubuserAccount": {
+      "required": [
+        "email_address",
+        "name"
+      ],
+      "type": "object",
+      "properties": {
+        "email_address": {
+          "title": "Email address",
+          "type": "string",
+          "format": "email",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "name": {
+          "title": "Name of user",
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 1
+        },
+        "phone_number": {
+          "title": "Phone number",
+          "description": "The phone number for this subscription in E.164 format. See details: https://www.twilio.com/docs/glossary/what-e164",
+          "type": "string",
+          "readOnly": true,
+          "minLength": 1
+        },
+        "profile_image_url": {
+          "title": "Profile image url",
+          "description": "Profile image of the user.",
+          "type": "string",
+          "format": "uri",
+          "maxLength": 200
+        },
+        "is_verified": {
+          "title": "Is verified?",
+          "description": "Has this user completed email verification flow?",
+          "type": "boolean",
+          "readOnly": true
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "x-nullable": true
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "PasswordChange": {
+      "required": [
+        "current_password",
+        "new_password"
+      ],
+      "type": "object",
+      "properties": {
+        "current_password": {
+          "title": "Current password",
+          "type": "string",
+          "minLength": 8
+        },
+        "new_password": {
+          "title": "New password",
+          "type": "string",
+          "minLength": 8
+        },
+        "force_logout": {
+          "title": "Force logout",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "ResidentImportedData": {
+      "required": [
+        "column_mapping",
+        "has_headers"
+      ],
+      "type": "object",
+      "properties": {
+        "column_mapping": {
+          "title": "Column mapping",
+          "description": "A mapping of column header name or index to the Imported Django model entity attribute name.For example, a file can have a header 'The customers first name'. The correct mapping would be{ 'The customers first name': 'first_name' }",
+          "type": "object"
+        },
+        "format": {
+          "title": "Format",
+          "description": "Optional format of the file. If not provided, the format will be guessed. This will only work if the file name has a suffix",
+          "type": "string",
+          "enum": [
+            "CSV",
+            "XLSX",
+            "XLS"
+          ]
+        },
+        "has_headers": {
+          "title": "Has headers",
+          "description": "Does the file have headers?",
+          "type": "boolean"
+        },
+        "file": {
+          "title": "File",
+          "description": "The file to be imported. This file will not be saved permanently. It will only be used to read the import data after which it should be discarded.",
+          "type": "string",
+          "readOnly": true,
+          "format": "uri"
+        },
+        "should_upsert": {
+          "title": "Should upsert",
+          "description": "Should we use the imported data to update data that already exist in your account?",
+          "type": "boolean",
+          "default": true
+        },
+        "default_dialing_code": {
+          "title": "Default dialing code",
+          "description": "The default dialing code of imported phone number without dialing code prefix. If you are importing a column with phone numbers, we require the phone numbers to be in E.164 format and have prefix",
+          "type": "string",
+          "pattern": "^\\+\\d{1,4}$",
+          "default": "",
+          "maxLength": 5,
+          "minLength": 2
+        }
+      }
+    },
+    "OwnerAccount": {
+      "required": [
+        "email_address",
+        "name",
+        "password"
+      ],
+      "type": "object",
+      "properties": {
+        "email_address": {
+          "title": "Email address",
+          "type": "string",
+          "format": "email",
+          "maxLength": 100,
+          "minLength": 1
+        },
+        "name": {
+          "title": "Name of user",
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 1
+        },
+        "phone_number": {
+          "title": "Phone number",
+          "description": "The phone number for this subscription in E.164 format. See details: https://www.twilio.com/docs/glossary/what-e164",
+          "type": "string",
+          "readOnly": true,
+          "minLength": 1
+        },
+        "profile_image_url": {
+          "title": "Profile image url",
+          "description": "Profile image of the user.",
+          "type": "string",
+          "format": "uri",
+          "maxLength": 200
+        },
+        "is_verified": {
+          "title": "Is verified?",
+          "description": "Has this user completed email verification flow?",
+          "type": "boolean",
+          "readOnly": true
+        },
+        "password": {
+          "title": "Password",
+          "type": "string",
+          "minLength": 1
+        },
+        "property_owner": {
+          "title": "Property owner",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "ClusterAdminAccount": {
+      "required": [
+        "type",
+        "name",
+        "admin"
+      ],
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "Cluster type",
+          "type": "string",
+          "enum": [
+            "ESTATE",
+            "FACILITY"
+          ]
+        },
+        "name": {
+          "title": "Name",
+          "description": "Cluster name",
+          "type": "string",
+          "maxLength": 255,
+          "minLength": 1
+        },
+        "description": {
+          "title": "Description",
+          "description": "The Description for the Cluster",
+          "type": "string"
+        },
+        "admin": {
+          "$ref": "#/definitions/OwnerAccount"
+        }
+      }
+    },
+    "AuthTokenPair": {
+      "required": [
+        "email_address",
+        "password"
+      ],
+      "type": "object",
+      "properties": {
+        "email_address": {
+          "title": "Email address",
+          "type": "string",
+          "minLength": 1
+        },
+        "password": {
+          "title": "Password",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "TokenRefresh": {
+      "required": [
+        "refresh"
+      ],
+      "type": "object",
+      "properties": {
+        "refresh": {
+          "title": "Refresh",
+          "type": "string",
+          "minLength": 1
+        },
+        "access": {
+          "title": "Access",
+          "type": "string",
+          "readOnly": true,
+          "minLength": 1
+        }
+      }
+    },
+    "Role": {
+      "required": [
+        "name"
+      ],
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "ID",
+          "type": "integer",
+          "readOnly": true
+        },
+        "owner": {
+          "title": "Owner",
+          "type": "string",
+          "format": "uuid",
+          "readOnly": true
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "description": "Description of the role.",
+          "type": "string"
+        },
+        "total_subusers": {
+          "title": "Total subusers",
+          "type": "integer",
+          "readOnly": true
+        },
+        "created_at": {
+          "title": "Creation date",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "last_modified_at": {
+          "title": "Last modified date",
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "permissions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

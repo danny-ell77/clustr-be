@@ -1,0 +1,3624 @@
+openapi: 3.0.3
+info:
+  title: Clustr Platform API
+  version: 1.0.0
+  description: API specification for Clustr.
+
+components:
+  schemas:
+    # --- Core User & Auth Schemas (Consolidated & Enriched) ---
+    Permission:
+      type: string
+      description: Defines a specific permission granted to a user.
+      enum:
+        - AccessControl
+        - PayBills
+        - SnapAndReport
+        - Announcement
+        - Chat
+        - E-wallet
+        - MarketPlace
+        # Added from original schema's QuickService types to enrich permissions
+
+    User:
+      type: object
+      description: Represents a full user profile in the system.
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+        firstName:
+          type: string
+          maxLength: 100
+          description: User's first name.
+        lastName:
+          type: string
+          maxLength: 100
+          description: User's last name.
+        email:
+          type: string
+          format: email
+          description: User's email address, must be unique.
+        phoneNumber:
+          type: string
+          pattern: '^[+]?[\d\s()-]+$'
+          description: User's phone number, optional but used for login/registration.
+        passwordHash: # Added from previous user schema for completeness
+          type: string
+          description: Hashed password of the user. (Should not be returned in GET requests)
+          readOnly: true
+        profilePictureUrl:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+        permissions:
+          type: array
+          description: List of permissions assigned to the user.
+          items:
+            $ref: '#/components/schemas/Permission'
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user account was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user account was last updated.
+        unit:
+          type: string
+          example: "Unit 8"
+        estate:
+          type: string
+          example: "Richmond gate estate"
+        role:
+          type: string
+          enum: [resident, admin, security]
+
+    UserRegistration:
+      type: object
+      description: Request body for user registration (Onboarding 1).
+      required:
+        - firstName
+        - lastName
+        - email
+        - phoneNumber
+        - password
+        - confirmPassword
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+          description: User's first name.
+        lastName:
+          type: string
+          maxLength: 100
+          description: User's last name.
+        email:
+          type: string
+          format: email
+          description: User's email address.
+        phoneNumber:
+          type: string
+          pattern: '^[+]?[\d\s()-]+$'
+          description: User's phone number.
+        password:
+          type: string
+          minLength: 8
+          description: The chosen password for the user.
+        confirmPassword:
+          type: string
+          minLength: 8
+          description: Confirmation of the chosen password.
+
+    UserLogin:
+      type: object
+      description: Request body for user login (Onboarding 0 / LoginRequest).
+      required:
+        - identifier
+        - password
+      properties:
+        identifier:
+          type: string
+          description: User's email or phone number.
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          description: User's password.
+
+    UserCreationRequest:
+      type: object
+      description: Request body for creating a user, typically by an admin (User Management Add Details).
+      required:
+        - firstName
+        - lastName
+        - email
+      properties:
+        firstName:
+          type: string
+          description: First name of the user.
+          example: "John"
+        lastName:
+          type: string
+          description: Last name of the user.
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          description: Email address of the user.
+          example: "john.doe@example.com"
+        phoneNumber: # Added for more flexibility as per UI
+          type: string
+          pattern: '^\+[1-9]\d{1,14}$'
+          description: Optional phone number for the user.
+        profilePictureUrl:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+        permissions:
+          type: array
+          description: List of permissions to assign to the user.
+          items:
+            $ref: '#/components/schemas/Permission'
+
+    UserSummary:
+      type: object
+      description: A summary of user information, typically for lists (e.g., Manage Users, Chat participants).
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+        fullName:
+          type: string
+          description: Combined first and last name of the user.
+          example: "Maimuna Lawal"
+        profilePictureUrl:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+
+    # --- Home Screen Schemas ---
+    HomeScreenUserProfile:
+      type: object
+      description: Schema for the user profile information displayed on the Home Screen.
+      properties:
+        userName:
+          type: string
+          description: The name of the logged-in user.
+          example: "Nnena Nwagwu"
+        notifications:
+          type: array
+          description: Important notifications from the admin.
+          items:
+            type: string
+          example:
+            - "Important information from the admin, kindly review."
+        quickServices:
+          type: array
+          description: List of quick services available on the home screen.
+          items:
+            $ref: '#/components/schemas/QuickService'
+
+    QuickService: # Consolidated to object, with type enum
+      type: object
+      description: Defines a quick service available on the home screen.
+      required:
+        - id
+        - name
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the quick service.
+        name:
+          type: string
+          description: Display name of the quick service.
+        type:
+          type: string
+          description: Categorization of the quick service.
+          enum: [Access Control, Snap & Report, E-wallet, Pay Bills, Announcement, Market Place]
+        iconUrl:
+          type: string
+          format: uri
+          description: URL to the icon representing the quick service.
+        isEnabled:
+          type: boolean
+          description: Indicates if the quick service is currently enabled.
+          default: true
+
+    # --- Chat & Group Schemas ---
+    Group:
+      type: object
+      description: Represents a chat group.
+      required:
+        - id
+        - name
+        - createdBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 500
+        createdBy:
+          type: string
+          format: uuid
+          description: User ID of the group creator.
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary' # Reference UserSummary for lighter payload
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GroupCreation:
+      type: object
+      description: Request body for creating a new group.
+      required:
+        - name
+        - participantIds
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 500
+        participantIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: List of user IDs to include in the group.
+
+    Chat:
+      type: object
+      description: Represents a chat conversation (individual or group).
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [individual, group]
+        groupId:
+          type: string
+          format: uuid
+          nullable: true
+          description: The ID of the group if it's a group chat.
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSummary' # Use UserSummary for lighter payload
+          description: List of users participating in the chat.
+        lastMessage:
+          $ref: '#/components/schemas/Message'
+          description: The last message sent in the chat.
+        unreadCount:
+          type: integer
+          minimum: 0
+          description: Number of unread messages for the current user.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      description: Represents a single message within a chat.
+      required:
+        - id
+        - chatId
+        - senderId
+        - content
+        - messageType
+      properties:
+        id:
+          type: string
+          format: uuid
+        chatId:
+          type: string
+          format: uuid
+          description: The ID of the chat this message belongs to.
+        senderId:
+          type: string
+          format: uuid
+          description: The ID of the user who sent the message.
+        sender:
+          $ref: '#/components/schemas/UserSummary'
+          description: The sender's summary information.
+        content:
+          type: string
+          maxLength: 2000
+          description: The text content of the message.
+        messageType:
+          type: string
+          enum: [text, image, file, system]
+          description: The type of content the message holds.
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          description: List of attachments included with the message.
+        timestamp:
+          type: string
+          format: date-time
+          description: The time the message was sent.
+        isRead:
+          type: boolean
+          default: false
+          description: Indicates if the message has been read by the current user.
+
+    Attachment:
+      type: object
+      description: Represents an attachment (image, file) in messages or announcements.
+      required:
+        - id
+        - filename
+        - fileUrl
+        - fileType
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+          description: Original name of the attached file.
+        fileUrl:
+          type: string
+          format: uri
+          description: URL where the attachment can be accessed.
+        fileType:
+          type: string
+          description: MIME type or extension of the file (e.g., 'image/jpeg', 'pdf').
+        fileSize:
+          type: integer
+          minimum: 0
+          description: Size of the file in bytes.
+
+    # --- Announcement Schemas ---
+    Announcement:
+      type: object
+      description: Represents a public announcement.
+      required:
+        - id
+        - title
+        - content
+        - category
+        - authorId
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+          maxLength: 2000
+        category:
+          type: string
+          enum: [News, Estate Issues, Others]
+        authorId:
+          type: string
+          format: uuid
+        author:
+          $ref: '#/components/schemas/UserSummary' # Reference UserSummary for author
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        commentsCount:
+          type: integer
+          minimum: 0
+
+    AnnouncementCreate:
+      type: object
+      description: Request body for creating a new announcement.
+      required:
+        - title
+        - content
+        - category
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: string
+          maxLength: 2000
+        category:
+          type: string
+          enum: [News, Estate Issues, Others]
+        attachmentIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Optional list of pre-uploaded attachment IDs to link to the announcement.
+
+    Comment:
+      type: object
+      description: Represents a comment on an announcement.
+      required:
+        - id
+        - announcementId
+        - authorId
+        - content
+      properties:
+        id:
+          type: string
+          format: uuid
+        announcementId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        author:
+          $ref: '#/components/schemas/UserSummary' # Reference UserSummary for author
+        content:
+          type: string
+          maxLength: 1000
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CommentCreate:
+      type: object
+      description: Request body for creating a new comment.
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 1000
+
+    # --- Help Desk / Issue Reporting Schemas (from images) ---
+    IssueType:
+      type: string
+      description: The category or type of the issue for the help desk.
+      enum:
+        - Carpentry
+        - Plumbing
+        - Electrical
+        - Cleaning
+        - Security
+        - Other # General 'other' option
+
+    ReportIssueForm:
+      type: object
+      description: Schema for the 'Report an issue' form.
+      properties:
+        issueType:
+          $ref: '#/components/schemas/IssueType'
+        description:
+          type: string
+          description: Detailed description of the issue.
+          example: "The kitchen sink is leaking continuously."
+          minLength: 10
+        photoUrls: # Changed from 'photos' to be more explicit if URLs are expected
+          type: array
+          description: URLs of uploaded photos related to the issue.
+          items:
+            type: string
+            format: uri # Assuming URLs of uploaded images
+          maxItems: 5
+      required:
+        - issueType
+        - description
+
+    IssueStatus:
+      type: string
+      description: The current status of an issue ticket.
+      enum:
+        - Open
+        - In Progress
+        - Resolved
+        - Closed
+        - Pending # Based on 'Planning' interpretation
+        - Submitted # Initial state after reporting
+
+    IssueTicket:
+      type: object
+      description: Schema for an individual issue ticket in the Help Desk.
+      properties:
+        issueNo:
+          type: string
+          description: Unique identifier for the issue ticket.
+          example: "1105"
+        issueType:
+          $ref: '#/components/schemas/IssueType'
+        description:
+          type: string
+          description: A short description of the problem.
+          example: "A short description of the problem appears here"
+        status:
+          $ref: '#/components/schemas/IssueStatus'
+        reportedByUserId:
+          type: string
+          format: uuid
+          description: The ID of the user who reported the issue.
+          example: "BellaUserID-UUID" # Fictional UUID for example
+        reportedByUser:
+          $ref: '#/components/schemas/UserSummary'
+          description: Summary of the user who reported the issue.
+        reportedDate:
+          type: string
+          format: date
+          description: The date the issue was reported.
+          example: "2023-11-08"
+        commentsCount:
+          type: integer
+          description: Number of comments on the issue.
+          minimum: 0
+          example: 3
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Timestamp of the last update to the ticket.
+          example: "2023-11-08T08:15:00Z"
+        assigneeId: # Added for more complete issue tracking
+          type: string
+          format: uuid
+          description: The ID of the user or department assigned to the issue.
+        assignee: # Added for more complete issue tracking
+          $ref: '#/components/schemas/UserSummary'
+          description: Summary of the user or department assigned.
+      required:
+        - issueNo
+        - issueType
+        - description
+        - status
+        - reportedByUserId
+        - reportedDate
+
+    IssueMessage:
+      type: object
+      description: Schema for sending a message/comment on an issue ticket.
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+          description: The ID of the issue ticket the message belongs to.
+        content: # Renamed from 'message' for consistency with other message schemas
+          type: string
+          description: The content of the message.
+          example: "Please provide an update on the plumbing issue."
+        sendReminder:
+          type: boolean
+          description: Flag to send a reminder with the message.
+          default: false
+      required:
+        - ticketId
+        - content
+
+    HelpDeskIssueList:
+      type: object
+      description: Schema for the list view of issues in the Help Desk, categorized by status.
+      properties:
+        openIssues:
+          type: array
+          description: A list of open issue tickets.
+          items:
+            $ref: '#/components/schemas/IssueTicket'
+        inProgressIssues: # Added based on UI status
+          type: array
+          description: A list of issues currently in progress.
+          items:
+            $ref: '#/components/schemas/IssueTicket'
+        resolvedIssues:
+          type: array
+          description: A list of resolved issue tickets.
+          items:
+            $ref: '#/components/schemas/IssueTicket'
+
+    Visitor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Bella"
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          example: "08030005891"
+        estimatedArrival:
+          type: string
+          format: date-time
+        visitType:
+          type: string
+          enum: ["One-time", "Short stay", "Extended stay"]
+        accessCode:
+          type: string
+          example: "123456"
+        invitedBy:
+          type: string
+          example: "Unit 8"
+        estate:
+          type: string
+          example: "Richmond gate estate"
+        status:
+          type: string
+          enum: [pending, approved, rejected, checked-in, checked-out]
+        validFor:
+          type: string
+          enum: ["One-Time", "Multiple visits"]
+        validDate:
+          type: string
+          format: date
+          example: "11/09/2023"
+      required:
+        - id
+        - name
+        - visitType
+        - invitedBy
+
+    AccessControl:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        visitorId:
+          type: string
+          format: uuid
+        accessCode:
+          type: string
+          example: "123456"
+        validFor:
+          type: string
+          enum: ["One-Time", "Multiple visits"]
+        validDate:
+          type: string
+          format: date
+        timeSlot:
+          type: object
+          properties:
+            startTime:
+              type: string
+              format: time
+              example: "02:05"
+            endTime:
+              type: string
+              format: time
+              example: "04:00"
+        qrCode:
+          type: string
+          description: "Base64 encoded QR code image"
+      required:
+        - id
+        - visitorId
+        - accessCode
+        - validDate
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          example: "Ukachi Family meeting"
+        description:
+          type: string
+          example: "Family meeting to discuss the burial of our beloved grandmother"
+        eventDate:
+          type: string
+          format: date
+          example: "11/16/2023"
+        eventTime:
+          type: string
+          format: time
+          example: "02:05"
+        guestsAdded:
+          type: integer
+          example: 5
+        invitedBy:
+          type: string
+          example: "Unit 8"
+        estate:
+          type: string
+          example: "Richmond gate estate"
+        accessCode:
+          type: string
+          example: "123456"
+        validFor:
+          type: string
+          enum: ["One-Time"]
+      required:
+        - id
+        - title
+        - eventDate
+        - eventTime
+        - invitedBy
+
+    VisitorLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        visitorId:
+          type: string
+          format: uuid
+        visitorName:
+          type: string
+          example: "Bella Jones"
+        date:
+          type: string
+          format: date
+          example: "11/09/2023"
+        arrivalTime:
+          type: string
+          format: time
+          example: "11:00"
+        departureTime:
+          type: string
+          format: time
+          example: "4:00"
+        status:
+          type: string
+          enum: [scheduled, "checked-in", "checked-out", cancelled]
+        logType:
+          type: string
+          enum: [recent, scheduled, "checked-in"]
+      required:
+        - id
+        - visitorId
+        - visitorName
+        - date
+        - status
+
+    Poll:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        question:
+          type: string
+          example: "How often would you like us to hold general meetings?"
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOption'
+        duration:
+          type: string
+          example: "24hrs"
+        endTime:
+          type: string
+          format: time
+          example: "03:45"
+        totalVotes:
+          type: integer
+          example: 80
+        createdBy:
+          type: string
+          example: "Abc Estate Residents"
+        status:
+          type: string
+          enum: [active, ended]
+      required:
+        - id
+        - question
+        - options
+        - duration
+
+    VisitRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        requestorName:
+          type: string
+          example: "Bella Jones"
+        requestMessage:
+          type: string
+          example: "is requesting access to visit your house!"
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        unitRequested:
+          type: string
+          example: "Unit 8"
+      required:
+        - id
+        - requestorName
+        - requestMessage
+        - timestamp
+        - status
+
+        # Meeting Management Schemas
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the meeting.
+          example: "meeting123"
+        title:
+          type: string
+          description: Title of the meeting.
+          example: "Monthly Estate Meeting"
+        description:
+          type: string
+          description: A brief description of the meeting.
+          example: "This meeting brings together estate residents to discuss matters arising and share important updates"
+        date:
+          type: string
+          format: date
+          description: Date of the meeting.
+          example: "2023-11-24"
+        time:
+          type: string
+          description: Time of the meeting (e.g., "6:00-7:00 PM").
+          example: "6:00-7:00 PM"
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+          description: List of participants attending the meeting.
+        organizer:
+          $ref: '#/components/schemas/User'
+          description: The organizer of the meeting.
+        meetingLink:
+          type: string
+          format: uri
+          description: Link to join the meeting (if applicable).
+          example: "https://meet.google.com/abc-xyz"
+      required:
+        - title
+        - date
+        - time
+        - participants
+        - organizer
+
+    Participant:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the participant.
+          example: "user001"
+        name:
+          type: string
+          description: Name of the participant.
+          example: "Maria Carey"
+        username:
+          type: string
+          description: Username of the participant.
+          example: "@userID"
+      required:
+        - id
+        - name
+
+    # SOS Alert & Emergency Contacts Schemas
+    EmergencyNumber:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the emergency number entry.
+          example: "emg001"
+        name:
+          type: string
+          description: Name associated with the emergency number.
+          example: "Maria Carey"
+        phoneNumber:
+          type: string
+          description: The emergency contact number.
+          example: "+2348012345678"
+      required:
+        - name
+        - phoneNumber
+
+    SOSRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of emergency.
+          enum:
+            - THEFT
+            - HEALTH EMERGENCY
+            - DOMESTIC VIOLENCE
+            - OTHERS
+          example: "HEALTH EMERGENCY"
+        description:
+          type: string
+          description: A brief description of the emergency if type is 'OTHERS'.
+          example: "Fallen and can't get up"
+      required:
+        - type
+
+    # Polls Schemas
+    PollOption:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the poll option.
+          example: "opt001"
+        text:
+          type: string
+          description: The text of the poll option.
+          example: "Every Saturday"
+        votes:
+          type: integer
+          description: Number of votes received for this option.
+          example: 10
+
+    PollResponse:
+      type: object
+      properties:
+        pollId:
+          type: string
+          description: Unique identifier of the poll.
+          example: "poll123"
+        question:
+          type: string
+          description: The question asked in the poll.
+          example: "How often would you like us to hold general meetings?"
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/PollOption'
+          description: List of poll options with their respective votes.
+        totalVotes:
+          type: integer
+          description: Total number of votes cast in the poll.
+          example: 80
+        endTime:
+          type: string
+          format: datetime
+          description: The time when the poll ends.
+          example: "2025-07-22T14:45:00Z"
+        responses:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+                description: ID of the user who responded.
+                example: "user001"
+              userName:
+                type: string
+                description: Name of the user who responded.
+                example: "Maria Carey"
+              selectedOption:
+                type: string
+                description: The option chosen by the user.
+                example: "Every Saturday"
+              responseTime:
+                type: string
+                format: datetime
+                description: Timestamp of when the user responded.
+                example: "2025-07-22T10:30:00Z"
+      required:
+        - pollId
+        - question
+        - options
+        - totalVotes
+
+    EmergencyContact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: "Maria Carey"
+        phoneNumber:
+          type: string
+          example: "+234 801 234 5678"
+        emergencyType:
+          type: string
+          enum: [theft, health_emergency, domestic_violence, fire, other]
+        isActive:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, name, phoneNumber, emergencyType]
+
+    CreateEmergencyContact:
+      type: object
+      properties:
+        name:
+          type: string
+        phoneNumber:
+          type: string
+        emergencyType:
+          type: string
+          enum: [theft, health_emergency, domestic_violence, fire, other]
+      required: [name, phoneNumber, emergencyType]
+
+    UpdateEmergencyContact:
+      type: object
+      properties:
+        name:
+          type: string
+        phoneNumber:
+          type: string
+        emergencyType:
+          type: string
+          enum: [theft, health_emergency, domestic_violence, fire, other]
+        isActive:
+          type: boolean
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          example: "Electricity"
+        amount:
+          type: number
+          format: decimal
+          example: 12500.00
+        currency:
+          type: string
+          example: "NGN"
+        status:
+          type: string
+          enum: [pending, overdue, due, upcoming, completed]
+        dueDate:
+          type: string
+          format: date
+        provider:
+          type: string
+          example: "BEDC"
+        description:
+          type: string
+          example: "Electricity Bill Payment"
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, type, amount, currency, status]
+
+    ElectricityPaymentRequest:
+      type: object
+      properties:
+        meterNumber:
+          type: string
+          example: "12345678901"
+        meterType:
+          type: string
+          enum: [prepaid, postpaid]
+        phoneNumber:
+          type: string
+          example: "+234 801 234 5678"
+        amount:
+          type: number
+          format: decimal
+          example: 25000.00
+        provider:
+          type: string
+          example: "BEDC"
+      required: [meterNumber, meterType, phoneNumber, amount, provider]
+
+    SchedulePaymentRequest:
+      type: object
+      properties:
+        scheduledDate:
+          type: string
+          format: date-time
+          example: "2023-11-16T14:05:00Z"
+        frequency:
+          type: string
+          enum: [once, daily, weekly, monthly, yearly]
+          default: "once"
+        amount:
+          type: number
+          format: decimal
+      required: [scheduledDate, amount]
+
+    ScheduledPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        paymentId:
+          type: string
+          format: uuid
+        scheduledDate:
+          type: string
+          format: date-time
+        frequency:
+          type: string
+          enum: [once, daily, weekly, monthly, yearly]
+        amount:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [scheduled, processing, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [successful, failed, pending]
+        transactionReference:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+          example: "Payment receipt 24-11-23"
+        filesize:
+          type: string
+          example: "1.5mb"
+        fileType:
+          type: string
+          example: "pdf"
+        type:
+          type: string
+          enum: [payment_receipt, bill, contract, other]
+        category:
+          type: string
+          enum: [personal, work]
+        description:
+          type: string
+        uploadDate:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+          format: uri
+      required: [id, filename, fileType, type, category]
+
+    Wallet:
+      type: object
+      properties:
+        balance:
+          type: number
+          format: decimal
+          example: 45998.00
+        currency:
+          type: string
+          example: "NGN"
+        accountNumber:
+          type: string
+          example: "3067768543632415"
+        availableBalance:
+          type: number
+          format: decimal
+        lastUpdated:
+          type: string
+          format: date-time
+      required: [balance, currency]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [payment, transfer, deposit, withdrawal]
+        description:
+          type: string
+          example: "Electricity Bill"
+        amount:
+          type: number
+          format: decimal
+          example: -12000.00
+        currency:
+          type: string
+          example: "NGN"
+        date:
+          type: string
+          format: date-time
+          example: "2023-11-11T12:00:00Z"
+        status:
+          type: string
+          enum: [completed, pending, failed]
+        reference:
+          type: string
+      required: [id, type, description, amount, currency, date, status]
+
+    Child:
+      type: object
+      required:
+        - id
+        - name
+        - dateOfBirth
+        - gender
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the child
+        name:
+          type: string
+          description: Child's full name
+          example: "Tommy London"
+        dateOfBirth:
+          type: string
+          format: date
+          description: Child's date of birth
+          example: "2015-11-12"
+        gender:
+          type: string
+          enum: [male, female]
+          description: Child's gender
+        age:
+          type: integer
+          description: Child's age in years
+          example: 8
+        profilePhoto:
+          type: string
+          format: uri
+          description: URL to child's profile photo
+        houseNumber:
+          type: string
+          description: House number or address identifier
+        emergencyContacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyContact'
+        entryExitLog:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntryExitLog'
+
+    CreateChildRequest:
+      type: object
+      required:
+        - name
+        - dateOfBirth
+        - gender
+      properties:
+        name:
+          type: string
+          description: Child's full name
+        houseNumber:
+          type: string
+          description: House number or address identifier
+        dateOfBirth:
+          type: string
+          format: date
+          description: Child's date of birth
+        gender:
+          type: string
+          enum: [male, female]
+          description: Child's gender
+        emergencyContacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateEmergencyContact'
+
+    UpdateChildRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Child's full name
+        houseNumber:
+          type: string
+          description: House number or address identifier
+        dateOfBirth:
+          type: string
+          format: date
+          description: Child's date of birth
+        gender:
+          type: string
+          enum: [male, female]
+          description: Child's gender
+        emergencyContacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateEmergencyContact'
+
+    EntryExitLog:
+      type: object
+      required:
+        - id
+        - date
+        - exitTime
+        - entryTime
+        - reason
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the log entry
+        date:
+          type: string
+          format: date
+          description: Date of entry/exit
+          example: "2023-11-20"
+        exitTime:
+          type: string
+          format: time
+          description: Time of exit
+          example: "07:15"
+        entryTime:
+          type: string
+          format: time
+          description: Time of entry
+          example: "01:30"
+        reason:
+          type: string
+          description: Reason for entry/exit
+          example: "School"
+        status:
+          type: string
+          description: Status of the entry
+          example: "not stated"
+
+    ApprovalRequest:
+      type: object
+      required:
+        - id
+        - requesterId
+        - requesterName
+        - childId
+        - description
+        - status
+        - timestamp
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the request
+        requesterId:
+          type: string
+          description: ID of the person making the request
+        requesterName:
+          type: string
+          description: Name of the person making the request
+          example: "Tommy"
+        childId:
+          type: string
+          description: ID of the child the request is about
+        description:
+          type: string
+          description: Description of the approval request
+          example: "Approval request for Tommy to leave the estate"
+        status:
+          type: string
+          enum: [pending, approved, denied]
+          description: Current status of the request
+        timestamp:
+          type: string
+          format: date-time
+          description: When the request was created
+          example: "07:15 am"
+
+    CreateApprovalRequest:
+      type: object
+      required:
+        - childId
+        - description
+      properties:
+        childId:
+          type: string
+          description: ID of the child the request is about
+        description:
+          type: string
+          description: Description of the approval request
+
+    MarketplaceListing:
+      type: object
+      required:
+        - id
+        - title
+        - price
+        - sellerId
+        - category
+        - condition
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the listing
+        title:
+          type: string
+          description: Title of the listing
+          example: "Cozy Gray Sofa"
+        price:
+          type: number
+          description: Price in local currency
+          example: 35000
+        currency:
+          type: string
+          description: Currency code
+          example: "NGN"
+        sellerId:
+          type: string
+          description: ID of the seller
+        sellerName:
+          type: string
+          description: Name of the seller
+        category:
+          type: string
+          description: Category of the item
+          example: "Furniture"
+        subcategory:
+          type: string
+          description: Subcategory of the item
+          example: "Grey Cozy Sofa"
+        condition:
+          type: string
+          description: Condition of the item
+          example: "Used"
+        description:
+          type: string
+          description: Detailed description of the item
+          example: "This cozy gray sofa has been well-cared for and is ready to find a new home. Don't miss the chance to add a touch of comfort and style to your living space!"
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: URLs of item images
+        createdAt:
+          type: string
+          format: date-time
+          description: When the listing was created
+        isBookmarked:
+          type: boolean
+          description: Whether the current user has bookmarked this listing
+
+    CreateListingRequest:
+      type: object
+      required:
+        - title
+        - price
+        - category
+        - condition
+        - description
+      properties:
+        title:
+          type: string
+          description: Title of the listing
+        price:
+          type: number
+          description: Price in local currency
+        category:
+          type: string
+          description: Category of the item
+        subcategory:
+          type: string
+          description: Subcategory of the item
+        condition:
+          type: string
+          description: Condition of the item
+        description:
+          type: string
+          description: Detailed description of the item
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: URLs of item images
+
+    UserProfile:
+      type: object
+      required:
+        - id
+        - name
+        - role
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the user
+        name:
+          type: string
+          description: User's full name
+          example: "Harold James"
+        role:
+          type: string
+          description: User's role
+          example: "Bonanza Gate Estate"
+        profilePhoto:
+          type: string
+          format: uri
+          description: URL to user's profile photo
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phoneNumber:
+          type: string
+          description: User's phone number
+        address:
+          type: string
+          description: User's address
+
+    UpdateUserProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phoneNumber:
+          type: string
+          description: User's phone number
+        address:
+          type: string
+          description: User's address
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        fullName:
+          type: string
+          example: "Harold James"
+        email:
+          type: string
+          format: email
+          example: "harold.james@gmail.com"
+        phoneNumber:
+          type: string
+          example: "+234-765-456-8997"
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+
+    PasswordChange:
+      type: object
+      properties:
+        oldPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+        confirmPassword:
+          type: string
+          format: password
+      required:
+        - oldPassword
+        - newPassword
+        - confirmPassword
+
+    ServiceProvider:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "provider123"
+        name:
+          type: string
+          example: "Harold James"
+        profession:
+          type: string
+          example: "Plumber"
+        phoneNumber:
+          type: string
+          example: "08134567845"
+        address:
+          type: string
+          example: "Plot 234, Lekki Epe Expressway"
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+        category:
+          type: string
+          enum: [electrician, plumbing, dry_cleaning, gardener, automobile_repair]
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+        isRecentlyUsed:
+          type: boolean
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - profession
+        - phoneNumber
+        - category
+
+    DirectoryResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceProvider'
+        totalCount:
+          type: integer
+        categories:
+          type: array
+          items:
+            type: string
+        recentlyUsed:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceProvider'
+
+    DomesticStaff:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "staff123"
+        firstName:
+          type: string
+          example: "Jessica"
+        lastName:
+          type: string
+          example: "Lawrence"
+        role:
+          type: string
+          example: "Nanny"
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+        userId:
+          type: string
+          description: "ID of the user who owns this staff member"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - firstName
+        - lastName
+        - role
+        - userId
+
+    DomesticStaffCreate:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: "Jessica"
+        lastName:
+          type: string
+          example: "Lawrence"
+        role:
+          type: string
+          example: "Nanny"
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+        userId:
+          type: string
+          description: "ID of the user who owns this staff member"
+      required:
+        - firstName
+        - lastName
+        - role
+        - userId
+
+    DomesticStaffUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: "Jessica"
+        lastName:
+          type: string
+          example: "Lawrence"
+        role:
+          type: string
+          example: "Nanny"
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+
+    DomesticStaffList:
+      type: object
+      properties:
+        staff:
+          type: array
+          items:
+            $ref: '#/components/schemas/DomesticStaff'
+        totalCount:
+          type: integer
+
+
+    # --- Utility Schemas ---
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: A short error code or type.
+        message:
+          type: string
+          description: A human-readable error message.
+        details:
+          type: object
+          description: Optional detailed error information.
+          additionalProperties: true
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+          description: Indicates if the operation was successful.
+        data:
+          type: object
+          description: The data returned by the successful operation. Can be any object.
+        message:
+          type: string
+          description: An optional success message.
+
+    PaginatedResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          description: The array of items for the current page.
+          items: {} # Can be any type
+        pagination:
+          type: object
+          required:
+            - page
+            - limit
+            - total
+            - totalPages
+          properties:
+            page:
+              type: integer
+              minimum: 1
+              description: The current page number.
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              description: The number of items per page.
+            total:
+              type: integer
+              minimum: 0
+              description: The total number of items across all pages.
+            totalPages:
+              type: integer
+              minimum: 0
+              description: The total number of pages.
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for API authentication.
+
+paths:
+  # --- Authentication & User Paths ---
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user account.
+      description: Allows a new user to create an account with their details, including phone number and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User registered successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input or user already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User sign in.
+      description: Authenticates a user using their email/phone and password, returning an auth token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT authentication token.
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Create a new user (Admin).
+      description: Allows an administrator to create new user accounts, potentially setting initial permissions.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreationRequest'
+      responses:
+        '201':
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions.
+    get:
+      tags: [Users]
+      summary: List all users.
+      description: Retrieves a list of all registered users. Admin access typically required.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: A list of users.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserSummary' # Use UserSummary for lists
+        '401':
+          description: Unauthorized.
+        '403':
+          description: Forbidden - insufficient permissions.
+
+  /users/search:
+    get:
+      tags: [Users]
+      summary: Search users by name or email.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            description: Search query for user name or email.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserSummary'
+        '401':
+          description: Unauthorized.
+
+  # --- Group Paths ---
+  /groups:
+    post:
+      tags: [Groups]
+      summary: Create a new group.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupCreation'
+      responses:
+        '201':
+          description: Group created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Invalid input.
+        '401':
+          description: Unauthorized.
+
+    get:
+      tags: [Groups]
+      summary: Get user's groups.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of user groups.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        '401':
+          description: Unauthorized.
+
+  # --- Chat Paths ---
+  /chats:
+    get:
+      tags: [Chats]
+      summary: Get user's chats.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of user chats.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chat'
+        '401':
+          description: Unauthorized.
+
+  /chats/{chatId}/messages:
+    get:
+      tags: [Messages]
+      summary: Get chat messages.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: The ID of the chat to retrieve messages from.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            description: Page number for pagination.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+            description: Number of messages per page.
+      responses:
+        '200':
+          description: Chat messages.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Message'
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Chat not found.
+
+  # --- Announcement Paths ---
+  /announcements:
+    get:
+      tags: [Announcements]
+      summary: Get announcements.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [News, Estate Issues, Others]
+            description: Filter announcements by category.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            description: Page number for pagination.
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+            description: Number of announcements per page.
+      responses:
+        '200':
+          description: List of announcements.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Announcement'
+        '401':
+          description: Unauthorized.
+
+    post:
+      tags: [Announcements]
+      summary: Create a new announcement.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementCreate'
+      responses:
+        '201':
+          description: Announcement created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Announcement'
+        '400':
+          description: Invalid input.
+        '401':
+          description: Unauthorized.
+        '403':
+          description: Forbidden - insufficient permissions.
+
+  /announcements/{announcementId}/comments:
+    get:
+      tags: [Comments]
+      summary: Get announcement comments.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: The ID of the announcement to retrieve comments for.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: List of comments.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Comment'
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Announcement not found.
+
+    post:
+      tags: [Comments]
+      summary: Add comment to an announcement.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: announcementId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: The ID of the announcement to add a comment to.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+      responses:
+        '201':
+          description: Comment added successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid input.
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Announcement not found.
+
+  # --- Help Desk Paths ---
+  /helpdesk/issues:
+    post:
+      tags: [Help Desk]
+      summary: Report a new issue.
+      description: Allows a user to submit a new help desk issue with details and optional photos.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportIssueForm'
+      responses:
+        '201':
+          description: Issue reported successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/IssueTicket'
+        '400':
+          description: Invalid input.
+        '401':
+          description: Unauthorized.
+
+    get:
+      tags: [Help Desk]
+      summary: Get a list of help desk issues.
+      description: Retrieves issues, filterable by status (open, in progress, resolved).
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Open, In Progress, Resolved, Closed, Submitted]
+            description: Filter issues by their status.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: List of help desk issues.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/IssueTicket'
+        '401':
+          description: Unauthorized.
+
+  /helpdesk/issues/{issueId}:
+    get:
+      tags: [Help Desk]
+      summary: Get details of a specific issue.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The ID of the issue to retrieve.
+      responses:
+        '200':
+          description: Issue details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueTicket'
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Issue not found.
+
+    put:
+      tags: [Help Desk]
+      summary: Update an existing issue (e.g., status, assignee).
+      description: Allows authorized users (e.g., admins, assigned personnel) to update an issue's details.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The ID of the issue to update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/IssueStatus'
+                description:
+                  type: string
+                assigneeId:
+                  type: string
+                  format: uuid
+              # Allow partial updates
+              minProperties: 1
+      responses:
+        '200':
+          description: Issue updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueTicket'
+        '400':
+          description: Invalid input.
+        '401':
+          description: Unauthorized.
+        '403':
+          description: Forbidden - insufficient permissions.
+        '404':
+          description: Issue not found.
+
+  /helpdesk/issues/{issueId}/messages:
+    post:
+      tags: [Help Desk]
+      summary: Add a message/comment to an issue.
+      description: Allows users to add messages or comments to an existing help desk issue.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: issueId
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The ID of the issue to add a message to.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueMessage'
+      responses:
+        '201':
+          description: Message added successfully.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Message' # Assuming IssueMessage maps to a generic Message
+        '400':
+          description: Invalid input.
+        '401':
+          description: Unauthorized.
+        '404':
+          description: Issue not found.
+  
+  /visitors:
+    get:
+      summary: Get visitor logs
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [recent, scheduled, "checked-in"]
+      responses:
+        '200':
+          description: List of visitor logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VisitorLog'
+
+    post:
+      summary: Add new visitor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Visitor'
+      responses:
+        '201':
+          description: Visitor added successfully
+
+  /visitors/{id}/access-code:
+    post:
+      summary: Generate access code for visitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Access code generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessControl'
+
+  /events:
+    get:
+      summary: Get all events
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+    post:
+      summary: Create new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '201':
+          description: Event created successfully
+
+  /polls:
+    get:
+      summary: Get all polls
+      responses:
+        '200':
+          description: List of polls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Poll'
+
+    post:
+      summary: Create new poll
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Poll'
+      responses:
+        '201':
+          description: Poll created successfully
+
+  /polls/{id}/vote:
+    post:
+      summary: Vote on a poll
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                optionId:
+                  type: string
+                  format: uuid
+              required:
+                - optionId
+      responses:
+        '200':
+          description: Vote recorded successfully
+
+  /visit-requests:
+    get:
+      summary: Get visit requests
+      responses:
+        '200':
+          description: List of visit requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VisitRequest'
+
+    post:
+      summary: Approve or reject visit request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestId:
+                  type: string
+                  format: uuid
+                action:
+                  type: string
+                  enum: [approve, reject]
+              required:
+                - requestId
+                - action
+      responses:
+        '200':
+          description: Request processed successfully
+  
+  /meetings:
+    get:
+      summary: Get Upcoming Meetings
+      description: Retrieves a list of all upcoming meetings.
+      responses:
+        '200':
+          description: A list of upcoming meetings.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Meeting'
+    post:
+      summary: Create New Meeting
+      description: Creates a new meeting with specified details and participants.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  description: Title of the new meeting.
+                  example: "New Community Gathering"
+                description:
+                  type: string
+                  description: Description of the new meeting.
+                  example: "Discussion on estate security"
+                date:
+                  type: string
+                  format: date
+                  description: Date of the new meeting.
+                  example: "2023-12-01"
+                start_time:
+                  type: string
+                  description: Start time of the new meeting.
+                  example: "09:00 AM"
+                end_time:
+                  type: string
+                  description: End time of the new meeting.
+                  example: "10:00 AM"
+                meetingLink:
+                  type: string
+                  format: uri
+                  description: Optional link for the meeting.
+                participants:
+                  type: array
+                  items:
+                    type: string
+                    description: User ID of a participant.
+                  example: ["user001", "user002"]
+              required:
+                - title
+                - description
+                - date
+                - start_time
+                - end_time
+                - participants
+      responses:
+        '201':
+          description: Meeting created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+        '400':
+          description: Invalid input.
+
+  /meetings/{meetingId}:
+    get:
+      summary: Get Meeting Details
+      description: Retrieves detailed information about a specific meeting.
+      parameters:
+        - in: path
+          name: meetingId
+          required: true
+          schema:
+            type: string
+          description: ID of the meeting to retrieve.
+      responses:
+        '200':
+          description: Details of the specified meeting.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+        '404':
+          description: Meeting not found.
+
+  # SOS Alert & Emergency Contacts Endpoints
+  /emergency-numbers:
+    get:
+      summary: Get Registered Emergency Numbers
+      description: Retrieves a list of all registered emergency contact numbers for the user.
+      responses:
+        '200':
+          description: A list of emergency numbers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmergencyNumber'
+    post:
+      summary: Register Emergency Number
+      description: Registers a new emergency contact number.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Name associated with the emergency number.
+                  example: "John Doe"
+                phoneNumber:
+                  type: string
+                  description: The emergency contact number to register.
+                  example: "+2349012345679"
+              required:
+                - name
+                - phoneNumber
+      responses:
+        '201':
+          description: Emergency number registered successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyNumber'
+        '400':
+          description: Invalid input.
+
+  /emergency-numbers/{id}:
+    delete:
+      summary: Remove Emergency Number
+      description: Removes a registered emergency contact number by its ID.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: ID of the emergency number to remove.
+      responses:
+        '204':
+          description: Emergency number removed successfully.
+        '404':
+          description: Emergency number not found.
+
+  /sos-alert:
+    post:
+      summary: Send SOS Alert
+      description: Sends an SOS alert to registered emergency contacts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SOSRequest'
+      responses:
+        '200':
+          description: SOS alert sent successfully.
+        '400':
+          description: Invalid request or no emergency contacts registered.
+
+  # Polls Endpoints
+  /polls/{pollId}/responses:
+    get:
+      summary: Get Poll Responses
+      description: Retrieves the responses and results for a specific poll.
+      parameters:
+        - in: path
+          name: pollId
+          required: true
+          schema:
+            type: string
+          description: ID of the poll to retrieve responses for.
+      responses:
+        '200':
+          description: Poll responses retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollResponse'
+        '404':
+          description: Poll not found.
+
+  # Quick Services Endpoints
+  /quick-services:
+    get:
+      summary: Get Available Quick Services
+      description: Retrieves a list of quick services available to the user.
+      responses:
+        '200':
+          description: A list of quick services.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuickService'
+
+  /emergency-contacts:
+    get:
+      summary: Get all emergency contacts
+      tags: [Emergency Contacts]
+      responses:
+        '200':
+          description: List of emergency contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmergencyContact'
+    
+    post:
+      summary: Add new emergency contact
+      tags: [Emergency Contacts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmergencyContact'
+      responses:
+        '201':
+          description: Emergency contact created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+
+  /emergency-contacts/{contactId}:
+    put:
+      summary: Update emergency contact
+      tags: [Emergency Contacts]
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmergencyContact'
+      responses:
+        '200':
+          description: Emergency contact updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+    
+    delete:
+      summary: Remove emergency contact
+      tags: [Emergency Contacts]
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Emergency contact removed
+
+  /emergency-contacts/add-from-contacts:
+    post:
+      summary: Add emergency contact from device contacts
+      tags: [Emergency Contacts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contactId:
+                  type: string
+                  description: Device contact ID
+                emergencyType:
+                  type: string
+                  enum: [theft, health_emergency, domestic_violence, fire, other]
+              required: [contactId, emergencyType]
+      responses:
+        '201':
+          description: Emergency contact added from device contacts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+
+  /emergency-contacts/{contactId}/save:
+    post:
+      summary: Save emergency contact registration
+      tags: [Emergency Contacts]
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Emergency contact registration saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+
+  /payments:
+    get:
+      summary: Get all payments
+      tags: [Payments]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, overdue, due, upcoming, completed]
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+
+  /payments/{paymentId}/proceed:
+    post:
+      summary: Proceed with payment processing
+      tags: [Payments]
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment processing initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+  /payments/{paymentId}/schedule:
+    post:
+      summary: Schedule a payment
+      tags: [Payments]
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchedulePaymentRequest'
+      responses:
+        '201':
+          description: Payment scheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledPayment'
+
+  /payments/scheduled/{scheduledPaymentId}/view:
+    get:
+      summary: View scheduled payment details
+      tags: [Payments]
+      parameters:
+        - name: scheduledPaymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Scheduled payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduledPayment'
+
+  /payments/electricity:
+    post:
+      summary: Process electricity bill payment
+      tags: [Payments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ElectricityPaymentRequest'
+      responses:
+        '201':
+          description: Electricity payment processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+  /documents/upload-mobile:
+    post:
+      summary: Upload document from mobile device
+      tags: [Documents]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                type:
+                  type: string
+                  enum: [payment_receipt, bill, contract, other]
+                category:
+                  type: string
+                  enum: [personal, work]
+                description:
+                  type: string
+                source:
+                  type: string
+                  enum: [camera, gallery]
+                  default: camera
+              required: [file, type, source]
+      responses:
+        '201':
+          description: Document uploaded from mobile successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+
+  /wallet:
+    get:
+      summary: Get wallet balance and details
+      tags: [Wallet]
+      responses:
+        '200':
+          description: Wallet information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+
+  /transactions:
+    get:
+      summary: Get transaction history
+      tags: [Transactions]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+  /children:
+      get:
+        summary: Get all children for the authenticated user
+        responses:
+          '200':
+            description: List of children
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Child'
+      post:
+        summary: Add a new child
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateChildRequest'
+        responses:
+          '201':
+            description: Child created successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Child'
+
+  /children/{childId}:
+    get:
+      summary: Get child details by ID
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Child details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Child'
+    put:
+      summary: Update child details
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChildRequest'
+      responses:
+        '200':
+          description: Child updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Child'
+
+  /children/{childId}/entry-exit-log:
+    get:
+      summary: Get entry/exit log for a child
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Entry/exit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EntryExitLog'
+
+  /approval-requests:
+    get:
+      summary: Get approval requests
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, denied]
+        - name: childId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of approval requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApprovalRequest'
+    post:
+      summary: Create a new approval request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApprovalRequest'
+      responses:
+        '201':
+          description: Approval request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalRequest'
+
+  /approval-requests/{requestId}/approve:
+    post:
+      summary: Approve a request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Request approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalRequest'
+
+  /approval-requests/{requestId}/deny:
+    post:
+      summary: Deny a request
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Request denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalRequest'
+
+  /marketplace/listings:
+    get:
+      summary: Get marketplace listings
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [trending, phones_tablets, furniture, kitchen_wares, home_decor, pet, electronics, toy_games]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of marketplace listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MarketplaceListing'
+    post:
+      summary: Create a new marketplace listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateListingRequest'
+      responses:
+        '201':
+          description: Listing created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketplaceListing'
+
+  /marketplace/listings/{listingId}:
+    get:
+      summary: Get listing details
+      parameters:
+        - name: listingId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Listing details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketplaceListing'
+
+  /marketplace/listings/my-listings:
+    get:
+      summary: Get user's own listings
+      responses:
+        '200':
+          description: User's listings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MarketplaceListing'
+
+  /user/profile:
+    get:
+      summary: Get user profile
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /users/{userId}/profile:
+    get:
+      summary: Get user profile
+      tags:
+        - User Management
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    
+    put:
+      summary: Update user profile
+      tags:
+        - User Management
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /users/{userId}/change-password:
+    post:
+      summary: Change user password
+      tags:
+        - User Management
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+
+  /directory:
+    get:
+      summary: Get service directory
+      tags:
+        - Directory
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search term for services
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [electrician, plumbing, dry_cleaning, gardener, automobile_repair]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Directory entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DirectoryResponse'
+
+  /directory/providers/{providerId}:
+    get:
+      summary: Get service provider details
+      tags:
+        - Directory
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Provider details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceProvider'
+
+  /domestic-staff:
+    get:
+      summary: Get domestic staff list
+      tags:
+        - Domestic Staff
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Domestic staff list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomesticStaffList'
+    
+    post:
+      summary: Add new domestic staff member
+      tags:
+        - Domestic Staff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomesticStaffCreate'
+      responses:
+        '201':
+          description: Domestic staff member added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomesticStaff'
+
+  /domestic-staff/{staffId}:
+    get:
+      summary: Get domestic staff member details
+      tags:
+        - Domestic Staff
+      parameters:
+        - name: staffId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Staff member details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomesticStaff'
+    
+    put:
+      summary: Update domestic staff member
+      tags:
+        - Domestic Staff
+      parameters:
+        - name: staffId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomesticStaffUpdate'
+      responses:
+        '200':
+          description: Staff member updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomesticStaff'
+    
+    delete:
+      summary: Delete domestic staff member
+      tags:
+        - Domestic Staff
+      parameters:
+        - name: staffId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Staff member deleted successfully
+
