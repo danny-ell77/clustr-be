@@ -13,7 +13,7 @@ from core.common.utils.serializers import build_runtime_serializer
 from core.common.utils.payment_utils import PaymentManager, PaymentError, initialize_deposit, process_bill_payment
 from core.common.utils.bill_utils import BillManager, BillNotificationManager, create_monthly_service_charge, create_utility_bill
 from core.common.utils.recurring_payment_utils import RecurringPaymentManager, RecurringPaymentNotificationManager, setup_monthly_service_charge, setup_utility_autopay
-from core.common.utils.payment_error_utils import PaymentErrorHandler, PaymentErrorNotificationManager, handle_payment_error, get_payment_error_summary
+from core.common.utils.payment_error_utils import PaymentErrorHandler, PaymentErrorNotificationManager, handle_payment_error
 from core.common.utils.cluster_wallet_utils import ClusterWalletManager, get_cluster_balance, credit_cluster_from_bill_payment
 
 # Function to convert snake_case or camelCase to sentence case
@@ -69,7 +69,6 @@ __all__ = [
     'PaymentErrorHandler',
     'PaymentErrorNotificationManager',
     'handle_payment_error',
-    'get_payment_error_summary',
     'ClusterWalletManager',
     'get_cluster_balance',
     'credit_cluster_from_bill_payment'

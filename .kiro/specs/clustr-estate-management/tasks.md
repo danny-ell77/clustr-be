@@ -282,7 +282,7 @@
 
 
 
-- [ ] 8.1 Implement payment processing
+- [x] 8.1 Implement payment processing
   - Integrate with Paystack and Flutterwave as specified in the technical requirements (Payment integration logic in core/common/utils.py or a dedicated payments app if complex)
   - Implement payment initiation and completion flow
   - Add receipt generation and storage using the existing file storage system (Utility in core/common/utils.py)
@@ -290,7 +290,7 @@
 
   - _Requirements: 7.2, 7.3_
 
-- [ ] 8.2 Implement bill management
+- [x] 8.2 Implement bill management
   - Create bill model and integrate with the notification system in core/common/models.py
 
 
@@ -300,13 +300,13 @@
 
 
 
-- [ ] 8.3 Implement recurring payments
+- [x] 8.3 Implement recurring payments
   - Create scheduled payment model and execution system in core/common/models.py
   - Integrate with the notification system for payment reminders (Notification utility in core/common/utils.py)
   - Add payment schedule management
   - _Requirements: 7.5, 7.6_
 
-- [ ] 8.4 Implement payment error handling
+- [x] 8.4 Implement payment error handling
   - Create robust error detection for failed transactions (Logic in core/common/utils.py)
   - Implement clear error messaging using the existing error handling framework
   - Add recovery options for failed payments
@@ -439,22 +439,32 @@
   - _Requirements: 12.3, 12.5_
 
 ## Settings and Preferences
-- [ ] 14. Implement user settings management
+- [-] 14. Implement user settings management
+
+
+
   - Create user settings model and storage in accounts app (or core/common/models.py if generic across users)
   - Extend the existing AccountUser model for settings integration
   - Add settings categories and organization
   - _Requirements: 13.1_
 
-- [ ] 14.1 Implement notification preferences
+- [x] 14.1 Implement notification preferences
+
+
   - Create notification preference management in accounts app (or core/common/models.py if generic)
   - Extend the existing notification system with preference-based filtering (Logic in core/common/utils.py)
   - Add notification channel selection (email, SMS, push)
   - _Requirements: 13.2_
 
+
 - [ ] 14.2 Implement security settings
+
+
+
+
   - Enhance the existing PreviousPasswords model for security settings (Keep in accounts app)
-  - Implement two-factor authentication (Logic in accounts app, possibly using core/common/utils.py for shared components)
-  - Add session management and device tracking
+  <!-- - Implement two-factor authentication (Logic in accounts app, possibly using core/common/utils.py for shared components) -->
+  <!-- - Add device tracking -->
   - _Requirements: 13.3, 13.5_
 
 - [ ] 14.3 Implement personal information management

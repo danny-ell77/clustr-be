@@ -353,3 +353,38 @@ class PreviousPasswords(UUIDPrimaryKey):
     def save(self, *args, **kwargs):
         self.passwords = list(set(self.passwords))
         super().save(*args, **kwargs)
+    
+    def add_password(self, password_hash, max_history=10):
+        """
+        Add a new password hash to the history.
+        
+        Args:
+            password_hash: The hashed password to add
+            max_history: Maximum number of passwords to keep in history
+        """
+        if not self.passwords:
+            self.passwords = []
+        
+        # Add new password to the beginning of the list
+        if password_hash not in self.passwords:
+            self.passwords.insert(0, password_hash)
+        
+        # Keep only the most recent passwords
+        self.passwords = self.passwords[:max_history]
+        self.save()
+    
+    def is_password_reused(self, password_hash):
+        """
+        Check if a password hash has been used before.
+        
+        Args:
+            password_hash: The hashed password to check
+            
+        Returns:
+            True if the password has been used before, False otherwise
+        """
+        return password_hash in (self.passwords or [])
+    
+    def get_password_count(self):
+        """Get the number of passwords in history."""
+        return len(self.passwords or [])

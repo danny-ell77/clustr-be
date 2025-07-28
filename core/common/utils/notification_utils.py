@@ -3,6 +3,7 @@ Notification utilities for ClustR application.
 """
 
 import logging
+from typing import List, Optional
 from django.template import Context
 from django.utils.translation import gettext_lazy as _
 
@@ -13,8 +14,204 @@ logger = logging.getLogger('clustr')
 
 class NotificationManager:
     """
-    Manages sending notifications to users.
+    Manages sending notifications to users with preference-based filtering.
     """
+    
+    @staticmethod
+    def _filter_recipients_by_preferences(
+        recipients: List[str], 
+        notification_type: str, 
+        channel: str = "EMAIL",
+        cluster=None
+    ) -> List[str]:
+        """
+        Filter recipients based on their notification preferences.
+        
+        Args:
+            recipients: List of email addresses
+            notification_type: Type of notification
+            channel: Notification channel (EMAIL, SMS, PUSH, IN_APP)
+            cluster: Optional cluster for cluster-specific preferences
+            
+        Returns:
+            Filtered list of recipients who have this notification enabled
+        """
+        try:
+            from accounts.models import AccountUser, UserSettings
+            
+            # Get users by email addresses
+            users = AccountUser.objects.filter(email_address__in=recipients)
+            filtered_recipients = []
+            
+            for user in users:
+                # Get or create user settings
+                settings, created = UserSettings.objects.get_or_create(user=user)
+                
+                # Check if user has this notification enabled for this channel
+                if settings.get_notification_preference(notification_type, channel):
+                    filtered_recipients.append(user.email_address)
+            
+            return filtered_recipients
+            
+        except Exception as e:
+            logger.error(f"Error filtering recipients by preferences: {e}")
+            # Return original recipients if filtering fails
+            return recipients
+    
+    @staticmethod
+    def _send_notification_with_preferences(
+        recipients: List[str],
+        notification_type: str,
+        email_type: str,
+        context: Context,
+        channel: str = "EMAIL",
+        cluster=None
+    ) -> bool:
+        """
+        Send notification with preference filtering.
+        
+        Args:
+            recipients: List of email addresses
+            notification_type: Type of notification for preference checking
+            email_type: Email template type
+            context: Email context
+            channel: Notification channel
+            cluster: Optional cluster
+            
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        try:
+            # Filter recipients based on preferences
+            filtered_recipients = NotificationManager._filter_recipients_by_preferences(
+                recipients, notification_type, channel, cluster
+            )
+            
+            if not filtered_recipients:
+                logger.info(f"No recipients with {notification_type} notifications enabled")
+                return True
+            
+            sender = AccountEmailSender(
+                recipients=filtered_recipients,
+                email_type=email_type,
+                context=context
+            )
+            
+            return sender.send()
+            
+        except Exception as e:
+            logger.error(f"Error sending notification with preferences: {e}")
+            return False
+    
+    @staticmethod
+    def _send_sms_notification_with_preferences(
+        phone_numbers: List[str],
+        notification_type: str,
+        message: str,
+        cluster=None
+    ) -> bool:
+        """
+        Send SMS notification with preference filtering.
+        
+        Args:
+            phone_numbers: List of phone numbers
+            notification_type: Type of notification for preference checking
+            message: SMS message content
+            cluster: Optional cluster
+            
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        try:
+            from accounts.models import AccountUser, UserSettings, SMSSender
+            
+            # Get users by phone numbers
+            users = AccountUser.objects.filter(phone_number__in=phone_numbers)
+            filtered_phone_numbers = []
+            
+            for user in users:
+                # Get or create user settings
+                settings, created = UserSettings.objects.get_or_create(user=user)
+                
+                # Check if user has SMS notifications enabled for this type
+                if settings.get_notification_preference(notification_type, "SMS"):
+                    filtered_phone_numbers.append(user.phone_number)
+            
+            if not filtered_phone_numbers:
+                logger.info(f"No recipients with SMS {notification_type} notifications enabled")
+                return True
+            
+            # Send SMS to filtered recipients
+            success_count = 0
+            for phone_number in filtered_phone_numbers:
+                if SMSSender.send_verification_code(phone_number, message):
+                    success_count += 1
+            
+            return success_count > 0
+            
+        except Exception as e:
+            logger.error(f"Error sending SMS notification with preferences: {e}")
+            return False
+    
+    @staticmethod
+    def send_multi_channel_notification(
+        recipients: List[str],
+        notification_type: str,
+        email_type: str,
+        email_context: Context,
+        sms_message: str = None,
+        cluster=None
+    ) -> dict:
+        """
+        Send notification across multiple channels based on user preferences.
+        
+        Args:
+            recipients: List of email addresses or phone numbers
+            notification_type: Type of notification
+            email_type: Email template type
+            email_context: Email context
+            sms_message: SMS message content (optional)
+            cluster: Optional cluster
+            
+        Returns:
+            Dictionary with results for each channel
+        """
+        results = {
+            'email': False,
+            'sms': False,
+        }
+        
+        try:
+            # Send email notifications
+            results['email'] = NotificationManager._send_notification_with_preferences(
+                recipients=recipients,
+                notification_type=notification_type,
+                email_type=email_type,
+                context=email_context,
+                channel="EMAIL",
+                cluster=cluster
+            )
+            
+            # Send SMS notifications if message provided
+            if sms_message:
+                # Convert email addresses to phone numbers
+                from accounts.models import AccountUser
+                users = AccountUser.objects.filter(email_address__in=recipients)
+                phone_numbers = [user.phone_number for user in users if user.phone_number]
+                
+                if phone_numbers:
+                    results['sms'] = NotificationManager._send_sms_notification_with_preferences(
+                        phone_numbers=phone_numbers,
+                        notification_type=notification_type,
+                        message=sms_message,
+                        cluster=cluster
+                    )
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error sending multi-channel notification: {e}")
+            return results
     
     @staticmethod
     def send_visitor_arrival_notification(user_email, visitor_name, access_code):
@@ -34,15 +231,12 @@ class NotificationManager:
             'access_code': access_code,
         })
         
-        # Add VISITOR_ARRIVAL template to EMAIL_TEMPLATES in email_sender.py if not already there
-        
-        sender = AccountEmailSender(
+        return NotificationManager._send_notification_with_preferences(
             recipients=[user_email],
+            notification_type="VISITOR_ARRIVAL",
             email_type=NotificationTypes.VISITOR_ARRIVAL,
             context=context
         )
-        
-        return sender.send()
     
     @staticmethod
     def send_visitor_overstay_notification(user_email, visitor_name, access_code):
@@ -62,17 +256,12 @@ class NotificationManager:
             'access_code': access_code,
         })
         
-        # This would use a different notification type, which would need to be added
-        # to NotificationTypes enum and EMAIL_TEMPLATES in email_sender.py
-        
-        # For now, we'll use the VISITOR_ARRIVAL type as a placeholder
-        sender = AccountEmailSender(
+        return NotificationManager._send_notification_with_preferences(
             recipients=[user_email],
-            email_type=NotificationTypes.VISITOR_ARRIVAL,
+            notification_type="VISITOR_OVERSTAY",
+            email_type=NotificationTypes.VISITOR_ARRIVAL,  # Placeholder
             context=context
         )
-        
-        return sender.send()
     
     @staticmethod
     def send_announcement_notification(announcement, cluster):

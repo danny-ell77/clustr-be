@@ -141,14 +141,16 @@ STATIC_URL = "/static/"
 
 # REST Framework settings
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'accounts.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "accounts.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
-    'EXCEPTION_HANDLER': 'core.common.exception_handlers.custom_exception_handler',
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+    "EXCEPTION_HANDLER": "core.common.exception_handlers.custom_exception_handler",
 }
 
 # JWT settings
@@ -157,67 +159,131 @@ JWT_ACCESS_TOKEN_LIFETIME_HOURS = 1
 JWT_REFRESH_TOKEN_LIFETIME_DAYS = 7
 
 # File storage settings
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default file storage (local for development)
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
 # Logging configuration
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'error.log'),
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
         },
-        'django.request': {
-            'handlers': ['console', 'error_file'],
-            'level': 'ERROR',
-            'propagate': False,
+        "file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "django.log"),
+            "maxBytes": 10 * 1024 * 1024,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
         },
-        'clustr': {
-            'handlers': ['console', 'file', 'error_file'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': True,
+        "error_file": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "error.log"),
+            "maxBytes": 10 * 1024 * 1024,  # 10 MB
+            "backupCount": 5,
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "django.request": {
+            "handlers": ["console", "error_file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "clustr": {
+            "handlers": ["console", "file", "error_file"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": True,
         },
     },
 }
 
 # Ensure the logs directory exists
-os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
+
+# Celery settings
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat schedule
+CELERY_BEAT_SCHEDULE = {
+    "detect-visitor-overstays-every-hour": {
+        "task": "detect_visitor_overstays",
+        "schedule": 3600.0,  # Every hour
+    },
+    "update-invitation-statuses-daily": {
+        "task": "update_invitation_statuses",
+        "schedule": 86400.0,  # Every day
+    },
+    "check-missed-shifts-every-15-minutes": {
+        "task": "check_missed_shifts",
+        "schedule": 900.0,  # Every 15 minutes
+    },
+    "send-shift-reminders-hourly": {
+        "task": "send_shift_reminders",
+        "schedule": 3600.0,  # Every hour
+    },
+    "spawn-check-task-deadlines-daily": {
+        "task": "spawn_check_task_deadlines",
+        "schedule": 86400.0,  # Every day
+    },
+    "spawn-process-maintenance-schedules-daily": {
+        "task": "spawn_process_maintenance_schedules",
+        "schedule": 86400.0,  # Every day
+    },
+    "check-overdue-children-every-15-minutes": {
+        "task": "check_overdue_children",
+        "schedule": 900.0,  # Every 15 minutes
+    },
+    "expire-old-exit-requests-hourly": {
+        "task": "expire_old_exit_requests",
+        "schedule": 3600.0,  # Every hour
+    },
+    "send-exit-request-reminders-hourly": {
+        "task": "send_exit_request_reminders",
+        "schedule": 3600.0,  # Every hour
+    },
+    "spawn-process-recurring-payments-daily": {
+        "task": "spawn_process_recurring_payments",
+        "schedule": 86400.0,  # Every day
+    },
+    "spawn-send-recurring-payment-reminders-daily": {
+        "task": "spawn_send_recurring_payment_reminders",
+        "schedule": 86400.0,  # Every day
+    },
+    "spawn-check-overdue-bills-daily": {
+        "task": "spawn_check_overdue_bills",
+        "schedule": 86400.0,  # Every day
+    },
+    "spawn-send-bill-reminders-daily": {
+        "task": "spawn_send_bill_reminders",
+        "schedule": 86400.0,  # Every day
+    },
+}

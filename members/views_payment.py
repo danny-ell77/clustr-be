@@ -11,9 +11,12 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
 
 from accounts.permissions import HasSpecificPermission
 from core.common.permissions import PaymentsPermissions
+from core.common.decorators import audit_viewset
 from core.common.models import (
     Wallet,
     Transaction,
@@ -26,6 +29,25 @@ from core.common.models import (
     PaymentProvider,
     RecurringPaymentFrequency,
 )
+from core.common.serializers.payment_serializers import (
+    WalletBalanceResponseSerializer,
+    WalletDepositSerializer,
+    DepositResponseSerializer,
+    TransactionSerializer,
+    TransactionListResponseSerializer,
+    BillSerializer,
+    BillListResponseSerializer,
+    BillAcknowledgeSerializer,
+    BillDisputeSerializer,
+    BillPaymentSerializer,
+    BillPaymentResponseSerializer,
+    DirectBillPaymentSerializer,
+    RecurringPaymentSerializer,
+    RecurringPaymentListResponseSerializer,
+    CreateRecurringPaymentSerializer,
+    PauseRecurringPaymentSerializer,
+    PaginationSerializer,
+)
 from core.common.utils import (
     BillManager,
     RecurringPaymentManager,
@@ -34,10 +56,19 @@ from core.common.utils import (
     process_bill_payment,
 )
 from core.common.responses import success_response, error_response
+from members.filters import TransactionFilter, BillFilter, RecurringPaymentFilter
 
 logger = logging.getLogger('clustr')
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    """Standard pagination class for payment views"""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+@audit_viewset(resource_type="wallet")
 class WalletViewSet(viewsets.ViewSet):
     """
     ViewSet for wallet operations (residents).
@@ -47,6 +78,9 @@ class WalletViewSet(viewsets.ViewSet):
         IsAuthenticated,
         HasSpecificPermission([PaymentsPermissions.ViewWallet])
     ]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TransactionFilter
     
     @action(detail=False, methods=['get'])
     def balance(self, request):
@@ -71,15 +105,18 @@ class WalletViewSet(viewsets.ViewSet):
                 }
             )
             
+            # Serialize the response
+            serializer = WalletBalanceResponseSerializer({
+                'balance': wallet.balance,
+                'available_balance': wallet.available_balance,
+                'currency': wallet.currency,
+                'status': wallet.status,
+                'is_pin_set': wallet.is_pin_set,
+                'last_transaction_at': wallet.last_transaction_at,
+            })
+            
             return success_response(
-                data={
-                    'balance': str(wallet.balance),
-                    'available_balance': str(wallet.available_balance),
-                    'currency': wallet.currency,
-                    'status': wallet.status,
-                    'is_pin_set': wallet.is_pin_set,
-                    'last_transaction_at': wallet.last_transaction_at.isoformat() if wallet.last_transaction_at else None,
-                },
+                data=serializer.data,
                 message="Wallet balance retrieved successfully"
             )
         
@@ -98,27 +135,20 @@ class WalletViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            data = request.data
             
-            # Validate required fields
-            amount = data.get('amount')
-            provider = data.get('provider', PaymentProvider.PAYSTACK)
-            
-            if not amount:
+            # Validate input data
+            serializer = WalletDepositSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Amount is required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
             
-            try:
-                amount = Decimal(str(amount))
-                if amount <= 0:
-                    raise ValueError("Amount must be positive")
-            except (ValueError, TypeError):
-                return error_response(
-                    message="Invalid amount",
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
+            validated_data = serializer.validated_data
+            amount = validated_data['amount']
+            provider = validated_data['provider']
+            callback_url = validated_data.get('callback_url')
             
             # Get or create wallet
             wallet, created = Wallet.objects.get_or_create(
@@ -140,18 +170,21 @@ class WalletViewSet(viewsets.ViewSet):
                 amount=amount,
                 provider=provider,
                 user_email=request.user.email_address,
-                callback_url=data.get('callback_url')
+                callback_url=callback_url
             )
             
+            # Serialize the response
+            response_serializer = DepositResponseSerializer({
+                'transaction_id': transaction.transaction_id,
+                'amount': transaction.amount,
+                'currency': transaction.currency,
+                'provider': transaction.provider,
+                'payment_url': payment_response.get('authorization_url') or payment_response.get('link'),
+                'reference': payment_response.get('reference') or payment_response.get('tx_ref'),
+            })
+            
             return success_response(
-                data={
-                    'transaction_id': transaction.transaction_id,
-                    'amount': str(transaction.amount),
-                    'currency': transaction.currency,
-                    'provider': transaction.provider,
-                    'payment_url': payment_response.get('authorization_url') or payment_response.get('link'),
-                    'reference': payment_response.get('reference') or payment_response.get('tx_ref'),
-                },
+                data=response_serializer.data,
                 message="Deposit initialized successfully",
                 status_code=status.HTTP_201_CREATED
             )
@@ -166,67 +199,62 @@ class WalletViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def transactions(self, request):
         """
-        Get user's transaction history.
+        Get user's transaction history with filtering and pagination.
         """
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
             
-            # Get query parameters
-            transaction_type = request.query_params.get('type')
-            status_filter = request.query_params.get('status')
-            page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('page_size', 20))
-            
             # Get wallet
             try:
                 wallet = Wallet.objects.get(cluster=cluster, user_id=user_id)
             except Wallet.DoesNotExist:
+                # Return empty response with proper serialization
+                empty_response = TransactionListResponseSerializer({
+                    'transactions': [],
+                    'pagination': {
+                        'page': 1,
+                        'page_size': 20,
+                        'total_count': 0,
+                        'total_pages': 0,
+                    }
+                })
                 return success_response(
-                    data={'transactions': [], 'pagination': {'page': 1, 'page_size': page_size, 'total_count': 0, 'total_pages': 0}},
+                    data=empty_response.data,
                     message="No transactions found"
                 )
             
             # Build queryset
-            queryset = Transaction.objects.filter(wallet=wallet)
+            queryset = Transaction.objects.filter(wallet=wallet).order_by('-created_at')
             
-            if transaction_type:
-                queryset = queryset.filter(type=transaction_type)
-            
-            if status_filter:
-                queryset = queryset.filter(status=status_filter)
+            # Apply filters
+            filterset = TransactionFilter(request.GET, queryset=queryset, request=request)
+            if filterset.is_valid():
+                queryset = filterset.qs
             
             # Apply pagination
-            total_count = queryset.count()
-            start_index = (page - 1) * page_size
-            end_index = start_index + page_size
-            transactions = queryset.order_by('-created_at')[start_index:end_index]
+            paginator = StandardResultsSetPagination()
+            page = paginator.paginate_queryset(queryset, request)
+            
+            # Serialize transactions
+            transaction_serializer = TransactionSerializer(page, many=True)
+            
+            # Prepare pagination data
+            pagination_data = {
+                'page': paginator.page.number,
+                'page_size': paginator.page_size,
+                'total_count': paginator.page.paginator.count,
+                'total_pages': paginator.page.paginator.num_pages,
+            }
+            
+            # Serialize the complete response
+            response_serializer = TransactionListResponseSerializer({
+                'transactions': transaction_serializer.data,
+                'pagination': pagination_data
+            })
             
             return success_response(
-                data={
-                    'transactions': [
-                        {
-                            'id': str(transaction.id),
-                            'transaction_id': transaction.transaction_id,
-                            'type': transaction.type,
-                            'amount': str(transaction.amount),
-                            'currency': transaction.currency,
-                            'status': transaction.status,
-                            'description': transaction.description,
-                            'provider': transaction.provider,
-                            'created_at': transaction.created_at.isoformat(),
-                            'processed_at': transaction.processed_at.isoformat() if transaction.processed_at else None,
-                            'failure_reason': transaction.failure_reason,
-                        }
-                        for transaction in transactions
-                    ],
-                    'pagination': {
-                        'page': page,
-                        'page_size': page_size,
-                        'total_count': total_count,
-                        'total_pages': (total_count + page_size - 1) // page_size,
-                    }
-                },
+                data=response_serializer.data,
                 message="Transactions retrieved successfully"
             )
         
@@ -238,6 +266,7 @@ class WalletViewSet(viewsets.ViewSet):
             )
 
 
+@audit_viewset(resource_type="bill")
 class BillViewSet(viewsets.ViewSet):
     """
     ViewSet for bill operations (residents).
@@ -247,64 +276,50 @@ class BillViewSet(viewsets.ViewSet):
         IsAuthenticated,
         HasSpecificPermission([PaymentsPermissions.ViewBill])
     ]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = BillFilter
     
     @action(detail=False, methods=['get'])
     def my_bills(self, request):
         """
-        Get user's bills.
+        Get user's bills with filtering and pagination.
         """
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
             
-            # Get query parameters
-            status_filter = request.query_params.get('status')
-            bill_type = request.query_params.get('type')
-            page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('page_size', 20))
+            # Build queryset
+            queryset = Bill.objects.filter(cluster=cluster, user_id=user_id).order_by('-created_at')
             
-            # Get bills
-            bills = BillManager.get_user_bills(
-                cluster=cluster,
-                user_id=user_id,
-                status=status_filter,
-                bill_type=bill_type,
-                limit=None  # We'll handle pagination manually
-            )
+            # Apply filters
+            filterset = BillFilter(request.GET, queryset=queryset, request=request)
+            if filterset.is_valid():
+                queryset = filterset.qs
             
             # Apply pagination
-            total_count = len(bills)
-            start_index = (page - 1) * page_size
-            end_index = start_index + page_size
-            paginated_bills = bills[start_index:end_index]
+            paginator = StandardResultsSetPagination()
+            page = paginator.paginate_queryset(queryset, request)
+            
+            # Serialize bills
+            bill_serializer = BillSerializer(page, many=True)
+            
+            # Prepare pagination data
+            pagination_data = {
+                'page': paginator.page.number,
+                'page_size': paginator.page_size,
+                'total_count': paginator.page.paginator.count,
+                'total_pages': paginator.page.paginator.num_pages,
+            }
+            
+            # Serialize the complete response
+            response_serializer = BillListResponseSerializer({
+                'bills': bill_serializer.data,
+                'pagination': pagination_data
+            })
             
             return success_response(
-                data={
-                    'bills': [
-                        {
-                            'id': str(bill.id),
-                            'bill_number': bill.bill_number,
-                            'title': bill.title,
-                            'amount': str(bill.amount),
-                            'paid_amount': str(bill.paid_amount),
-                            'remaining_amount': str(bill.remaining_amount),
-                            'currency': bill.currency,
-                            'status': bill.status,
-                            'type': bill.type,
-                            'due_date': bill.due_date.isoformat(),
-                            'is_overdue': bill.is_overdue,
-                            'description': bill.description,
-                            'created_at': bill.created_at.isoformat(),
-                        }
-                        for bill in paginated_bills
-                    ],
-                    'pagination': {
-                        'page': page,
-                        'page_size': page_size,
-                        'total_count': total_count,
-                        'total_pages': (total_count + page_size - 1) // page_size,
-                    }
-                },
+                data=response_serializer.data,
                 message="Bills retrieved successfully"
             )
         
@@ -346,13 +361,17 @@ class BillViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            bill_id = request.data.get('bill_id')
             
-            if not bill_id:
+            # Validate input data
+            serializer = BillAcknowledgeSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Bill ID is required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            bill_id = serializer.validated_data['bill_id']
             
             # Get bill
             try:
@@ -367,13 +386,10 @@ class BillViewSet(viewsets.ViewSet):
             success = BillManager.acknowledge_bill(bill, user_id)
             
             if success:
+                # Serialize the response
+                bill_serializer = BillSerializer(bill)
                 return success_response(
-                    data={
-                        'id': str(bill.id),
-                        'bill_number': bill.bill_number,
-                        'status': bill.status,
-                        'acknowledged_at': bill.acknowledged_at.isoformat(),
-                    },
+                    data=bill_serializer.data,
                     message="Bill acknowledged successfully"
                 )
             else:
@@ -397,16 +413,19 @@ class BillViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            data = request.data
             
-            bill_id = data.get('bill_id')
-            reason = data.get('reason')
-            
-            if not bill_id or not reason:
+            # Validate input data
+            serializer = BillDisputeSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Bill ID and reason are required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            validated_data = serializer.validated_data
+            bill_id = validated_data['bill_id']
+            reason = validated_data['reason']
             
             # Get bill
             try:
@@ -421,14 +440,10 @@ class BillViewSet(viewsets.ViewSet):
             success = BillManager.dispute_bill(bill, user_id, reason)
             
             if success:
+                # Serialize the response
+                bill_serializer = BillSerializer(bill)
                 return success_response(
-                    data={
-                        'id': str(bill.id),
-                        'bill_number': bill.bill_number,
-                        'status': bill.status,
-                        'dispute_reason': bill.dispute_reason,
-                        'disputed_at': bill.disputed_at.isoformat(),
-                    },
+                    data=bill_serializer.data,
                     message="Bill disputed successfully"
                 )
             else:
@@ -452,16 +467,19 @@ class BillViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            data = request.data
             
-            bill_id = data.get('bill_id')
-            amount = data.get('amount')  # Optional, defaults to remaining amount
-            
-            if not bill_id:
+            # Validate input data
+            serializer = BillPaymentSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Bill ID is required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            validated_data = serializer.validated_data
+            bill_id = validated_data['bill_id']
+            amount = validated_data.get('amount')
             
             # Get bill
             try:
@@ -482,24 +500,24 @@ class BillViewSet(viewsets.ViewSet):
                 )
             
             # Process payment
-            if amount:
-                amount = Decimal(str(amount))
-            
             transaction = BillManager.process_bill_payment(
                 bill=bill,
                 wallet=wallet,
                 amount=amount
             )
             
+            # Serialize the response
+            response_serializer = BillPaymentResponseSerializer({
+                'transaction_id': transaction.transaction_id,
+                'amount': transaction.amount,
+                'bill_id': bill.id,
+                'bill_status': bill.status,
+                'remaining_amount': bill.remaining_amount,
+                'wallet_balance': wallet.balance,
+            })
+            
             return success_response(
-                data={
-                    'transaction_id': transaction.transaction_id,
-                    'amount': str(transaction.amount),
-                    'bill_id': str(bill.id),
-                    'bill_status': bill.status,
-                    'remaining_amount': str(bill.remaining_amount),
-                    'wallet_balance': str(wallet.balance),
-                },
+                data=response_serializer.data,
                 message="Bill payment processed successfully"
             )
         
@@ -523,17 +541,16 @@ class BillViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            data = request.data
             
-            bill_id = data.get('bill_id')
-            provider = data.get('provider', PaymentProvider.PAYSTACK)
-            amount = data.get('amount')  # Optional, defaults to remaining amount
+            # Validate input data
+            serializer = DirectBillPaymentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             
-            if not bill_id:
-                return error_response(
-                    message="Bill ID is required",
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
+            validated_data = serializer.validated_data
+            bill_id = validated_data['bill_id']
+            provider = validated_data['provider']
+            amount = validated_data.get('amount')
+            callback_url = validated_data.get('callback_url')
             
             # Get bill
             try:
@@ -552,18 +569,13 @@ class BillViewSet(viewsets.ViewSet):
                 )
             
             # Determine payment amount
-            if amount:
-                try:
-                    amount = Decimal(str(amount))
-                    if amount <= 0 or amount > bill.remaining_amount:
-                        raise ValueError("Invalid amount")
-                except (ValueError, TypeError):
-                    return error_response(
-                        message="Invalid payment amount",
-                        status_code=status.HTTP_400_BAD_REQUEST
-                    )
-            else:
+            if amount is None:
                 amount = bill.remaining_amount
+            elif amount > bill.remaining_amount:
+                return error_response(
+                    message="Payment amount exceeds remaining bill amount",
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
             
             # Get or create user wallet for transaction tracking
             wallet, created = Wallet.objects.get_or_create(
@@ -604,20 +616,21 @@ class BillViewSet(viewsets.ViewSet):
             payment_response = manager.initialize_payment(
                 transaction=transaction,
                 user_email=request.user.email_address,
-                callback_url=data.get('callback_url')
+                callback_url=callback_url
             )
             
+            # Serialize the response
+            response_serializer = DepositResponseSerializer({
+                'transaction_id': transaction.transaction_id,
+                'amount': amount,
+                'currency': transaction.currency,
+                'provider': transaction.provider,
+                'payment_url': payment_response.get('authorization_url') or payment_response.get('link'),
+                'reference': payment_response.get('reference') or payment_response.get('tx_ref'),
+            })
+            
             return success_response(
-                data={
-                    'transaction_id': transaction.transaction_id,
-                    'bill_id': str(bill.id),
-                    'bill_number': bill.bill_number,
-                    'amount': str(amount),
-                    'currency': transaction.currency,
-                    'provider': transaction.provider,
-                    'payment_url': payment_response.get('authorization_url') or payment_response.get('link'),
-                    'reference': payment_response.get('reference') or payment_response.get('tx_ref'),
-                },
+                data=response_serializer.data,
                 message="Direct bill payment initialized successfully",
                 status_code=status.HTTP_201_CREATED
             )
@@ -630,6 +643,7 @@ class BillViewSet(viewsets.ViewSet):
             )
 
 
+@audit_viewset(resource_type="recurring_payment")
 class RecurringPaymentViewSet(viewsets.ViewSet):
     """
     ViewSet for recurring payment operations (residents).
@@ -639,62 +653,50 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
         IsAuthenticated,
         HasSpecificPermission([PaymentsPermissions.ViewWallet])
     ]
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = RecurringPaymentFilter
     
     @action(detail=False, methods=['get'])
     def my_payments(self, request):
         """
-        Get user's recurring payments.
+        Get user's recurring payments with filtering and pagination.
         """
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
             
-            # Get query parameters
-            status_filter = request.query_params.get('status')
-            page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('page_size', 20))
+            # Build queryset
+            queryset = RecurringPayment.objects.filter(cluster=cluster, user_id=user_id).order_by('-created_at')
             
-            # Get recurring payments
-            payments = RecurringPaymentManager.get_user_recurring_payments(
-                cluster=cluster,
-                user_id=user_id,
-                status=status_filter
-            )
+            # Apply filters
+            filterset = RecurringPaymentFilter(request.GET, queryset=queryset, request=request)
+            if filterset.is_valid():
+                queryset = filterset.qs
             
             # Apply pagination
-            total_count = len(payments)
-            start_index = (page - 1) * page_size
-            end_index = start_index + page_size
-            paginated_payments = payments[start_index:end_index]
+            paginator = StandardResultsSetPagination()
+            page = paginator.paginate_queryset(queryset, request)
+            
+            # Serialize recurring payments
+            payment_serializer = RecurringPaymentSerializer(page, many=True)
+            
+            # Prepare pagination data
+            pagination_data = {
+                'page': paginator.page.number,
+                'page_size': paginator.page_size,
+                'total_count': paginator.page.paginator.count,
+                'total_pages': paginator.page.paginator.num_pages,
+            }
+            
+            # Serialize the complete response
+            response_serializer = RecurringPaymentListResponseSerializer({
+                'recurring_payments': payment_serializer.data,
+                'pagination': pagination_data
+            })
             
             return success_response(
-                data={
-                    'recurring_payments': [
-                        {
-                            'id': str(payment.id),
-                            'title': payment.title,
-                            'description': payment.description,
-                            'amount': str(payment.amount),
-                            'currency': payment.currency,
-                            'frequency': payment.frequency,
-                            'status': payment.status,
-                            'start_date': payment.start_date.isoformat(),
-                            'end_date': payment.end_date.isoformat() if payment.end_date else None,
-                            'next_payment_date': payment.next_payment_date.isoformat(),
-                            'last_payment_date': payment.last_payment_date.isoformat() if payment.last_payment_date else None,
-                            'total_payments': payment.total_payments,
-                            'failed_attempts': payment.failed_attempts,
-                            'created_at': payment.created_at.isoformat(),
-                        }
-                        for payment in paginated_payments
-                    ],
-                    'pagination': {
-                        'page': page,
-                        'page_size': page_size,
-                        'total_count': total_count,
-                        'total_pages': (total_count + page_size - 1) // page_size,
-                    }
-                },
+                data=response_serializer.data,
                 message="Recurring payments retrieved successfully"
             )
         
@@ -736,16 +738,17 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            data = request.data
             
-            # Validate required fields
-            required_fields = ['title', 'amount', 'frequency', 'start_date']
-            for field in required_fields:
-                if field not in data:
-                    return error_response(
-                        message=f"Missing required field: {field}",
-                        status_code=status.HTTP_400_BAD_REQUEST
-                    )
+            # Validate input data
+            serializer = CreateRecurringPaymentSerializer(data=request.data)
+            if not serializer.is_valid():
+                return error_response(
+                    message="Invalid input data",
+                    errors=serializer.errors,
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+            
+            validated_data = serializer.validated_data
             
             # Get wallet
             try:
@@ -759,27 +762,21 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             # Create recurring payment
             payment = RecurringPaymentManager.create_recurring_payment(
                 wallet=wallet,
-                title=data['title'],
-                amount=Decimal(str(data['amount'])),
-                frequency=data['frequency'],
-                start_date=timezone.datetime.fromisoformat(data['start_date'].replace('Z', '+00:00')),
-                end_date=timezone.datetime.fromisoformat(data['end_date'].replace('Z', '+00:00')) if data.get('end_date') else None,
-                description=data.get('description'),
-                metadata=data.get('metadata', {}),
+                title=validated_data['title'],
+                amount=validated_data['amount'],
+                frequency=validated_data['frequency'],
+                start_date=validated_data['start_date'],
+                end_date=validated_data.get('end_date'),
+                description=validated_data.get('description'),
+                metadata=validated_data.get('metadata', {}),
                 created_by=user_id,
             )
             
+            # Serialize the response
+            payment_serializer = RecurringPaymentSerializer(payment)
+            
             return success_response(
-                data={
-                    'id': str(payment.id),
-                    'title': payment.title,
-                    'amount': str(payment.amount),
-                    'currency': payment.currency,
-                    'frequency': payment.frequency,
-                    'status': payment.status,
-                    'start_date': payment.start_date.isoformat(),
-                    'next_payment_date': payment.next_payment_date.isoformat(),
-                },
+                data=payment_serializer.data,
                 message="Recurring payment created successfully",
                 status_code=status.HTTP_201_CREATED
             )
@@ -799,13 +796,17 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            payment_id = request.data.get('payment_id')
             
-            if not payment_id:
+            # Validate input data
+            serializer = PauseRecurringPaymentSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Payment ID is required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            payment_id = serializer.validated_data['payment_id']
             
             # Get recurring payment
             try:
@@ -827,11 +828,10 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             )
             
             if success:
+                # Serialize the response
+                payment_serializer = RecurringPaymentSerializer(payment)
                 return success_response(
-                    data={
-                        'id': str(payment.id),
-                        'status': payment.status,
-                    },
+                    data=payment_serializer.data,
                     message="Recurring payment paused successfully"
                 )
             else:
@@ -855,13 +855,17 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            payment_id = request.data.get('payment_id')
             
-            if not payment_id:
+            # Validate input data
+            serializer = PauseRecurringPaymentSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Payment ID is required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            payment_id = serializer.validated_data['payment_id']
             
             # Get recurring payment
             try:
@@ -883,11 +887,10 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             )
             
             if success:
+                # Serialize the response
+                payment_serializer = RecurringPaymentSerializer(payment)
                 return success_response(
-                    data={
-                        'id': str(payment.id),
-                        'status': payment.status,
-                    },
+                    data=payment_serializer.data,
                     message="Recurring payment resumed successfully"
                 )
             else:
@@ -911,13 +914,17 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
-            payment_id = request.data.get('payment_id')
             
-            if not payment_id:
+            # Validate input data
+            serializer = PauseRecurringPaymentSerializer(data=request.data)
+            if not serializer.is_valid():
                 return error_response(
-                    message="Payment ID is required",
+                    message="Invalid input data",
+                    errors=serializer.errors,
                     status_code=status.HTTP_400_BAD_REQUEST
                 )
+            
+            payment_id = serializer.validated_data['payment_id']
             
             # Get recurring payment
             try:
@@ -939,11 +946,10 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             )
             
             if success:
+                # Serialize the response
+                payment_serializer = RecurringPaymentSerializer(payment)
                 return success_response(
-                    data={
-                        'id': str(payment.id),
-                        'status': payment.status,
-                    },
+                    data=payment_serializer.data,
                     message="Recurring payment cancelled successfully"
                 )
             else:

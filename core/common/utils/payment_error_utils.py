@@ -563,51 +563,114 @@ def handle_payment_error(transaction: Transaction, error_message: str) -> Dict[s
     return PaymentErrorHandler.handle_transaction_failure(transaction, error_message)
 
 
-def get_payment_error_summary(cluster, days: int = 7) -> Dict[str, Any]:
+def create_payment_error_record(transaction: Transaction, error_message: str, 
+                               provider_error_code: str = None) -> PaymentError:
     """
-    Get payment error summary for a cluster.
+    Create a PaymentError record for a failed transaction.
     
     Args:
-        cluster: Cluster object
-        days: Number of days to look back
+        transaction: The failed transaction
+        error_message: Error message from provider
+        provider_error_code: Error code from provider
         
     Returns:
-        Dict: Error summary
+        PaymentError: Created payment error record
     """
-    from django.db.models import Count
-    from datetime import timedelta
+    from core.common.utils.payment_error_utils import PaymentErrorHandler
     
-    start_date = timezone.now() - timedelta(days=days)
+    # Categorize the error
+    error_type = PaymentErrorHandler.categorize_error(error_message, transaction.provider)
+    severity = PaymentErrorHandler.get_error_severity(error_type)
+    user_message = PaymentErrorHandler.get_user_friendly_message(error_type)
+    recovery_options = PaymentErrorHandler.get_recovery_options(error_type, transaction)
     
-    failed_transactions = Transaction.objects.filter(
-        cluster=cluster,
-        status=TransactionStatus.FAILED,
-        failed_at__gte=start_date
+    # Create PaymentError record
+    payment_error = PaymentError.objects.create(
+        cluster=transaction.cluster,
+        transaction=transaction,
+        error_type=error_type,
+        severity=severity,
+        provider_error_code=provider_error_code,
+        provider_error_message=error_message,
+        user_friendly_message=user_message,
+        recovery_options=recovery_options,
+        can_retry=recovery_options.get('can_retry', True),
+        max_retries=recovery_options.get('max_retries', 3),
+        created_by=transaction.created_by,
+        last_modified_by=transaction.last_modified_by,
     )
     
-    # Group by failure reason to identify common issues
-    error_summary = {}
-    for transaction in failed_transactions:
-        if transaction.failure_reason:
-            error_type = PaymentErrorHandler.categorize_error(
-                transaction.failure_reason, 
-                transaction.provider
-            )
-            error_key = error_type.value
-            
-            if error_key not in error_summary:
-                error_summary[error_key] = {
-                    'count': 0,
-                    'total_amount': 0,
-                    'user_friendly_message': PaymentErrorHandler.get_user_friendly_message(error_type)
-                }
-            
-            error_summary[error_key]['count'] += 1
-            error_summary[error_key]['total_amount'] += float(transaction.amount)
+    # Send notifications
+    from core.common.utils.payment_error_utils import PaymentErrorNotificationManager
+    PaymentErrorNotificationManager.send_payment_failed_notification(
+        transaction, error_type, user_message, recovery_options
+    )
     
-    return {
-        'total_failed_transactions': failed_transactions.count(),
-        'error_breakdown': error_summary,
-        'period_days': days,
-        'cluster_id': str(cluster.id),
-    }
+    # Mark notification flags
+    payment_error.user_notified = True
+    if severity == PaymentErrorSeverity.CRITICAL:
+        PaymentErrorNotificationManager.send_admin_alert(transaction, error_type)
+        payment_error.admin_notified = True
+    
+    payment_error.save()
+    
+    return payment_error
+
+
+def retry_failed_payment(payment_error: PaymentError) -> Tuple[bool, str]:
+    """
+    Retry a failed payment transaction.
+    
+    Args:
+        payment_error: PaymentError record to retry
+        
+    Returns:
+        Tuple[bool, str]: (success, message)
+    """
+    if not payment_error.can_be_retried():
+        return False, "Payment cannot be retried"
+    
+    transaction = payment_error.transaction
+    
+    try:
+        # Get payment provider
+        provider = PaymentProviderFactory.get_provider(transaction.provider)
+        
+        # Increment retry count
+        payment_error.increment_retry_count()
+        
+        # Reset transaction status
+        transaction.status = TransactionStatus.PENDING
+        transaction.failed_at = None
+        transaction.failure_reason = None
+        transaction.save()
+        
+        # For deposit transactions, re-initialize payment
+        if transaction.type == 'deposit':
+            # This would need user email and callback URL from metadata
+            metadata = transaction.metadata or {}
+            email = metadata.get('user_email', '')
+            callback_url = metadata.get('callback_url', '')
+            
+            if email and callback_url:
+                result = provider.initialize_payment(
+                    amount=transaction.amount,
+                    currency=transaction.currency,
+                    email=email,
+                    callback_url=callback_url,
+                    metadata=metadata
+                )
+                
+                # Update transaction with new reference
+                transaction.reference = result['reference']
+                transaction.provider_response = result
+                transaction.save()
+                
+                return True, f"Payment retry initiated. Reference: {result['reference']}"
+        
+        return True, "Payment retry initiated successfully"
+        
+    except Exception as e:
+        logger.error(f"Failed to retry payment {payment_error.id}: {e}")
+        transaction.mark_as_failed(f"Retry failed: {str(e)}")
+        return False, f"Retry failed: {str(e)}"

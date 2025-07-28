@@ -19,6 +19,7 @@ from core.common.models.wallet import (
     PaymentProvider,
 )
 from core.common.utils.file_storage import FileStorageManager
+from core.common.utils.third_party_services import PaymentProviderFactory
 
 logger = logging.getLogger('clustr')
 
@@ -28,271 +29,10 @@ class PaymentError(Exception):
     pass
 
 
-class PaystackPaymentProcessor:
-    """
-    Payment processor for Paystack integration.
-    """
-    
-    def __init__(self):
-        self.secret_key = getattr(settings, 'PAYSTACK_SECRET_KEY', '')
-        self.public_key = getattr(settings, 'PAYSTACK_PUBLIC_KEY', '')
-        self.base_url = 'https://api.paystack.co'
-        
-        if not self.secret_key:
-            logger.warning("Paystack secret key not configured")
-    
-    def _make_request(self, method: str, endpoint: str, data: Dict = None) -> Dict:
-        """
-        Make HTTP request to Paystack API.
-        
-        Args:
-            method: HTTP method (GET, POST, etc.)
-            endpoint: API endpoint
-            data: Request data
-            
-        Returns:
-            Dict: API response
-            
-        Raises:
-            PaymentError: If request fails
-        """
-        url = f"{self.base_url}{endpoint}"
-        headers = {
-            'Authorization': f'Bearer {self.secret_key}',
-            'Content-Type': 'application/json',
-        }
-        
-        try:
-            if method.upper() == 'GET':
-                response = requests.get(url, headers=headers, params=data)
-            else:
-                response = requests.post(url, headers=headers, json=data)
-            
-            response.raise_for_status()
-            return response.json()
-        
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Paystack API request failed: {e}")
-            raise PaymentError(f"Payment processing failed: {str(e)}")
-    
-    def initialize_payment(self, amount: Decimal, email: str, reference: str, 
-                          callback_url: str = None, metadata: Dict = None) -> Dict:
-        """
-        Initialize a payment with Paystack.
-        
-        Args:
-            amount: Payment amount in kobo (multiply by 100)
-            email: Customer email
-            reference: Unique payment reference
-            callback_url: URL to redirect after payment
-            metadata: Additional payment metadata
-            
-        Returns:
-            Dict: Payment initialization response
-        """
-        data = {
-            'amount': int(amount * 100),  # Convert to kobo
-            'email': email,
-            'reference': reference,
-        }
-        
-        if callback_url:
-            data['callback_url'] = callback_url
-        
-        if metadata:
-            data['metadata'] = metadata
-        
-        response = self._make_request('POST', '/transaction/initialize', data)
-        
-        if not response.get('status'):
-            raise PaymentError(f"Payment initialization failed: {response.get('message', 'Unknown error')}")
-        
-        return response['data']
-    
-    def verify_payment(self, reference: str) -> Dict:
-        """
-        Verify a payment with Paystack.
-        
-        Args:
-            reference: Payment reference to verify
-            
-        Returns:
-            Dict: Payment verification response
-        """
-        response = self._make_request('GET', f'/transaction/verify/{reference}')
-        
-        if not response.get('status'):
-            raise PaymentError(f"Payment verification failed: {response.get('message', 'Unknown error')}")
-        
-        return response['data']
-    
-    def verify_webhook_signature(self, payload: str, signature: str) -> bool:
-        """
-        Verify Paystack webhook signature.
-        
-        Args:
-            payload: Webhook payload
-            signature: Webhook signature
-            
-        Returns:
-            bool: True if signature is valid
-        """
-        expected_signature = hmac.new(
-            self.secret_key.encode('utf-8'),
-            payload.encode('utf-8'),
-            hashlib.sha512
-        ).hexdigest()
-        
-        return hmac.compare_digest(expected_signature, signature)
-
-
-class FlutterwavePaymentProcessor:
-    """
-    Payment processor for Flutterwave integration.
-    """
-    
-    def __init__(self):
-        self.secret_key = getattr(settings, 'FLUTTERWAVE_SECRET_KEY', '')
-        self.public_key = getattr(settings, 'FLUTTERWAVE_PUBLIC_KEY', '')
-        self.base_url = 'https://api.flutterwave.com/v3'
-        
-        if not self.secret_key:
-            logger.warning("Flutterwave secret key not configured")
-    
-    def _make_request(self, method: str, endpoint: str, data: Dict = None) -> Dict:
-        """
-        Make HTTP request to Flutterwave API.
-        
-        Args:
-            method: HTTP method (GET, POST, etc.)
-            endpoint: API endpoint
-            data: Request data
-            
-        Returns:
-            Dict: API response
-            
-        Raises:
-            PaymentError: If request fails
-        """
-        url = f"{self.base_url}{endpoint}"
-        headers = {
-            'Authorization': f'Bearer {self.secret_key}',
-            'Content-Type': 'application/json',
-        }
-        
-        try:
-            if method.upper() == 'GET':
-                response = requests.get(url, headers=headers, params=data)
-            else:
-                response = requests.post(url, headers=headers, json=data)
-            
-            response.raise_for_status()
-            return response.json()
-        
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Flutterwave API request failed: {e}")
-            raise PaymentError(f"Payment processing failed: {str(e)}")
-    
-    def initialize_payment(self, amount: Decimal, email: str, tx_ref: str,
-                          redirect_url: str = None, customer: Dict = None) -> Dict:
-        """
-        Initialize a payment with Flutterwave.
-        
-        Args:
-            amount: Payment amount
-            email: Customer email
-            tx_ref: Unique transaction reference
-            redirect_url: URL to redirect after payment
-            customer: Customer information
-            
-        Returns:
-            Dict: Payment initialization response
-        """
-        data = {
-            'tx_ref': tx_ref,
-            'amount': str(amount),
-            'currency': 'NGN',
-            'redirect_url': redirect_url or 'https://clustr.app/payment/callback',
-            'payment_options': 'card,banktransfer,ussd',
-            'customer': customer or {
-                'email': email,
-                'name': 'ClustR User',
-            },
-            'customizations': {
-                'title': 'ClustR Payment',
-                'description': 'Payment for ClustR services',
-                'logo': 'https://clustr.app/logo.png',
-            },
-        }
-        
-        response = self._make_request('POST', '/payments', data)
-        
-        if response.get('status') != 'success':
-            raise PaymentError(f"Payment initialization failed: {response.get('message', 'Unknown error')}")
-        
-        return response['data']
-    
-    def verify_payment(self, transaction_id: str) -> Dict:
-        """
-        Verify a payment with Flutterwave.
-        
-        Args:
-            transaction_id: Transaction ID to verify
-            
-        Returns:
-            Dict: Payment verification response
-        """
-        response = self._make_request('GET', f'/transactions/{transaction_id}/verify')
-        
-        if response.get('status') != 'success':
-            raise PaymentError(f"Payment verification failed: {response.get('message', 'Unknown error')}")
-        
-        return response['data']
-    
-    def verify_webhook_signature(self, payload: str, signature: str) -> bool:
-        """
-        Verify Flutterwave webhook signature.
-        
-        Args:
-            payload: Webhook payload
-            signature: Webhook signature
-            
-        Returns:
-            bool: True if signature is valid
-        """
-        expected_signature = hashlib.sha256(
-            (getattr(settings, 'FLUTTERWAVE_WEBHOOK_SECRET', '') + payload).encode('utf-8')
-        ).hexdigest()
-        
-        return hmac.compare_digest(expected_signature, signature)
-
-
 class PaymentManager:
     """
     Main payment manager for handling payment operations.
     """
-    
-    def __init__(self):
-        self.paystack = PaystackPaymentProcessor()
-        self.flutterwave = FlutterwavePaymentProcessor()
-        self.file_storage = FileStorageManager()
-    
-    def get_processor(self, provider: PaymentProvider):
-        """
-        Get payment processor instance.
-        
-        Args:
-            provider: Payment provider
-            
-        Returns:
-            Payment processor instance
-        """
-        if provider == PaymentProvider.PAYSTACK:
-            return self.paystack
-        elif provider == PaymentProvider.FLUTTERWAVE:
-            return self.flutterwave
-        else:
-            raise PaymentError(f"Unsupported payment provider: {provider}")
     
     def initialize_payment(self, transaction: Transaction, user_email: str,
                           callback_url: str = None) -> Dict:
@@ -308,7 +48,7 @@ class PaymentManager:
             Dict: Payment initialization response
         """
         try:
-            processor = self.get_processor(transaction.provider)
+            processor = PaymentProviderFactory.get_provider(transaction.provider)
             
             if transaction.provider == PaymentProvider.PAYSTACK:
                 response = processor.initialize_payment(
@@ -360,7 +100,7 @@ class PaymentManager:
             bool: True if payment is successful
         """
         try:
-            processor = self.get_processor(transaction.provider)
+            processor = PaymentProviderFactory.get_provider(transaction.provider)
             
             if transaction.provider == PaymentProvider.PAYSTACK:
                 response = processor.verify_payment(transaction.transaction_id)
@@ -414,7 +154,7 @@ class PaymentManager:
             Transaction object if processed successfully
         """
         try:
-            processor = self.get_processor(provider)
+            processor = PaymentProviderFactory.get_provider(provider)
             
             # Verify webhook signature
             if not processor.verify_webhook_signature(payload, signature):
@@ -476,17 +216,17 @@ class PaymentManager:
             
             # Create receipt content (simplified - in real implementation, use a template)
             receipt_content = f"""
-CLUSTR PAYMENT RECEIPT
-=====================
+                CLUSTR PAYMENT RECEIPT
+                =====================
 
-Transaction ID: {receipt_data['transaction_id']}
-Amount: {receipt_data['currency']} {receipt_data['amount']}
-Description: {receipt_data['description']}
-Date: {receipt_data['date']}
-Status: {receipt_data['status']}
-Provider: {receipt_data['provider']}
+                Transaction ID: {receipt_data['transaction_id']}
+                Amount: {receipt_data['currency']} {receipt_data['amount']}
+                Description: {receipt_data['description']}
+                Date: {receipt_data['date']}
+                Status: {receipt_data['status']}
+                Provider: {receipt_data['provider']}
 
-Thank you for using ClustR!
+                Thank you for using ClustR!
             """.strip()
             
             # Save receipt to file storage

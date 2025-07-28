@@ -2,7 +2,11 @@ import django_filters
 from django.db.models import Q
 from django.utils import timezone
 
-from core.common.models import Announcement, AnnouncementReadStatus, IssueTicket, IssueComment, IssueAttachment, Child, ExitRequest, EntryExitLog, MaintenanceLog, Visitor, VisitorLog
+from core.common.models import (
+    Announcement, AnnouncementReadStatus, IssueTicket, IssueComment, 
+    IssueAttachment, Child, ExitRequest, EntryExitLog, MaintenanceLog, 
+    Visitor, VisitorLog, Transaction, Bill, RecurringPayment
+)
 
 
 class EmergencyContactFilter(django_filters.FilterSet):
@@ -141,3 +145,69 @@ class MemberVisitorLogFilter(django_filters.FilterSet):
     class Meta:
         model = VisitorLog
         fields = ['log_type']
+
+# Payment-related filters
+class TransactionFilter(django_filters.FilterSet):
+    """Filter for user transactions"""
+    type = django_filters.CharFilter(field_name='type')
+    status = django_filters.CharFilter(field_name='status')
+    date_from = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
+    date_to = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    amount_min = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    amount_max = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    provider = django_filters.CharFilter(field_name='provider')
+    
+    class Meta:
+        model = Transaction
+        fields = ['type', 'status', 'date_from', 'date_to', 'amount_min', 'amount_max', 'provider']
+
+
+class BillFilter(django_filters.FilterSet):
+    """Filter for user bills"""
+    status = django_filters.CharFilter(field_name='status')
+    type = django_filters.CharFilter(field_name='type')
+    due_date_from = django_filters.DateTimeFilter(field_name='due_date', lookup_expr='gte')
+    due_date_to = django_filters.DateTimeFilter(field_name='due_date', lookup_expr='lte')
+    amount_min = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    amount_max = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    is_overdue = django_filters.BooleanFilter(method='filter_overdue')
+    search = django_filters.CharFilter(method='filter_search')
+    
+    class Meta:
+        model = Bill
+        fields = ['status', 'type', 'due_date_from', 'due_date_to', 'amount_min', 'amount_max', 'is_overdue', 'search']
+    
+    def filter_overdue(self, queryset, name, value):
+        if value is True:
+            return queryset.filter(due_date__lt=timezone.now(), status__in=['pending', 'acknowledged'])
+        elif value is False:
+            return queryset.exclude(due_date__lt=timezone.now(), status__in=['pending', 'acknowledged'])
+        return queryset
+    
+    def filter_search(self, queryset, name, value):
+        return queryset.filter(
+            Q(bill_number__icontains=value) |
+            Q(title__icontains=value) |
+            Q(description__icontains=value)
+        )
+
+
+class RecurringPaymentFilter(django_filters.FilterSet):
+    """Filter for user recurring payments"""
+    status = django_filters.CharFilter(field_name='status')
+    frequency = django_filters.CharFilter(field_name='frequency')
+    amount_min = django_filters.NumberFilter(field_name='amount', lookup_expr='gte')
+    amount_max = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
+    start_date_from = django_filters.DateTimeFilter(field_name='start_date', lookup_expr='gte')
+    start_date_to = django_filters.DateTimeFilter(field_name='start_date', lookup_expr='lte')
+    search = django_filters.CharFilter(method='filter_search')
+    
+    class Meta:
+        model = RecurringPayment
+        fields = ['status', 'frequency', 'amount_min', 'amount_max', 'start_date_from', 'start_date_to', 'search']
+    
+    def filter_search(self, queryset, name, value):
+        return queryset.filter(
+            Q(title__icontains=value) |
+            Q(description__icontains=value)
+        )
