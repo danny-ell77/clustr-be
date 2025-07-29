@@ -14,7 +14,8 @@ from core.common.models import (
     Task, TaskStatus, TaskPriority, TaskType,
     TaskAssignment, TaskStatusHistory, TaskEscalationHistory
 )
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 from core.common.utils.file_storage import FileStorage
 
 logger = logging.getLogger('clustr')
@@ -286,7 +287,7 @@ class TaskManager:
         return queryset.order_by('-created_at')
     
     @staticmethod
-    def get_task_statistics(cluster) -> Dict[str, Any]:
+    def get_task_statistics(cluster) -> dict[str, Any]:
         """
         Get task statistics for a cluster.
         
@@ -431,7 +432,7 @@ class TaskManager:
         return None
     
     @staticmethod
-    def get_task_performance_analytics(cluster, start_date=None, end_date=None) -> Dict[str, Any]:
+    def get_task_performance_analytics(cluster, start_date=None, end_date=None) -> dict[str, Any]:
         """
         Get task performance analytics for a cluster.
         
@@ -536,23 +537,26 @@ class TaskNotificationManager:
             True if notification was sent successfully, False otherwise
         """
         try:
-            if not assigned_to.email_address:
+            if not assigned_to:
                 return False
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'task_description': task.description[:200] + '...' if len(task.description) > 200 else task.description,
-                'task_type': task.get_task_type_display(),
-                'priority': task.get_priority_display(),
-                'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
-                'location': task.location or 'Not specified',
-                'created_by_name': task.created_by.name,
-                'assigned_to_name': assigned_to.name,
-            })
-            
-            # Use existing notification system (placeholder - would need TASK_ASSIGNMENT type)
-            return NotificationManager.send_issue_assignment_notification(task, assigned_to)
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_ASSIGNED, # Using ISSUE_ASSIGNED as a placeholder for now
+                recipients=[assigned_to],
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'task_description': task.description[:200] + '...' if len(task.description) > 200 else task.description,
+                    'task_type': task.get_task_type_display(),
+                    'priority': task.get_priority_display(),
+                    'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
+                    'location': task.location or 'Not specified',
+                    'created_by_name': task.created_by.name,
+                    'assigned_to_name': assigned_to.name,
+                }
+            )
+            return True
             
         except Exception as e:
             logger.error(f"Failed to send task assignment notification: {e}")
@@ -576,28 +580,31 @@ class TaskNotificationManager:
             recipients = []
             
             # Notify task creator if they're not the one making the change
-            if task.created_by != changed_by and task.created_by.email_address:
-                recipients.append(task.created_by.email_address)
+            if task.created_by != changed_by:
+                recipients.append(task.created_by)
             
             # Notify assigned user if they're not the one making the change
-            if task.assigned_to and task.assigned_to != changed_by and task.assigned_to.email_address:
-                recipients.append(task.assigned_to.email_address)
+            if task.assigned_to and task.assigned_to != changed_by:
+                recipients.append(task.assigned_to)
             
             if not recipients:
                 return True
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'old_status': old_status,
-                'new_status': new_status,
-                'changed_by_name': changed_by.name,
-                'task_type': task.get_task_type_display(),
-                'priority': task.get_priority_display(),
-            })
-            
-            # Use existing notification system (placeholder)
-            return NotificationManager.send_issue_status_notification(task, old_status, new_status, changed_by)
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_STATUS_CHANGED, # Using ISSUE_STATUS_CHANGED as a placeholder for now
+                recipients=recipients,
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'old_status': old_status,
+                    'new_status': new_status,
+                    'changed_by_name': changed_by.name,
+                    'task_type': task.get_task_type_display(),
+                    'priority': task.get_priority_display(),
+                }
+            )
+            return True
             
         except Exception as e:
             logger.error(f"Failed to send task status notification: {e}")
@@ -619,12 +626,12 @@ class TaskNotificationManager:
             recipients = []
             
             # Notify task creator if they're not the one completing the task
-            if task.created_by != completed_by and task.created_by.email_address:
-                recipients.append(task.created_by.email_address)
+            if task.created_by != completed_by:
+                recipients.append(task.created_by)
             
             # If task was escalated, notify the escalated person
-            if task.escalated_to and task.escalated_to != completed_by and task.escalated_to.email_address:
-                recipients.append(task.escalated_to.email_address)
+            if task.escalated_to and task.escalated_to != completed_by:
+                recipients.append(task.escalated_to)
             
             if not recipients:
                 return True
@@ -634,20 +641,23 @@ class TaskNotificationManager:
             evidence_files = TaskFileManager.get_completion_evidence(task)
             has_evidence = len(evidence_files) > 0
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'completed_by_name': completed_by.name,
-                'completion_date': task.completed_at.strftime('%Y-%m-%d %H:%M') if task.completed_at else 'Unknown',
-                'completion_notes': task.completion_notes or 'No additional notes',
-                'task_type': task.get_task_type_display(),
-                'duration_worked': str(task.duration_worked) if task.duration_worked else 'Unknown',
-                'has_evidence': has_evidence,
-                'evidence_count': len(evidence_files),
-                'was_on_time': task.due_date and task.completed_at and task.completed_at <= task.due_date,
-            })
-            
-            # Use existing notification system (placeholder)
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_STATUS_CHANGED,
+                recipients=recipients,
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'completed_by_name': completed_by.name,
+                    'completion_date': task.completed_at.strftime('%Y-%m-%d %H:%M') if task.completed_at else 'Unknown',
+                    'completion_notes': task.completion_notes or 'No additional notes',
+                    'task_type': task.get_task_type_display(),
+                    'duration_worked': str(task.duration_worked) if task.duration_worked else 'Unknown',
+                    'has_evidence': has_evidence,
+                    'evidence_count': len(evidence_files),
+                    'was_on_time': task.due_date and task.completed_at and task.completed_at <= task.due_date,
+                }
+            )
             return True
             
         except Exception as e:
@@ -668,23 +678,26 @@ class TaskNotificationManager:
             True if notification was sent successfully, False otherwise
         """
         try:
-            if not escalated_to.email_address:
+            if not escalated_to:
                 return False
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'task_description': task.description[:200] + '...' if len(task.description) > 200 else task.description,
-                'escalation_reason': reason,
-                'task_type': task.get_task_type_display(),
-                'priority': task.get_priority_display(),
-                'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
-                'assigned_to_name': task.assigned_to.name if task.assigned_to else 'Unassigned',
-                'escalated_to_name': escalated_to.name,
-            })
-            
-            # Use existing notification system (placeholder)
-            return NotificationManager.send_issue_escalation_notification(task)
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_ESCALATED,
+                recipients=[escalated_to],
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'task_description': task.description[:200] + '...' if len(task.description) > 200 else task.description,
+                    'escalation_reason': reason,
+                    'task_type': task.get_task_type_display(),
+                    'priority': task.get_priority_display(),
+                    'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
+                    'assigned_to_name': task.assigned_to.name if task.assigned_to else 'Unassigned',
+                    'escalated_to_name': escalated_to.name,
+                }
+            )
+            return True
             
         except Exception as e:
             logger.error(f"Failed to send task escalation notification: {e}")
@@ -702,21 +715,24 @@ class TaskNotificationManager:
             True if notification was sent successfully, False otherwise
         """
         try:
-            if not task.assigned_to or not task.assigned_to.email_address:
+            if not task.assigned_to:
                 return False
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
-                'time_remaining': str(task.time_remaining) if task.time_remaining else 'Overdue',
-                'priority': task.get_priority_display(),
-                'task_type': task.get_task_type_display(),
-                'assigned_to_name': task.assigned_to.name,
-            })
-            
-            # Use existing notification system (placeholder)
-            return NotificationManager.send_issue_due_reminder(task)
+            NotificationManager.send(
+                event=NotificationEvents.TASK_DUE,
+                recipients=[task.assigned_to],
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
+                    'time_remaining': str(task.time_remaining) if task.time_remaining else 'Overdue',
+                    'priority': task.get_priority_display(),
+                    'task_type': task.get_task_type_display(),
+                    'assigned_to_name': task.assigned_to.name,
+                }
+            )
+            return True
             
         except Exception as e:
             logger.error(f"Failed to send task due reminder: {e}")
@@ -737,27 +753,30 @@ class TaskNotificationManager:
             recipients = []
             
             # Notify assigned user
-            if task.assigned_to and task.assigned_to.email_address:
-                recipients.append(task.assigned_to.email_address)
+            if task.assigned_to:
+                recipients.append(task.assigned_to)
             
             # Notify task creator
-            if task.created_by.email_address and task.created_by != task.assigned_to:
-                recipients.append(task.created_by.email_address)
+            if task.created_by and task.created_by != task.assigned_to:
+                recipients.append(task.created_by)
             
             if not recipients:
                 return True
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
-                'days_overdue': (timezone.now() - task.due_date).days if task.due_date else 0,
-                'priority': task.get_priority_display(),
-                'task_type': task.get_task_type_display(),
-                'assigned_to_name': task.assigned_to.name if task.assigned_to else 'Unassigned',
-            })
-            
-            # Use existing notification system (placeholder)
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_OVERDUE,
+                recipients=recipients,
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
+                    'days_overdue': (timezone.now() - task.due_date).days if task.due_date else 0,
+                    'priority': task.get_priority_display(),
+                    'task_type': task.get_task_type_display(),
+                    'assigned_to_name': task.assigned_to.name if task.assigned_to else 'Unassigned',
+                }
+            )
             return True
             
         except Exception as e:
@@ -781,37 +800,88 @@ class TaskNotificationManager:
             recipients = []
             
             # Notify the person the task was escalated to
-            if escalated_to.email_address:
-                recipients.append(escalated_to.email_address)
+            if escalated_to:
+                recipients.append(escalated_to)
             
             # Notify the original assignee
-            if task.assigned_to and task.assigned_to != escalated_to and task.assigned_to.email_address:
-                recipients.append(task.assigned_to.email_address)
+            if task.assigned_to and task.assigned_to != escalated_to:
+                recipients.append(task.assigned_to)
             
             if not recipients:
                 return True
             
             days_overdue = (timezone.now() - task.due_date).days if task.due_date else 0
             
-            context = Context({
-                'task_number': task.task_number,
-                'task_title': task.title,
-                'task_description': task.description[:200] + '...' if len(task.description) > 200 else task.description,
-                'escalation_reason': reason,
-                'task_type': task.get_task_type_display(),
-                'priority': task.get_priority_display(),
-                'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
-                'days_overdue': days_overdue,
-                'assigned_to_name': task.assigned_to.name if task.assigned_to else 'Unassigned',
-                'escalated_to_name': escalated_to.name,
-                'is_automatic': True,
-            })
-            
-            # Use existing notification system (placeholder)
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_AUTO_ESCALATED,
+                recipients=recipients,
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'task_description': task.description[:200] + '...' if len(task.description) > 200 else task.description,
+                    'escalation_reason': reason,
+                    'task_type': task.get_task_type_display(),
+                    'priority': task.get_priority_display(),
+                    'due_date': task.due_date.strftime('%Y-%m-%d %H:%M') if task.due_date else 'Not set',
+                    'days_overdue': days_overdue,
+                    'assigned_to_name': task.assigned_to.name if task.assigned_to else 'Unassigned',
+                    'escalated_to_name': escalated_to.name,
+                    'is_automatic': True,
+                }
+            )
             return True
             
         except Exception as e:
             logger.error(f"Failed to send automatic escalation notification: {e}")
+            return False
+
+    @staticmethod
+    def send_task_comment_notification(comment, task: Task) -> bool:
+        """
+        Send notification when a comment is added to a task.
+        
+        Args:
+            comment: The comment object that was added
+            task: The task the comment was added to
+            
+        Returns:
+            True if notification was sent successfully, False otherwise
+        """
+        try:
+            recipients = []
+            
+            # Notify task creator if they're not the one commenting
+            if task.created_by != comment.created_by:
+                recipients.append(task.created_by)
+            
+            # Notify assigned user if they're not the one commenting
+            if task.assigned_to and task.assigned_to != comment.created_by:
+                recipients.append(task.assigned_to)
+            
+            # Remove duplicates
+            recipients = list(set(recipients))
+            
+            if not recipients:
+                return True
+            
+            NotificationManager.send(
+                event=NotificationEvents.COMMENT_REPLY,
+                recipients=recipients,
+                cluster=task.cluster,
+                context={
+                    'task_number': task.task_number,
+                    'task_title': task.title,
+                    'comment_text': comment.comment[:200] + '...' if len(comment.comment) > 200 else comment.comment,
+                    'commenter_name': comment.created_by.name,
+                    'comment_date': comment.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'task_type': task.get_task_type_display(),
+                }
+            )
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send task comment notification: {e}")
             return False
 
 
@@ -937,7 +1007,7 @@ class TaskFileManager:
         return TaskFileManager.get_task_attachments(task, 'EVIDENCE')
     
     @staticmethod
-    def validate_evidence_files(files: List) -> Dict[str, Any]:
+    def validate_evidence_files(files: List) -> dict[str, Any]:
         """
         Validate evidence files before upload.
         

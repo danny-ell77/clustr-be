@@ -18,6 +18,7 @@ from core.common.models.wallet import (
 )
 from core.common.email_sender import AccountEmailSender, NotificationTypes
 from core.common.error_utils import log_exceptions
+from core.common.models import PaymentError
 
 logger = logging.getLogger('clustr')
 
@@ -159,7 +160,7 @@ class PaymentErrorHandler:
         return messages.get(error_type, "An error occurred while processing your payment.")
     
     @staticmethod
-    def get_recovery_options(error_type: PaymentErrorType, transaction: Transaction) -> Dict[str, Any]:
+    def get_recovery_options(error_type: PaymentErrorType, transaction: Transaction) -> dict[str, Any]:
         """
         Get recovery options for payment error.
         
@@ -255,7 +256,7 @@ class PaymentErrorHandler:
     
     @staticmethod
     @log_exceptions(log_level=logging.ERROR)
-    def handle_transaction_failure(transaction: Transaction, error_message: str) -> Dict[str, Any]:
+    def handle_transaction_failure(transaction: Transaction, error_message: str) -> dict[str, Any]:
         """
         Handle transaction failure and provide recovery options.
         
@@ -308,7 +309,7 @@ class PaymentErrorHandler:
     
     @staticmethod
     def handle_recurring_payment_failure(recurring_payment: RecurringPayment, 
-                                       error_message: str) -> Dict[str, Any]:
+                                       error_message: str) -> dict[str, Any]:
         """
         Handle recurring payment failure.
         
@@ -406,7 +407,7 @@ class PaymentErrorNotificationManager:
     
     @staticmethod
     def send_payment_failed_notification(transaction: Transaction, error_type: PaymentErrorType,
-                                       user_message: str, recovery_options: Dict) -> bool:
+                                       user_message: str, recovery_options: dict) -> bool:
         """
         Send payment failure notification to user.
         
@@ -421,32 +422,32 @@ class PaymentErrorNotificationManager:
         """
         try:
             from accounts.models import AccountUser
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
             user = AccountUser.objects.filter(id=transaction.wallet.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'transaction_id': transaction.transaction_id,
-                'amount': transaction.amount,
-                'currency': transaction.currency,
-                'error_message': user_message,
-                'error_type': error_type.value,
-                'can_retry': recovery_options.get('can_retry', False),
-                'suggested_actions': recovery_options.get('suggested_actions', []),
-                'alternative_methods': recovery_options.get('alternative_methods', []),
-                'support_contact': recovery_options.get('support_contact', ''),
-                'support_phone': recovery_options.get('support_phone', ''),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need PAYMENT_FAILED type
-                context=context
+            return NotificationManager.send(
+                event=NotificationEvents.PAYMENT_FAILED,
+                recipients=[user],
+                cluster=transaction.cluster,
+                context={
+                    'user_name': user.name,
+                    'transaction_id': transaction.transaction_id,
+                    'amount': transaction.amount,
+                    'currency': transaction.currency,
+                    'error_message': user_message,
+                    'error_type': error_type.value,
+                    'can_retry': recovery_options.get('can_retry', False),
+                    'suggested_actions': recovery_options.get('suggested_actions', []),
+                    'alternative_methods': recovery_options.get('alternative_methods', []),
+                    'support_contact': recovery_options.get('support_contact', ''),
+                    'support_phone': recovery_options.get('support_phone', ''),
+                }
             )
-            
-            return sender.send()
         
         except Exception as e:
             logger.error(f"Failed to send payment failed notification: {e}")
@@ -469,30 +470,30 @@ class PaymentErrorNotificationManager:
         """
         try:
             from accounts.models import AccountUser
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
             user = AccountUser.objects.filter(id=recurring_payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': recurring_payment.title,
-                'amount': recurring_payment.amount,
-                'currency': recurring_payment.currency,
-                'error_message': PaymentErrorHandler.get_user_friendly_message(error_type),
-                'failed_attempts': recurring_payment.failed_attempts,
-                'max_attempts': recurring_payment.max_failed_attempts,
-                'is_paused': recurring_payment.status == RecurringPaymentStatus.PAUSED,
-                'next_retry_date': recurring_payment.next_payment_date.strftime('%Y-%m-%d'),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need RECURRING_PAYMENT_FAILED type
-                context=context
+            return NotificationManager.send(
+                event=NotificationEvents.PAYMENT_FAILED,
+                recipients=[user],
+                cluster=recurring_payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': recurring_payment.title,
+                    'amount': recurring_payment.amount,
+                    'currency': recurring_payment.currency,
+                    'error_message': PaymentErrorHandler.get_user_friendly_message(error_type),
+                    'failed_attempts': recurring_payment.failed_attempts,
+                    'max_attempts': recurring_payment.max_failed_attempts,
+                    'is_paused': recurring_payment.status == RecurringPaymentStatus.PAUSED,
+                    'next_retry_date': recurring_payment.next_payment_date.strftime('%Y-%m-%d'),
+                }
             )
-            
-            return sender.send()
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment failed notification: {e}")
@@ -549,7 +550,7 @@ class PaymentErrorNotificationManager:
 
 
 # Convenience functions for error handling
-def handle_payment_error(transaction: Transaction, error_message: str) -> Dict[str, Any]:
+def handle_payment_error(transaction: Transaction, error_message: str) -> dict[str, Any]:
     """
     Handle payment error with comprehensive error processing.
     
@@ -617,7 +618,7 @@ def create_payment_error_record(transaction: Transaction, error_message: str,
     return payment_error
 
 
-def retry_failed_payment(payment_error: PaymentError) -> Tuple[bool, str]:
+def retry_failed_payment(payment_error: PaymentError) -> tuple[bool, str]:
     """
     Retry a failed payment transaction.
     
@@ -625,7 +626,7 @@ def retry_failed_payment(payment_error: PaymentError) -> Tuple[bool, str]:
         payment_error: PaymentError record to retry
         
     Returns:
-        Tuple[bool, str]: (success, message)
+        tuple[bool, str]: (success, message)
     """
     if not payment_error.can_be_retried():
         return False, "Payment cannot be retried"

@@ -16,7 +16,7 @@ from core.common.error_codes import CommonAPIErrorCodes
 def error_response(
     error_code: str,
     message: str,
-    details: Optional[Union[Dict[str, Any], List[Any], str]] = None,
+    details: Optional[Union[dict[str, Any], List[Any], str]] = None,
     status_code: int = status.HTTP_400_BAD_REQUEST
 ) -> Response:
     """
@@ -44,7 +44,7 @@ def error_response(
 
 def validation_error_response(
     message: str = "Validation failed.",
-    details: Optional[Dict[str, Any]] = None
+    details: Optional[dict[str, Any]] = None
 ) -> Response:
     """
     Create a validation error response.

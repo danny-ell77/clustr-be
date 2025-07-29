@@ -174,7 +174,7 @@ class GenericModelSplitter:
         
         return dependencies
     
-    def group_related_models(self) -> Dict[str, List[str]]:
+    def group_related_models(self) -> dict[str, List[str]]:
         """Auto-group related models that should be in the same file."""
         groups = {}
         processed = set()
@@ -209,7 +209,7 @@ class GenericModelSplitter:
         
         return groups
     
-    def get_predefined_groupings(self) -> Dict[str, Dict[str, List[str]]]:
+    def get_predefined_groupings(self) -> dict[str, dict[str, List[str]]]:
         """Get predefined groupings for known model files."""
         return {
             'wallet': {
@@ -235,7 +235,7 @@ class GenericModelSplitter:
             # Add more predefined groupings as needed
         }
     
-    def determine_group_name(self, model_name: str, model_info: Dict) -> str:
+    def determine_group_name(self, model_name: str, model_info: dict) -> str:
         """Determine the appropriate group name for a model."""
         # Remove common suffixes to find base name
         base_name = model_name
@@ -255,7 +255,7 @@ class GenericModelSplitter:
         
         return group_name
     
-    def find_related_models_for_grouping(self, model_name: str, model_info: Dict) -> List[str]:
+    def find_related_models_for_grouping(self, model_name: str, model_info: dict) -> List[str]:
         """Find models that should be grouped with the given model."""
         related = [model_name]
         
@@ -363,7 +363,7 @@ class GenericModelSplitter:
                 return group_name
         return 'unknown'
     
-    def update_init_file(self, groups: Dict[str, List[str]]):
+    def update_init_file(self, groups: dict[str, List[str]]):
         """Update the __init__.py file to maintain backward compatibility."""
         init_file = self.target_dir / '__init__.py'
         

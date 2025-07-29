@@ -117,7 +117,7 @@ class audit_viewset:
         self,
         resource_type: str,
         ignore: Optional[List[str]] = None,
-        log_attributes: Optional[Dict[str, List[str]]] = None
+        log_attributes: Optional[dict[str, List[str]]] = None
     ):
         """
         Initialize the audit viewset decorator with configuration parameters.
@@ -131,7 +131,7 @@ class audit_viewset:
         self.ignore = ignore or []
         self.log_attributes = log_attributes or {}
 
-    def _extract_custom_attributes(self, source_object: Any, attribute_list: List[str], source_type: str) -> Dict[str, Any]:
+    def _extract_custom_attributes(self, source_object: Any, attribute_list: List[str], source_type: str) -> dict[str, Any]:
         """
         Extract custom attributes from a source object (request or response).
         
@@ -175,7 +175,7 @@ class audit_viewset:
         
         return extracted_attributes
 
-    def _determine_event_type_and_resource_id(self, request, action_name: str) -> Tuple[str, Optional[str]]:
+    def _determine_event_type_and_resource_id(self, request, action_name: str) -> tuple[str, Optional[str]]:
         """
         Determine the appropriate event type and resource ID for the current action.
         
@@ -248,7 +248,7 @@ class audit_viewset:
             # If we can't determine the URL name, don't ignore by default
             return False
 
-    def _get_user_and_cluster_info(self, request) -> Tuple[Optional[str], Optional[str]]:
+    def _get_user_and_cluster_info(self, request) -> tuple[Optional[str], Optional[str]]:
         """
         Extract user and cluster information from the request.
         

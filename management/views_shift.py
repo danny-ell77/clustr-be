@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
+import django_filters
 from management.filters import ShiftFilter, ShiftSwapRequestFilter
 
 from core.common.decorators import audit_viewset
@@ -29,7 +30,7 @@ from core.common.serializers.shift_serializers import (
     ShiftStatisticsSerializer
 )
 from core.common.utils import ShiftManager, ShiftNotificationManager
-from core.common.permissions import IsClusterAdmin, IsClusterStaff
+from accounts.permissions import IsClusterStaffOrAdmin, IsClusterAdmin
 from accounts.models import AccountUser
 
 logger = logging.getLogger('clustr')
@@ -54,7 +55,7 @@ class ShiftViewSet(ModelViewSet):
     ViewSet for managing shifts.
     """
     
-    permission_classes = [permissions.IsAuthenticated, IsClusterAdmin | IsClusterStaff]
+    permission_classes = [permissions.IsAuthenticated, IsClusterStaffOrAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_class = ShiftFilter
     
@@ -375,7 +376,7 @@ class StaffScheduleView(APIView):
     View for getting staff schedules.
     """
     
-    permission_classes = [permissions.IsAuthenticated, IsClusterAdmin | IsClusterStaff]
+    permission_classes = [permissions.IsAuthenticated, IsClusterStaffOrAdmin]
     
     def get(self, request, staff_id=None):
         """Get schedule for a specific staff member or all staff."""

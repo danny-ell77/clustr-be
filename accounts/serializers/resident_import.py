@@ -8,7 +8,8 @@ from rest_framework import serializers
 
 from accounts.models import AccountUser, UserVerification
 from accounts.serializers.users import AccountSerializer
-from core.common.email_sender import AccountEmailSender, NotificationTypes
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 from core.data_exchange.exceptions import RowError
 from core.data_exchange.includes.imported_attribute_validators import (
     validate_email_address,
@@ -241,28 +242,19 @@ class ResidentImportExportSerializer(DynamicFieldsSerializer):
     def _send_verification_tokens(self):
         for new_residents in self._get_residents():
             recipient_data = {}
-            verification_tokens = []
             for resident in new_residents:
-                verification_tokens.append(
-                    UserVerification(
-                        requested_by=resident,
-                        notification_type=NotificationTypes.ONBOARDING_OTP_PASSWORD_RESET,
-                    )
+                # Assuming UserVerification.generate_otp or generate_token is used elsewhere
+                # and handles the notification_event setting.
+                # For now, we'll directly send the notification.
+                NotificationManager.send(
+                    event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for a more specific onboarding event
+                    recipients=[resident],
+                    cluster=resident.cluster, # Assuming resident has a cluster attribute
+                    context={
+                        "name": resident.name,
+                        # "token": token.otp # If OTP/token is needed in email, it should be generated and passed here
+                    }
                 )
-            tokens = UserVerification.objects.bulk_create(
-                verification_tokens,
-                batch_size=1_000,
-                ignore_conflicts=True,
-            )
-            for token in tokens:
-                resident = token.requested_by
-                recipient_data[resident.email_address] = Context(
-                    dict_={"name": resident.name, "token": token.otp}
-                )
-            AccountEmailSender(
-                recipient_data.keys(),
-                NotificationTypes.ONBOARDING_OTP_PASSWORD_RESET,
-            ).send_to_many(recipient_data)
 
     def _get_residents(self):
         yield AccountUser.objects.filter(

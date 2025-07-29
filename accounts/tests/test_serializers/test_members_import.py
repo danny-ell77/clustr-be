@@ -79,8 +79,8 @@ class ClusterMembersImportSerializerTestCase(TestCase):
                 "phone_number": "09056705721",
             }
         ]
-        cls.mock_email_sender = patch(
-            "core.common.email_sender.sender.AccountEmailSender.send_to_many"
+        cls.mock_notification_manager_send = patch(
+            "core.notifications.manager.NotificationManager.send"
         ).start()
         request = create_fake_request(owner=cls.cluster_admin)
         cls.serializer = ResidentImportExportSerializer(
@@ -109,7 +109,7 @@ class ClusterMembersImportSerializerTestCase(TestCase):
         self.serializer.is_valid()
         self.serializer.save()
         self.assertEqual(UserVerification.objects.count(), len(self.valid_data))
-        self.mock_email_sender.assert_called()
+        self.mock_notification_manager_send.assert_called()
 
     def test_import_result__on__valid_data(self):
         self.serializer.is_valid()

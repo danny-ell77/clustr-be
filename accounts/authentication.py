@@ -27,7 +27,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
     def authenticate(
         self, request: Request
-    ) -> Optional[Tuple[AccountUser, Dict[str, Any]]]:
+    ) -> Optional[tuple[AccountUser, dict[str, Any]]]:
         """
         Authenticate the request and return a two-tuple of (user, token_payload).
         """
@@ -103,7 +103,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise exceptions.AuthenticationFailed(_("Authentication failed."))
 
     def set_cluster_context(
-        self, request: Request, user: AccountUser, payload: Dict[str, Any]
+        self, request: Request, user: AccountUser, payload: dict[str, Any]
     ) -> None:
         """
         Set the cluster context in the request based on the token payload.
@@ -151,7 +151,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
         return None
 
-    def decode_token(self, token: str) -> Dict[str, Any]:
+    def decode_token(self, token: str) -> dict[str, Any]:
         """
         Decode the JWT token and return the payload.
 
@@ -180,7 +180,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             },
         )
 
-    def get_user_from_payload(self, payload: Dict[str, Any]) -> AccountUser:
+    def get_user_from_payload(self, payload: dict[str, Any]) -> AccountUser:
         """
         Get the user from the token payload.
 
@@ -221,7 +221,7 @@ def generate_token(
     user: AccountUser,
     cluster_id: Optional[str] = None,
     expiry: Optional[timedelta] = None,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Generate a JWT token for the given user.
 
@@ -309,7 +309,7 @@ def generate_token(
 
 def refresh_token(
     refresh_token_str: str, request: Optional[Request] = None
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Generate a new access token using a refresh token.
 

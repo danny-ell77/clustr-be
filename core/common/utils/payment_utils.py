@@ -18,7 +18,7 @@ from core.common.models.wallet import (
     TransactionType,
     PaymentProvider,
 )
-from core.common.utils.file_storage import FileStorageManager
+from core.common.utils.file_storage import FileStorage
 from core.common.utils.third_party_services import PaymentProviderFactory
 
 logger = logging.getLogger('clustr')
@@ -250,7 +250,7 @@ class PaymentManager:
             return None
     
     def handle_failed_payment(self, transaction: Transaction, 
-                             retry_count: int = 0) -> Dict[str, Any]:
+                             retry_count: int = 0) -> dict[str, Any]:
         """
         Handle failed payment with recovery options.
         
@@ -344,7 +344,7 @@ class PaymentManager:
 
 # Convenience functions for common payment operations
 def initialize_deposit(wallet, amount: Decimal, provider: PaymentProvider, 
-                      user_email: str, callback_url: str = None) -> Tuple[Transaction, Dict]:
+                      user_email: str, callback_url: str = None) -> tuple[Transaction, Dict]:
     """
     Initialize a wallet deposit transaction.
     

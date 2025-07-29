@@ -6,7 +6,6 @@ import logging
 from decimal import Decimal
 from typing import List, Optional, Dict, Any
 from django.utils import timezone
-from django.template import Context
 from django.db.models import Q, Sum
 
 from core.common.models.wallet import (
@@ -17,8 +16,8 @@ from core.common.models.wallet import (
     TransactionType,
     Wallet,
 )
-from core.common.utils.notification_utils import NotificationManager
-from core.common.email_sender import AccountEmailSender, NotificationTypes
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 logger = logging.getLogger('clustr')
 
@@ -31,7 +30,7 @@ class BillManager:
     @staticmethod
     def create_bill(cluster, user_id: str, title: str, amount: Decimal,
                    bill_type: BillType, due_date, description: str = None,
-                   created_by: str = None, metadata: Dict = None) -> Bill:
+                   created_by: str = None, metadata: Optional[dict] = None) -> Bill:
         """
         Create a new bill for a user.
         
@@ -187,7 +186,7 @@ class BillManager:
         return list(queryset)
     
     @staticmethod
-    def get_bills_summary(cluster, user_id: str) -> Dict[str, Any]:
+    def get_bills_summary(cluster, user_id: str) -> dict[str, Any]:
         """
         Get bills summary for a user.
         
@@ -388,32 +387,29 @@ class BillNotificationManager:
             bool: True if notification was sent successfully
         """
         try:
-            # Get user email (this would need to be implemented based on your user model)
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=bill.user_id).first()
             
-            if not user or not user.email_address:
-                logger.warning(f"No email found for user {bill.user_id}")
+            if not user:
+                logger.warning(f"No user found for bill {bill.bill_number}")
                 return False
-            
-            context = Context({
-                'user_name': user.name,
-                'bill_number': bill.bill_number,
-                'bill_title': bill.title,
-                'bill_amount': bill.amount,
-                'currency': bill.currency,
-                'due_date': bill.due_date.strftime('%Y-%m-%d'),
-                'bill_type': bill.get_type_display(),
-                'description': bill.description or '',
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # We'll use this for new bills too
-                context=context
+
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_DUE,
+                recipients=[user],
+                cluster=bill.cluster,
+                context={
+                    'user_name': user.name,
+                    'bill_number': bill.bill_number,
+                    'bill_title': bill.title,
+                    'bill_amount': bill.amount,
+                    'currency': bill.currency,
+                    'due_date': bill.due_date.strftime('%Y-%m-%d'),
+                    'bill_type': bill.get_type_display(),
+                    'description': bill.description or '',
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send new bill notification: {e}")
@@ -434,29 +430,27 @@ class BillNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=bill.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
             days_until_due = (bill.due_date.date() - timezone.now().date()).days
             
-            context = Context({
-                'user_name': user.name,
-                'bill_number': bill.bill_number,
-                'bill_title': bill.title,
-                'bill_amount': bill.remaining_amount,
-                'currency': bill.currency,
-                'due_date': bill.due_date.strftime('%Y-%m-%d'),
-                'days_until_due': days_until_due,
-                'bill_type': bill.get_type_display(),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_DUE,
+                recipients=[user],
+                cluster=bill.cluster,
+                context={
+                    'user_name': user.name,
+                    'bill_number': bill.bill_number,
+                    'bill_title': bill.title,
+                    'bill_amount': bill.remaining_amount,
+                    'currency': bill.currency,
+                    'due_date': bill.due_date.strftime('%Y-%m-%d'),
+                    'days_until_due': days_until_due,
+                    'bill_type': bill.get_type_display(),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send bill reminder: {e}")
@@ -477,29 +471,27 @@ class BillNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=bill.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
             days_overdue = (timezone.now().date() - bill.due_date.date()).days
             
-            context = Context({
-                'user_name': user.name,
-                'bill_number': bill.bill_number,
-                'bill_title': bill.title,
-                'bill_amount': bill.remaining_amount,
-                'currency': bill.currency,
-                'due_date': bill.due_date.strftime('%Y-%m-%d'),
-                'days_overdue': days_overdue,
-                'bill_type': bill.get_type_display(),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need OVERDUE_BILL type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_OVERDUE,
+                recipients=[user],
+                cluster=bill.cluster,
+                context={
+                    'user_name': user.name,
+                    'bill_number': bill.bill_number,
+                    'bill_title': bill.title,
+                    'bill_amount': bill.remaining_amount,
+                    'currency': bill.currency,
+                    'due_date': bill.due_date.strftime('%Y-%m-%d'),
+                    'days_overdue': days_overdue,
+                    'bill_type': bill.get_type_display(),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send overdue bill notification: {e}")
@@ -521,28 +513,26 @@ class BillNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=bill.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'bill_number': bill.bill_number,
-                'bill_title': bill.title,
-                'payment_amount': transaction.amount,
-                'currency': transaction.currency,
-                'transaction_id': transaction.transaction_id,
-                'payment_date': transaction.processed_at.strftime('%Y-%m-%d %H:%M'),
-                'remaining_amount': bill.remaining_amount,
-                'bill_status': bill.get_status_display(),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.PAYMENT_RECEIPT,
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_CONFIRMED,
+                recipients=[user],
+                cluster=bill.cluster,
+                context={
+                    'user_name': user.name,
+                    'bill_number': bill.bill_number,
+                    'bill_title': bill.title,
+                    'payment_amount': transaction.amount,
+                    'currency': transaction.currency,
+                    'transaction_id': transaction.transaction_id,
+                    'payment_date': transaction.processed_at.strftime('%Y-%m-%d %H:%M'),
+                    'remaining_amount': bill.remaining_amount,
+                    'bill_status': bill.get_status_display(),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send payment confirmation: {e}")
@@ -563,25 +553,23 @@ class BillNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=bill.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'bill_number': bill.bill_number,
-                'bill_title': bill.title,
-                'bill_amount': bill.amount,
-                'currency': bill.currency,
-                'bill_type': bill.get_type_display(),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need BILL_CANCELLED type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.BILL_CANCELLED,
+                recipients=[user],
+                cluster=bill.cluster,
+                context={
+                    'user_name': user.name,
+                    'bill_number': bill.bill_number,
+                    'bill_title': bill.title,
+                    'bill_amount': bill.amount,
+                    'currency': bill.currency,
+                    'bill_type': bill.get_type_display(),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send bill cancelled notification: {e}")
@@ -607,25 +595,20 @@ class BillNotificationManager:
                 is_cluster_admin=True
             )
             
-            admin_emails = [admin.email_address for admin in cluster_admins if admin.email_address]
-            
-            if admin_emails:
-                context = Context({
-                    'bill_number': bill.bill_number,
-                    'bill_title': bill.title,
-                    'bill_amount': bill.amount,
-                    'currency': bill.currency,
-                    'acknowledged_at': bill.acknowledged_at.strftime('%Y-%m-%d %H:%M'),
-                    'user_id': str(bill.user_id),
-                })
-                
-                sender = AccountEmailSender(
-                    recipients=admin_emails,
-                    email_type=NotificationTypes.BILL_REMINDER,  # Would need BILL_ACKNOWLEDGED type
-                    context=context
+            if cluster_admins.exists():
+                NotificationManager.send(
+                    event=NotificationEvents.BILL_ACKNOWLEDGED,
+                    recipients=list(cluster_admins),
+                    cluster=bill.cluster,
+                    context={
+                        'bill_number': bill.bill_number,
+                        'bill_title': bill.title,
+                        'bill_amount': bill.amount,
+                        'currency': bill.currency,
+                        'acknowledged_at': bill.acknowledged_at.strftime('%Y-%m-%d %H:%M'),
+                        'user_id': str(bill.user_id),
+                    }
                 )
-                
-                return sender.send()
             
             return True
         except Exception as e:
@@ -652,26 +635,21 @@ class BillNotificationManager:
                 is_cluster_admin=True
             )
             
-            admin_emails = [admin.email_address for admin in cluster_admins if admin.email_address]
-            
-            if admin_emails:
-                context = Context({
-                    'bill_number': bill.bill_number,
-                    'bill_title': bill.title,
-                    'bill_amount': bill.amount,
-                    'currency': bill.currency,
-                    'dispute_reason': bill.dispute_reason,
-                    'disputed_at': bill.disputed_at.strftime('%Y-%m-%d %H:%M'),
-                    'user_id': str(bill.user_id),
-                })
-                
-                sender = AccountEmailSender(
-                    recipients=admin_emails,
-                    email_type=NotificationTypes.BILL_REMINDER,  # Would need BILL_DISPUTED type
-                    context=context
+            if cluster_admins.exists():
+                NotificationManager.send(
+                    event=NotificationEvents.BILL_DISPUTED,
+                    recipients=list(cluster_admins),
+                    cluster=bill.cluster,
+                    context={
+                        'bill_number': bill.bill_number,
+                        'bill_title': bill.title,
+                        'bill_amount': bill.amount,
+                        'currency': bill.currency,
+                        'dispute_reason': bill.dispute_reason,
+                        'disputed_at': bill.disputed_at.strftime('%Y-%m-%d %H:%M'),
+                        'user_id': str(bill.user_id),
+                    }
                 )
-                
-                return sender.send()
             
             return True
         except Exception as e:

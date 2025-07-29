@@ -86,6 +86,7 @@ from core.common.models.wallet import (
     BillStatus,
     RecurringPaymentStatus,
     RecurringPaymentFrequency,
+    PaymentError
 )
 
 __all__ = [

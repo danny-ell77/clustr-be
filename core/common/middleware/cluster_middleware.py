@@ -10,8 +10,6 @@ import logging
 from django.utils.deprecation import MiddlewareMixin
 from django.http import HttpRequest
 
-from accounts.models import AccountUser
-
 # Configure logger
 logger = logging.getLogger('clustr')
 
@@ -54,6 +52,9 @@ class ClusterContextMiddleware(MiddlewareMixin):
         )
         
         # If user is authenticated, set the cluster context
+        from accounts.models import AccountUser
+
+
         if hasattr(request, 'user') and isinstance(request.user, AccountUser):
             user = request.user
             

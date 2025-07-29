@@ -3,8 +3,7 @@ Utility functions for ClustR application.
 """
 
 from core.common.utils.file_storage import FileStorage
-from core.common.utils.notification_utils import NotificationManager
-from core.common.utils.scheduled_tasks import ScheduledTaskManager
+
 from core.common.utils.helpdesk_utils import HelpdeskManager
 from core.common.utils.emergency_utils import EmergencyManager
 from core.common.utils.shift_utils import ShiftManager, ShiftNotificationManager
@@ -14,7 +13,7 @@ from core.common.utils.payment_utils import PaymentManager, PaymentError, initia
 from core.common.utils.bill_utils import BillManager, BillNotificationManager, create_monthly_service_charge, create_utility_bill
 from core.common.utils.recurring_payment_utils import RecurringPaymentManager, RecurringPaymentNotificationManager, setup_monthly_service_charge, setup_utility_autopay
 from core.common.utils.payment_error_utils import PaymentErrorHandler, PaymentErrorNotificationManager, handle_payment_error
-from core.common.utils.cluster_wallet_utils import ClusterWalletManager, get_cluster_balance, credit_cluster_from_bill_payment
+from core.common.utils.cluster_wallet_utils import ClusterWalletManager, credit_cluster_from_bill_payment
 
 # Function to convert snake_case or camelCase to sentence case
 def to_sentence_case(text: str) -> str:
@@ -44,12 +43,12 @@ def to_sentence_case(text: str) -> str:
 __all__ = [
     'FileStorage',
     'to_sentence_case',
-    'NotificationManager',
+    
     'ScheduledTaskManager',
     'HelpdeskManager',
     'EmergencyManager',
     'ShiftManager',
-    'ShiftNotificationManager',
+    
     'TaskManager',
     'TaskNotificationManager',
     'TaskFileManager',
@@ -70,6 +69,5 @@ __all__ = [
     'PaymentErrorNotificationManager',
     'handle_payment_error',
     'ClusterWalletManager',
-    'get_cluster_balance',
     'credit_cluster_from_bill_payment'
 ]

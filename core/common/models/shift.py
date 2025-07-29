@@ -196,7 +196,7 @@ class Shift(AbstractClusterModel):
         
         self.actual_start_time = clock_in_time or timezone.now()
         self.status = ShiftStatus.IN_PROGRESS
-        self.save()
+        self.save(update_fields=["actual_start_time", "status"])
     
     def clock_out(self, clock_out_time=None):
         """Clock out from the shift."""
@@ -205,7 +205,7 @@ class Shift(AbstractClusterModel):
         
         self.actual_end_time = clock_out_time or timezone.now()
         self.status = ShiftStatus.COMPLETED
-        self.save()
+        self.save(update_fields=["actual_end_time", "status"])
     
     def mark_no_show(self):
         """Mark shift as no show."""
@@ -213,7 +213,7 @@ class Shift(AbstractClusterModel):
             raise ValidationError(_("Can only mark scheduled shifts as no show"))
         
         self.status = ShiftStatus.NO_SHOW
-        self.save()
+        self.save(update_fields=["status"])
     
     def cancel(self):
         """Cancel the shift."""
@@ -221,7 +221,7 @@ class Shift(AbstractClusterModel):
             raise ValidationError(_("Cannot cancel completed or no-show shifts"))
         
         self.status = ShiftStatus.CANCELLED
-        self.save()
+        self.save(update_fields=["status"])
 
 
 class ShiftSwapRequest(AbstractClusterModel):
@@ -316,7 +316,7 @@ class ShiftSwapRequest(AbstractClusterModel):
         self.approved_by = approved_by
         self.approved_at = timezone.now()
         self.response_message = response_message
-        self.save()
+        self.save(update_fields=["approved_by", "approved_at", "response_message"])
         
         # Perform the actual swap
         if self.target_shift:
@@ -327,12 +327,12 @@ class ShiftSwapRequest(AbstractClusterModel):
             self.original_shift.assigned_staff = target_staff
             self.target_shift.assigned_staff = original_staff
             
-            self.original_shift.save()
-            self.target_shift.save()
+            self.original_shift.save(update_fields=["assigned_staff"])
+            self.target_shift.save(update_fields=["assigned_staff"])
         else:
             # Just reassign the original shift
             self.original_shift.assigned_staff = self.requested_with
-            self.original_shift.save()
+            self.original_shift.save(update_fields=["assigned_staff"])
     
     def reject(self, rejected_by, response_message=""):
         """Reject the swap request."""
@@ -343,7 +343,7 @@ class ShiftSwapRequest(AbstractClusterModel):
         self.approved_by = rejected_by
         self.approved_at = timezone.now()
         self.response_message = response_message
-        self.save()
+        self.save(update_fields=["approved_by", "approved_at", "response_message"])
 
 
 class ShiftAttendance(AbstractClusterModel):
@@ -435,7 +435,7 @@ class ShiftAttendance(AbstractClusterModel):
             else:
                 self.overtime_hours = timedelta(0)
         
-        self.save()
+        self.save(update_fields=["overtime_hours"])
     
     def calculate_late_arrival(self):
         """Calculate late arrival minutes."""
@@ -446,7 +446,7 @@ class ShiftAttendance(AbstractClusterModel):
             else:
                 self.late_arrival_minutes = 0
         
-        self.save()
+        self.save(update_fields=["late_arrival_minutes"])
     
     def calculate_early_departure(self):
         """Calculate early departure minutes."""

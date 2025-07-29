@@ -5,7 +5,7 @@ from django.utils import timezone
 from core.common.models import (
     Announcement, AnnouncementReadStatus, IssueTicket, IssueComment, 
     IssueAttachment, Child, ExitRequest, EntryExitLog, MaintenanceLog, 
-    Visitor, VisitorLog, Transaction, Bill, RecurringPayment
+    Visitor, VisitorLog, Transaction, Bill, RecurringPayment, EmergencyContact
 )
 
 

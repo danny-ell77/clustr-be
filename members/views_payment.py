@@ -730,7 +730,6 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-    @action(detail=False, methods=['post'])
     def create(self, request):
         """
         Create a new recurring payment.

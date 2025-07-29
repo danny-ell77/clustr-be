@@ -80,6 +80,237 @@ components:
           type: string
           enum: [resident, admin, security]
 
+    # --- Management User & Role Schemas ---
+    AccountUser:
+      type: object
+      description: Represents a user account in the management system.
+      required:
+        - id
+        - email_address
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+        email_address:
+          type: string
+          format: email
+          description: User's email address.
+        name:
+          type: string
+          description: User's full name.
+        phone_number:
+          type: string
+          description: User's phone number.
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+        is_verified:
+          type: boolean
+          description: Whether the user's email is verified.
+          readOnly: true
+        permissions:
+          type: array
+          description: List of permissions assigned to the user (for subusers).
+          items:
+            type: string
+        roles:
+          type: array
+          description: List of role IDs assigned to the user (for staff).
+          items:
+            type: string
+            format: uuid
+        property_owner:
+          type: boolean
+          description: Whether the user is a property owner (for owners).
+
+    CreateOwnerRequest:
+      type: object
+      description: Request body for creating an owner account.
+      required:
+        - email_address
+        - name
+        - password
+      properties:
+        email_address:
+          type: string
+          format: email
+          description: User's email address.
+        name:
+          type: string
+          description: User's full name.
+        phone_number:
+          type: string
+          description: User's phone number.
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+        password:
+          type: string
+          minLength: 8
+          writeOnly: true
+          description: User's password.
+        property_owner:
+          type: boolean
+          default: false
+          description: Whether the user is a property owner.
+
+    CreateSubuserRequest:
+      type: object
+      description: Request body for creating a subuser account.
+      required:
+        - email_address
+        - name
+      properties:
+        email_address:
+          type: string
+          format: email
+          description: User's email address.
+        name:
+          type: string
+          description: User's full name.
+        phone_number:
+          type: string
+          description: User's phone number.
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+        permissions:
+          type: array
+          description: List of permissions to assign to the user.
+          items:
+            type: string
+
+    CreateStaffRequest:
+      type: object
+      description: Request body for creating a staff account.
+      required:
+        - email_address
+        - name
+      properties:
+        email_address:
+          type: string
+          format: email
+          description: User's email address.
+        name:
+          type: string
+          description: User's full name.
+        phone_number:
+          type: string
+          description: User's phone number.
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+        roles:
+          type: array
+          description: List of role IDs to assign to the user.
+          items:
+            type: string
+            format: uuid
+
+    Role:
+      type: object
+      description: Represents a role in the system.
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the role.
+        name:
+          type: string
+          description: Role name (without owner prefix).
+        description:
+          type: string
+          description: Role description.
+        owner:
+          type: string
+          format: uuid
+          description: ID of the role owner.
+          readOnly: true
+        total_subusers:
+          type: integer
+          description: Number of users assigned to this role.
+          readOnly: true
+        permissions:
+          type: array
+          description: List of permissions assigned to this role.
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the role was created.
+          readOnly: true
+        last_modified_at:
+          type: string
+          format: date-time
+          description: Timestamp when the role was last modified.
+          readOnly: true
+
+    CreateRoleRequest:
+      type: object
+      description: Request body for creating a role.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Role name.
+        description:
+          type: string
+          description: Role description.
+        permissions:
+          type: array
+          description: List of permissions to assign to the role.
+          items:
+            type: string
+
+    AssignRoleRequest:
+      type: object
+      description: Request body for assigning roles to a user.
+      required:
+        - user_id
+        - role_ids
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: ID of the user to assign roles to.
+        role_ids:
+          type: array
+          description: List of role IDs to assign to the user.
+          items:
+            type: string
+            format: uuid
+
+    UserSummary:
+      type: object
+      description: A summary of user information for lists.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user.
+        name:
+          type: string
+          description: User's full name.
+        email_address:
+          type: string
+          format: email
+          description: User's email address.
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL to the user's profile picture.
+
     UserRegistration:
       type: object
       description: Request body for user registration (Onboarding 1).
@@ -3621,4 +3852,509 @@ paths:
       responses:
         '204':
           description: Staff member deleted successfully
+
+  # --- Management Paths ---
+  /management/users:
+    get:
+      tags: [Management - Users]
+      summary: List users (Management)
+      description: Retrieve a list of users with filtering capabilities. Access is restricted based on user role and permissions.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AccountUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Management - Users]
+      summary: Create user (Management)
+      description: Create a new user account. The type of user created depends on the user_type field.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - allOf:
+                    - $ref: '#/components/schemas/CreateOwnerRequest'
+                    - type: object
+                      properties:
+                        user_type:
+                          type: string
+                          enum: [OWNER]
+                - allOf:
+                    - $ref: '#/components/schemas/CreateSubuserRequest'
+                    - type: object
+                      properties:
+                        user_type:
+                          type: string
+                          enum: [SUB_USER]
+                - allOf:
+                    - $ref: '#/components/schemas/CreateStaffRequest'
+                    - type: object
+                      properties:
+                        user_type:
+                          type: string
+                          enum: [STAFF]
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountUser'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /management/users/{userId}:
+    get:
+      tags: [Management - Users]
+      summary: Get user details (Management)
+      description: Retrieve detailed information about a specific user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '200':
+          description: User details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Management - Users]
+      summary: Update user (Management)
+      description: Update user information.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUser'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountUser'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Management - Users]
+      summary: Delete user (Management)
+      description: Soft delete a user by setting is_active to false.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '204':
+          description: User deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /management/roles:
+    get:
+      tags: [Management - Roles]
+      summary: List roles (Management)
+      description: Retrieve a list of roles with filtering capabilities. Access is restricted based on user permissions.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+      responses:
+        '200':
+          description: Roles retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Role'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Management - Roles]
+      summary: Create role (Management)
+      description: Create a new role with specified permissions.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /management/roles/{roleId}:
+    get:
+      tags: [Management - Roles]
+      summary: Get role details (Management)
+      description: Retrieve detailed information about a specific role.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Role ID
+      responses:
+        '200':
+          description: Role details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Management - Roles]
+      summary: Update role (Management)
+      description: Update role information and permissions.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Role ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Management - Roles]
+      summary: Delete role (Management)
+      description: Delete a role permanently.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Role ID
+      responses:
+        '204':
+          description: Role deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /management/roles/assign:
+    post:
+      tags: [Management - Roles]
+      summary: Assign roles to user (Management)
+      description: Assign one or more roles to a specific user.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRoleRequest'
+      responses:
+        '200':
+          description: Roles assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                    example: "Roles assigned successfully."
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User or role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 

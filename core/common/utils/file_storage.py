@@ -202,7 +202,7 @@ class FileStorage:
         return False
     
     @classmethod
-    def get_file_metadata(cls, file_path: str) -> Dict[str, Union[str, int, datetime]]:
+    def get_file_metadata(cls, file_path: str) -> dict[str, Union[str, int, datetime]]:
         """
         Get metadata for a file.
         

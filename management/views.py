@@ -25,6 +25,8 @@ from core.common.error_utils import exception_to_response_mapper
 from core.common.responses import error_response
 from core.common.exceptions import ValidationException, ResourceNotFoundException
 
+from management.filters import UserFilter, RoleFilter
+
 logger = logging.getLogger('clustr')
 
 

@@ -11,7 +11,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.common.code_generator import CodeGenerator
-from core.common.email_sender import AccountEmailSender, NotificationTypes
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 from core.common.models import UUIDPrimaryKey
 
 if TYPE_CHECKING:
@@ -57,21 +58,21 @@ class VerifyMode(TextChoices):
     SMS = "SMS"  # New mode for SMS verification
 
 
-otp_notification_types = {
-    VerifyReason.ONBOARDING: NotificationTypes.ONBOARDING_OTP_PASSWORD_RESET,
-    VerifyReason.PASSWORD_RESET: NotificationTypes.OTP_PASSWORD_RESET,
-    VerifyReason.RESEND_TOKEN: NotificationTypes.RESEND_OTP,
-    VerifyReason.EMAIL_VERIFICATION: NotificationTypes.EMAIL_VERIFICATION_OTP,
-    VerifyReason.PHONE_VERIFICATION: NotificationTypes.PHONE_VERIFICATION_OTP,
-    VerifyReason.PROFILE_UPDATE: NotificationTypes.PROFILE_UPDATE_OTP,
+otp_notification_events = {
+    VerifyReason.ONBOARDING: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.PASSWORD_RESET: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.RESEND_TOKEN: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.EMAIL_VERIFICATION: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.PHONE_VERIFICATION: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.PROFILE_UPDATE: NotificationEvents.SYSTEM_UPDATE, # Placeholder
 }
 
-web_token_notification_types = {
-    VerifyReason.ONBOARDING: NotificationTypes.ONBOARDING_TOKEN_PASSWORD_RESET,
-    VerifyReason.PASSWORD_RESET: NotificationTypes.WEB_TOKEN_PASSWORD_RESET,
-    VerifyReason.RESEND_TOKEN: NotificationTypes.RESEND_WEB_TOKEN,
-    VerifyReason.EMAIL_VERIFICATION: NotificationTypes.EMAIL_VERIFICATION_TOKEN,
-    VerifyReason.PROFILE_UPDATE: NotificationTypes.PROFILE_UPDATE_TOKEN,
+web_token_notification_events = {
+    VerifyReason.ONBOARDING: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.PASSWORD_RESET: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.RESEND_TOKEN: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.EMAIL_VERIFICATION: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+    VerifyReason.PROFILE_UPDATE: NotificationEvents.SYSTEM_UPDATE, # Placeholder
 }
 
 
@@ -81,10 +82,10 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
 
     otp = models.CharField(max_length=OTP_MAX_LENGTH, null=True)
     token = models.CharField(max_length=255, null=True)
-    notification_type = models.CharField(
-        verbose_name=_("Notification type"),
+    notification_event = models.CharField(
+        verbose_name=_("Notification event"),
         max_length=50,
-        choices=NotificationTypes.choices,
+        # choices=NotificationEvents.choices, # Not directly using choices from Enum for CharField
     )
     requested_at = models.DateTimeField(
         verbose_name=_("Request date"), auto_now_add=True

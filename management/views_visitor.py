@@ -20,7 +20,8 @@ from core.common.serializers.visitor_serializers import (
     VisitorLogSerializer,
     VisitorLogCreateSerializer,
 )
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 @audit_viewset(resource_type='visitor')
 class ManagementVisitorViewSet(ModelViewSet):
@@ -81,17 +82,27 @@ class ManagementVisitorViewSet(ModelViewSet):
             
             # Send notification to the user who invited the visitor
             try:
-                # In a real implementation, you would get the user's email from the database
-                # For now, we'll just use a placeholder
-                user_email = "user@example.com"  # This would be replaced with actual user email
-                NotificationManager.send_visitor_arrival_notification(
-                    user_email=user_email,
-                    visitor_name=visitor.name,
-                    access_code=visitor.access_code
+                # Get the user who invited the visitor
+                from accounts.models import AccountUser
+                inviting_user = AccountUser.objects.get(id=visitor.invited_by)
+                
+                NotificationManager.send(
+                    event_name=NotificationEvents.VISITOR_ARRIVAL,
+                    recipients=[inviting_user],
+                    cluster=visitor.cluster,
+                    context={
+                        "visitor_name": visitor.name,
+                        "access_code": visitor.access_code,
+                        "arrival_time": log.created_at,
+                        "unit": getattr(inviting_user, 'unit', 'N/A'),
+                        "checked_in_by": request.user.get_full_name() or request.user.email_address,
+                    }
                 )
             except Exception as e:
                 # Log the error but don't fail the check-in
-                pass
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send visitor arrival notification: {str(e)}")
             
             return Response(
                 VisitorLogSerializer(log).data,

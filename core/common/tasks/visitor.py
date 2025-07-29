@@ -5,7 +5,8 @@ from celery import shared_task
 from django.utils import timezone
 from accounts.models import AccountUser
 from core.common.models import Visitor
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,14 @@ def detect_visitor_overstays():
                 logger.error(f"User not found for visitor: {visitor.name} (ID: {visitor.id})")
                 return
             
-            NotificationManager.send_visitor_overstay_notification(
-                user_email=user.email_address,
-                visitor_name=visitor.name,
-                access_code=visitor.access_code
+            NotificationManager.send(
+                event=NotificationEvents.VISITOR_OVERSTAY,
+                recipients=[user],
+                cluster=visitor.cluster,
+                context={
+                    "visitor_name": visitor.name,
+                    "access_code": visitor.access_code,
+                }
             )
             
             logger.info(f"Sent overstay notification for visitor: {visitor.name} (ID: {visitor.id})")

@@ -23,7 +23,7 @@ class RecordImporter:
         self,
         import_data: dict[str, Any],
         import_serializer_class: Type[DynamicFieldsSerializer],
-        serializer_context: dict = None,
+        serializer_context: Optional[dict] = None,
     ):
         """
         Parameters

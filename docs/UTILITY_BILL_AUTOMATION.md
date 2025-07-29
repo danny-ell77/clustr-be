@@ -69,16 +69,16 @@ class UtilityProvider(models.Model):
 ```python
 class UtilityServiceInterface(ABC):
     @abstractmethod
-    def validate_customer(self, customer_id: str, provider_code: str) -> Dict[str, Any]
+    def validate_customer(self, customer_id: str, provider_code: str) -> dict[str, Any]
     
     @abstractmethod
-    def get_customer_info(self, customer_id: str, provider_code: str) -> Dict[str, Any]
+    def get_customer_info(self, customer_id: str, provider_code: str) -> dict[str, Any]
     
     @abstractmethod
-    def purchase_utility(self, customer_id: str, amount: Decimal, provider_code: str) -> Dict[str, Any]
+    def purchase_utility(self, customer_id: str, amount: Decimal, provider_code: str) -> dict[str, Any]
     
     @abstractmethod
-    def get_utility_providers(self, service_type: str) -> List[Dict[str, Any]]
+    def get_utility_providers(self, service_type: str) -> List[dict[str, Any]]
 ```
 
 #### Provider-Specific Implementations

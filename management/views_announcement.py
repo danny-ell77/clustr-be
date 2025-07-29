@@ -31,7 +31,8 @@ from core.common.serializers.announcement_serializers import (
     AnnouncementCommentCreateSerializer,
     AnnouncementAttachmentSerializer,
 )
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 
 class ManagementAnnouncementFilter(django_filters.FilterSet):
@@ -95,9 +96,16 @@ class ManagementAnnouncementViewSet(ModelViewSet):
             # Send notifications to all cluster users if published
             if announcement.is_published:
                 try:
-                    NotificationManager.send_announcement_notification(
-                        announcement=announcement,
-                        cluster=announcement.cluster
+                    NotificationManager.send(
+                        event=NotificationEvents.ANNOUNCEMENT_POSTED,
+                        recipients=announcement.cluster.get_all_users(), # Assuming a method to get all users in a cluster
+                        cluster=announcement.cluster,
+                        context={
+                            "announcement_title": announcement.title,
+                            "announcement_content": announcement.content,
+                            "cluster_name": announcement.cluster.name,
+                            "category": announcement.get_category_display(),
+                        }
                     )
                 except Exception as e:
                     # Log the error but don't fail the creation
@@ -113,9 +121,16 @@ class ManagementAnnouncementViewSet(ModelViewSet):
         # If announcement was just published, send notifications
         if not old_published and announcement.is_published:
             try:
-                NotificationManager.send_announcement_notification(
-                    announcement=announcement,
-                    cluster=announcement.cluster
+                NotificationManager.send(
+                    event=NotificationEvents.ANNOUNCEMENT_POSTED,
+                    recipients=announcement.cluster.get_all_users(),
+                    cluster=announcement.cluster,
+                    context={
+                        "announcement_title": announcement.title,
+                        "announcement_content": announcement.content,
+                        "cluster_name": announcement.cluster.name,
+                        "category": announcement.get_category_display(),
+                    }
                 )
             except Exception as e:
                 # Log the error but don't fail the update
@@ -160,9 +175,15 @@ class ManagementAnnouncementViewSet(ModelViewSet):
                 # Send notification to announcement author if different user
                 if announcement.author_id != request.user.id:
                     try:
-                        NotificationManager.send_comment_notification(
-                            comment=comment,
-                            announcement=announcement
+                        NotificationManager.send(
+                            event=NotificationEvents.COMMENT_REPLY,
+                            recipients=[announcement.author],
+                            cluster=announcement.cluster,
+                            context={
+                                "announcement_title": announcement.title,
+                                "comment_content": comment.content,
+                                "commenter_name": request.user.name,
+                            }
                         )
                     except Exception as e:
                         # Log the error but don't fail the comment creation
@@ -216,9 +237,16 @@ class ManagementAnnouncementViewSet(ModelViewSet):
         
         # Send notifications
         try:
-            NotificationManager.send_announcement_notification(
-                announcement=announcement,
-                cluster=announcement.cluster
+            NotificationManager.send(
+                event=NotificationEvents.ANNOUNCEMENT_POSTED,
+                recipients=announcement.cluster.get_all_users(),
+                cluster=announcement.cluster,
+                context={
+                    "announcement_title": announcement.title,
+                    "announcement_content": announcement.content,
+                    "cluster_name": announcement.cluster.name,
+                    "category": announcement.get_category_display(),
+                }
             )
         except Exception as e:
             # Log the error but don't fail the publication

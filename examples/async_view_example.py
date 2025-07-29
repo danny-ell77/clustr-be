@@ -60,7 +60,7 @@ async def async_view_with_context(request: HttpRequest) -> JsonResponse:
     This approach is more reliable when context might be lost.
     """
 
-    async def process_data() -> Dict[str, Any]:
+    async def process_data() -> dict[str, Any]:
         # This function will have access to the request context
         current_request = get_async_current_request()
         user_id = get_async_current_user_id()
@@ -215,7 +215,7 @@ async def background_task_with_context(request: HttpRequest) -> JsonResponse:
     Example of running background tasks with request context.
     """
 
-    async def background_work() -> Dict[str, Any]:
+    async def background_work() -> dict[str, Any]:
         # This function runs in the background but still has access to request context
         current_request = get_async_current_request()
         user_id = get_async_current_user_id()

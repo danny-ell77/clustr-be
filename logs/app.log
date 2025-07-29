@@ -40,3 +40,37 @@
 2025-07-25 10:50:53,281 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
 2025-07-25 10:51:53,754 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
 2025-07-25 10:52:08,961 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:30:58,413 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:31:04,339 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\accounts\serializers\__init__.py changed, reloading.
+2025-07-29 03:31:08,721 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:31:24,511 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\accounts\views\users.py changed, reloading.
+2025-07-29 03:31:30,026 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:31:46,459 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\core\data_exchange\includes\generic_model_importer.py changed, reloading.
+2025-07-29 03:31:52,764 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:32:09,052 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\members\filters.py changed, reloading.
+2025-07-29 03:32:15,051 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:34:12,691 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\core\common\serializers\maintenance.py changed, reloading.
+2025-07-29 03:34:18,348 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:37:10,985 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\members\views_payment.py changed, reloading.
+2025-07-29 03:37:18,228 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:37:47,585 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views.py changed, reloading.
+2025-07-29 03:37:54,121 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:38:11,711 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views.py changed, reloading.
+2025-07-29 03:38:19,409 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:41:23,587 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:48:21,927 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:48:47,546 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views_shift.py changed, reloading.
+2025-07-29 03:48:54,210 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:49:43,939 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views_shift.py changed, reloading.
+2025-07-29 03:49:50,057 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:50:11,593 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views_shift.py changed, reloading.
+2025-07-29 03:50:18,245 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:50:47,516 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views_shift.py changed, reloading.
+2025-07-29 03:51:01,270 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:51:53,939 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views_task.py changed, reloading.
+2025-07-29 03:52:00,514 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:52:12,814 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\management\views_task.py changed, reloading.
+2025-07-29 03:52:20,078 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:53:05,118 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader
+2025-07-29 03:54:18,460 [INFO] django.utils.autoreload:265 - C:\Users\USER\clustr\accounts\models\user_settings.py changed, reloading.
+2025-07-29 03:54:26,670 [INFO] django.utils.autoreload:667 - Watching for file changes with StatReloader

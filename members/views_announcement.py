@@ -28,6 +28,8 @@ from core.common.serializers.announcement_serializers import (
     AnnouncementCommentSerializer,
     AnnouncementCommentCreateSerializer,
 )
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 
 @audit_viewset(resource_type="announcement")
@@ -180,6 +182,23 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                 # Update comments count
                 announcement.comments_count += 1
                 announcement.save(update_fields=["comments_count"])
+                
+                # Send notification to announcement author if different user
+                if announcement.author_id != request.user.id:
+                    try:
+                        NotificationManager.send(
+                            event=NotificationEvents.COMMENT_REPLY,
+                            recipients=[announcement.author],
+                            cluster=announcement.cluster,
+                            context={
+                                "announcement_title": announcement.title,
+                                "comment_content": comment.content,
+                                "commenter_name": request.user.name,
+                            }
+                        )
+                    except Exception as e:
+                        # Log the error but don't fail the comment creation
+                        pass
 
             return Response(
                 AnnouncementCommentSerializer(comment).data,

@@ -43,7 +43,7 @@ class JsonFormatter(logging.Formatter):
 class RequestAdapter(logging.LoggerAdapter):
     """Logger adapter that adds request information to log records."""
     
-    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
+    def process(self, msg: str, kwargs: dict[str, Any]) -> tuple:
         extra = kwargs.get('extra', {})
         
         if hasattr(self, 'request'):
@@ -152,7 +152,7 @@ def log_audit(
     cluster_id: Optional[str] = None,
     resource_type: Optional[str] = None,
     resource_id: Optional[str] = None,
-    details: Optional[Dict[str, Any]] = None
+    details: Optional[dict[str, Any]] = None
 ) -> None:
     """Log an audit event."""
     logger = logging.getLogger('clustr.audit')
@@ -175,7 +175,7 @@ def log_performance(
     operation: str,
     duration: float,
     success: bool = True,
-    details: Optional[Dict[str, Any]] = None
+    details: Optional[dict[str, Any]] = None
 ) -> None:
     """Log a performance metric."""
     logger = logging.getLogger('clustr')

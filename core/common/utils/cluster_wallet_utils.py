@@ -61,7 +61,7 @@ class ClusterWalletManager:
         return cluster_wallet
     
     @staticmethod
-    def get_cluster_wallet_balance(cluster) -> Dict[str, Any]:
+    def get_cluster_wallet_balance(cluster) -> dict[str, Any]:
         """
         Get cluster wallet balance information.
         
@@ -82,7 +82,7 @@ class ClusterWalletManager:
         }
     
     @staticmethod
-    def get_cluster_revenue_summary(cluster, days: int = 30) -> Dict[str, Any]:
+    def get_cluster_revenue_summary(cluster, days: int = 30) -> dict[str, Any]:
         """
         Get cluster revenue summary for specified period.
         
@@ -125,7 +125,7 @@ class ClusterWalletManager:
         }
     
     @staticmethod
-    def get_cluster_wallet_analytics(cluster) -> Dict[str, Any]:
+    def get_cluster_wallet_analytics(cluster) -> dict[str, Any]:
         """
         Get comprehensive cluster wallet analytics.
         
@@ -276,7 +276,7 @@ class ClusterWalletManager:
     @staticmethod
     @db_transaction.atomic
     def transfer_from_cluster_wallet(cluster, amount: Decimal, description: str,
-                                   recipient_account: Dict[str, str], transferred_by: str,
+                                   recipient_account: dict[str, str], transferred_by: str,
                                    provider: PaymentProvider = PaymentProvider.PAYSTACK) -> Transaction:
         """
         Transfer funds from cluster wallet with payment provider integration.
@@ -285,7 +285,7 @@ class ClusterWalletManager:
             cluster: Cluster instance
             amount: Amount to transfer
             description: Transfer description
-            recipient_account: Dict with account details (account_number, bank_code, account_name)
+            recipient_account: dict with account details (account_number, bank_code, account_name)
             transferred_by: ID of user initiating transfer
             provider: Payment provider to use
             

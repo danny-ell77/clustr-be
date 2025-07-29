@@ -277,7 +277,7 @@ class Task(AbstractClusterModel):
         if assigned_by:
             self.last_modified_by = assigned_by.id
         
-        self.save()
+        self.save(update_fields=["last_modified_by"])
         
         # Create assignment history
         TaskAssignmentHistory.objects.create(

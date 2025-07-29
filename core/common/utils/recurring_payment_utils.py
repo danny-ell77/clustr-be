@@ -6,7 +6,6 @@ import logging
 from decimal import Decimal
 from typing import List, Optional, Dict, Any
 from django.utils import timezone
-from django.template import Context
 from django.db.models import Q
 
 from core.common.models.wallet import (
@@ -18,8 +17,8 @@ from core.common.models.wallet import (
     TransactionStatus,
     Wallet,
 )
-from core.common.utils.notification_utils import NotificationManager
-from core.common.email_sender import AccountEmailSender, NotificationTypes
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 logger = logging.getLogger('clustr')
 
@@ -33,7 +32,7 @@ class RecurringPaymentManager:
     def create_recurring_payment(wallet: Wallet, title: str, amount: Decimal,
                                frequency: RecurringPaymentFrequency, start_date,
                                end_date=None, description: str = None,
-                               metadata: Dict = None, created_by: str = None) -> RecurringPayment:
+                               metadata: Optional[dict] = None, created_by: str = None) -> RecurringPayment:
         """
         Create a new recurring payment.
         
@@ -76,7 +75,7 @@ class RecurringPaymentManager:
         return recurring_payment
     
     @staticmethod
-    def process_due_payments(cluster) -> Dict[str, int]:
+    def process_due_payments(cluster) -> dict[str, int]:
         """
         Process all due recurring payments for a cluster.
         
@@ -223,7 +222,7 @@ class RecurringPaymentManager:
         return list(queryset)
     
     @staticmethod
-    def get_recurring_payments_summary(cluster, user_id: str) -> Dict[str, Any]:
+    def get_recurring_payments_summary(cluster, user_id: str) -> dict[str, Any]:
         """
         Get recurring payments summary for a user.
         
@@ -356,27 +355,25 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
-            
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': payment.amount,
-                'currency': payment.currency,
-                'frequency': payment.get_frequency_display(),
-                'start_date': payment.start_date.strftime('%Y-%m-%d'),
-                'end_date': payment.end_date.strftime('%Y-%m-%d') if payment.end_date else 'No end date',
-                'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.PAYMENT_RECEIPT,  # Would need RECURRING_PAYMENT_SETUP type
-                context=context
+
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_SETUP,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': payment.amount,
+                    'currency': payment.currency,
+                    'frequency': payment.get_frequency_display(),
+                    'start_date': payment.start_date.strftime('%Y-%m-%d'),
+                    'end_date': payment.end_date.strftime('%Y-%m-%d') if payment.end_date else 'No end date',
+                    'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment setup confirmation: {e}")
@@ -397,28 +394,26 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
             days_until_payment = (payment.next_payment_date.date() - timezone.now().date()).days
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': payment.amount,
-                'currency': payment.currency,
-                'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
-                'days_until_payment': days_until_payment,
-                'wallet_balance': payment.wallet.available_balance,
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need RECURRING_PAYMENT_REMINDER type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_DUE,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': payment.amount,
+                    'currency': payment.currency,
+                    'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
+                    'days_until_payment': days_until_payment,
+                    'wallet_balance': payment.wallet.available_balance,
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment reminder: {e}")
@@ -441,27 +436,25 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': transaction.amount,
-                'currency': transaction.currency,
-                'transaction_id': transaction.transaction_id,
-                'payment_date': transaction.processed_at.strftime('%Y-%m-%d %H:%M'),
-                'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
-                'wallet_balance': payment.wallet.available_balance,
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.PAYMENT_RECEIPT,
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_CONFIRMED,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': transaction.amount,
+                    'currency': transaction.currency,
+                    'transaction_id': transaction.transaction_id,
+                    'payment_date': transaction.processed_at.strftime('%Y-%m-%d %H:%M'),
+                    'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
+                    'wallet_balance': payment.wallet.available_balance,
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment processed notification: {e}")
@@ -483,28 +476,26 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': payment.amount,
-                'currency': payment.currency,
-                'failure_reason': reason,
-                'failed_attempts': payment.failed_attempts,
-                'max_attempts': payment.max_failed_attempts,
-                'wallet_balance': payment.wallet.available_balance,
-                'next_retry_date': payment.next_payment_date.strftime('%Y-%m-%d'),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need RECURRING_PAYMENT_FAILED type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_FAILED,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': payment.amount,
+                    'currency': payment.currency,
+                    'failure_reason': reason,
+                    'failed_attempts': payment.failed_attempts,
+                    'max_attempts': payment.max_failed_attempts,
+                    'wallet_balance': payment.wallet.available_balance,
+                    'next_retry_date': payment.next_payment_date.strftime('%Y-%m-%d'),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment failed notification: {e}")
@@ -525,25 +516,23 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': payment.amount,
-                'currency': payment.currency,
-                'failed_attempts': payment.failed_attempts,
-                'wallet_balance': payment.wallet.available_balance,
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need RECURRING_PAYMENT_PAUSED type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_PAUSED,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': payment.amount,
+                    'currency': payment.currency,
+                    'failed_attempts': payment.failed_attempts,
+                    'wallet_balance': payment.wallet.available_balance,
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment paused notification: {e}")
@@ -564,25 +553,23 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': payment.amount,
-                'currency': payment.currency,
-                'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
-                'wallet_balance': payment.wallet.available_balance,
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.PAYMENT_RECEIPT,  # Would need RECURRING_PAYMENT_RESUMED type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_RESUMED,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': payment.amount,
+                    'currency': payment.currency,
+                    'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
+                    'wallet_balance': payment.wallet.available_balance,
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment resumed notification: {e}")
@@ -603,31 +590,29 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'payment_amount': payment.amount,
-                'currency': payment.currency,
-                'total_payments_made': payment.total_payments,
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.PAYMENT_RECEIPT,  # Would need RECURRING_PAYMENT_CANCELLED type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_CANCELLED,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'payment_amount': payment.amount,
+                    'currency': payment.currency,
+                    'total_payments_made': payment.total_payments,
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment cancelled notification: {e}")
             return False
     
     @staticmethod
-    def send_payment_updated_notification(payment: RecurringPayment, changes: Dict) -> bool:
+    def send_payment_updated_notification(payment: RecurringPayment, changes: dict) -> bool:
         """
         Send notification when recurring payment is updated.
         
@@ -642,25 +627,23 @@ class RecurringPaymentNotificationManager:
             from accounts.models import AccountUser
             user = AccountUser.objects.filter(id=payment.user_id).first()
             
-            if not user or not user.email_address:
+            if not user:
                 return False
             
-            context = Context({
-                'user_name': user.name,
-                'payment_title': payment.title,
-                'changes': changes,
-                'current_amount': payment.amount,
-                'current_frequency': payment.get_frequency_display(),
-                'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=[user.email_address],
-                email_type=NotificationTypes.PAYMENT_RECEIPT,  # Would need RECURRING_PAYMENT_UPDATED type
-                context=context
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_UPDATED,
+                recipients=[user],
+                cluster=payment.cluster,
+                context={
+                    'user_name': user.name,
+                    'payment_title': payment.title,
+                    'changes': changes,
+                    'current_amount': payment.amount,
+                    'current_frequency': payment.get_frequency_display(),
+                    'next_payment_date': payment.next_payment_date.strftime('%Y-%m-%d'),
+                }
             )
-            
-            return sender.send()
+            return True
         
         except Exception as e:
             logger.error(f"Failed to send recurring payment updated notification: {e}")

@@ -54,10 +54,10 @@ class BaseEmailVerificationTestCaseMixin:
         self.assertIsInstance(token, UserVerification)
         self.assertIsNotNone(getattr(token, self.MODE))
 
-    @patch("core.common.email_sender.sender.AccountEmailSender.send")
-    def test_send_mail(self, mock_email_sender):
+    @patch("core.notifications.manager.NotificationManager.send")
+    def test_send_mail(self, mock_send):
         self.token.send_mail()
-        mock_email_sender.assert_called()
+        mock_send.assert_called_once()
 
     def test_opt_and_token_not_none_constraint(self):
         self.token.otp = None

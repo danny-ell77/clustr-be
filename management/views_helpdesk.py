@@ -31,7 +31,8 @@ from core.common.serializers.helpdesk import (
     IssueAttachmentSerializer,
     IssueAttachmentCreateSerializer,
 )
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 from core.common.utils.file_storage import FileStorage
 from accounts.permissions import IsClusterStaffOrAdmin
 
@@ -112,9 +113,15 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         # Send assignment notification if assigned_to changed
         new_assigned_to = instance.assigned_to
         if old_assigned_to != new_assigned_to and new_assigned_to:
-            NotificationManager.send_issue_assignment_notification(
-                issue=instance,
-                assigned_to=new_assigned_to
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_ASSIGNED,
+                recipients=[new_assigned_to],
+                cluster=instance.cluster,
+                context={
+                    "issue_number": instance.issue_no,
+                    "issue_title": instance.title,
+                    "assigned_to_name": new_assigned_to.name,
+                }
             )
         
         return response
@@ -150,9 +157,23 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         
         # Send notification
         if old_assigned_to != assigned_to:
-            NotificationManager.send_issue_assignment_notification(
-                issue=issue,
-                assigned_to=assigned_to
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_ASSIGNED,
+                recipients=[assigned_to],
+                cluster=issue.cluster,
+                context={
+                    'issue_number': issue.issue_number,
+                    'title': issue.title,
+                    'description': issue.description[:200] + '...' if len(issue.description) > 200 else issue.description,
+                    'priority': issue.get_priority_display(),
+                    'category': issue.get_category_display(),
+                    'location': issue.location or 'Not specified',
+                    'assigned_to_name': assigned_to.name,
+                    'reported_by_name': issue.reported_by.name if issue.reported_by else 'System',
+                }
             )
         
         serializer = self.get_serializer(issue)
@@ -174,7 +195,20 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         issue.save()
         
         # Send escalation notification
-        NotificationManager.send_issue_escalation_notification(issue)
+        NotificationManager.send(
+            event=NotificationEvents.ISSUE_ESCALATED,
+            recipients=[issue.assigned_to, issue.reported_by], # Assuming both assigned_to and reported_by should be notified
+            cluster=issue.cluster,
+            context={
+                "issue_number": issue.issue_no,
+                "issue_title": issue.title,
+                "issue_description": issue.description,
+                "issue_type": issue.get_issue_type_display(),
+                "priority": issue.get_priority_display(),
+                "reported_by_name": issue.reported_by.name,
+                "escalated_at": issue.escalated_at.strftime('%Y-%m-%d %H:%M'),
+            }
+        )
         
         serializer = self.get_serializer(issue)
         return Response(serializer.data)

@@ -6,7 +6,8 @@ from rest_framework import serializers
 
 from accounts.models import AccountUser, UserVerification, VerifyReason, VerifyMode
 from accounts.serializers.roles import PermissionField
-from core.common.email_sender import AccountEmailSender, NotificationTypes
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 from core.common.models import Cluster
 
 
@@ -73,11 +74,12 @@ class SubuserAccountSerializer(AccountSerializer):
         verification.send_mail()
 
     def _notify_owner_via_email(self, user: AccountUser):
-        AccountEmailSender(
-            recipients=[user.email_address],
-            email_type=NotificationTypes.NEW_SUBUSER_ACCOUNT_TO_OWNER,
-            context=Context(dict_={"owner": user.get_owner(), "user": user}),
-        ).send()
+        NotificationManager.send(
+            event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for NEW_SUBUSER_ACCOUNT_TO_OWNER
+            recipients=[user.get_owner()],
+            cluster=user.cluster,
+            context={"owner": user.get_owner().name, "user": user.name},
+        )
 
 
 class StaffAccountSerializer(AccountSerializer):
@@ -111,11 +113,12 @@ class StaffAccountSerializer(AccountSerializer):
         verification.send_mail()
 
     def _notify_owner_via_email(self, user: AccountUser):
-        AccountEmailSender(
-            recipients=[user.email_address],
-            email_type=NotificationTypes.NEW_SUBUSER_ACCOUNT_TO_OWNER,
-            context=Context(dict_={"owner": user.get_owner(), "user": user}),
-        ).send()
+        NotificationManager.send(
+            event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for NEW_SUBUSER_ACCOUNT_TO_OWNER
+            recipients=[user.get_owner()],
+            cluster=user.cluster,
+            context={"owner": user.get_owner().name, "user": user.name},
+        )
 
 
 class ClusterAdminAccountSerializer(serializers.ModelSerializer):
@@ -139,11 +142,14 @@ class ClusterAdminAccountSerializer(serializers.ModelSerializer):
         return AccountUser.objects.create_admin(**data)
 
     def _send_onboarding_email(self, user: AccountUser):
-        AccountEmailSender(
-            recipients=[user.email_address],
-            email_type=NotificationTypes.NEW_ADMIN_ONBOARDING,
-            context=Context(dict_={"admin": user}),
-        ).send()
+        NotificationManager.send(
+            event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for NEW_ADMIN_ONBOARDING
+            recipients=[user],
+            cluster=user.cluster, # Assuming user has a cluster attribute
+            context={
+                "admin_name": user.name,
+            }
+        )
 
 
 class UserSummarySerializer(serializers.ModelSerializer):

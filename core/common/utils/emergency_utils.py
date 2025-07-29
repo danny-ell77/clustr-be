@@ -17,7 +17,8 @@ from core.common.models.emergency import (
     EmergencyContactType,
     EmergencyStatus,
 )
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.manager import NotificationManager
+from core.notifications.events import NotificationEvents
 from core.common.email_sender import AccountEmailSender, NotificationTypes
 
 logger = logging.getLogger('clustr')
@@ -165,40 +166,50 @@ class EmergencyManager:
                 alert.emergency_type
             )
             
-            # Combine contacts
+            # Combine contacts and convert to AccountUser objects
             all_contacts = list(contacts) + list(estate_contacts)
+            # Has to be direct since Notification manager is only for users with accounts
+            AccountEmailSender(
+                [contact.email_address for contact in all_contacts], 
+                NotificationTypes.EMERGENCY_ALERT
+            ).send_to_many(
+                {contact.email_address: {
+                'alert_id': alert.alert_id,
+                'emergency_type': alert.get_emergency_type_display(),
+                'user_name': alert.user.name,
+                'description': alert.description,
+                'location': alert.location,
+                'priority': alert.get_priority_display(),
+                'created_at': alert.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            } for contact in all_contacts}
+            )
+
+            recipients = []
             
-            # Get unique email addresses
-            email_addresses = []
-            phone_numbers = []
+            # Also notify cluster admins for critical emergencies
+            cluster_admins = AccountUser.objects.filter(
+                clusters=alert.cluster,
+                is_cluster_admin=True
+            )
+            for admin in cluster_admins:
+                if admin not in recipients:
+                    recipients.append(admin)
             
-            for contact in all_contacts:
-                if contact.email and contact.email not in email_addresses:
-                    email_addresses.append(contact.email)
-                if contact.phone_number and contact.phone_number not in phone_numbers:
-                    phone_numbers.append(contact.phone_number)
-            
-            # Send email notifications
-            if email_addresses:
-                context = Context({
-                    'alert_id': alert.alert_id,
-                    'emergency_type': alert.get_emergency_type_display(),
-                    'user_name': alert.user.name,
-                    'description': alert.description,
-                    'location': alert.location,
-                    'priority': alert.get_priority_display(),
-                    'created_at': alert.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                })
-                
-                sender = AccountEmailSender(
-                    recipients=email_addresses,
-                    email_type=NotificationTypes.VISITOR_ARRIVAL,  # Placeholder - would need SOS_ALERT type
-                    context=context
+            if recipients:
+                NotificationManager.send(
+                    event=NotificationEvents.EMERGENCY_ALERT,
+                    recipients=recipients,
+                    cluster=alert.cluster,
+                    context={
+                        'alert_id': alert.alert_id,
+                        'emergency_type': alert.get_emergency_type_display(),
+                        'user_name': alert.user.name,
+                        'description': alert.description,
+                        'location': alert.location,
+                        'priority': alert.get_priority_display(),
+                        'created_at': alert.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    }
                 )
-                sender.send()
-            
-            # TODO: Send SMS notifications to phone numbers
-            # This would require SMS service integration
             
             logger.info(f"SOS alert notifications sent for {alert.alert_id}")
             
@@ -347,44 +358,42 @@ class EmergencyManager:
             status: New status
         """
         try:
-            # Notify the user who created the alert
-            if alert.user and alert.user.email_address:
-                context = Context({
-                    'alert_id': alert.alert_id,
-                    'emergency_type': alert.get_emergency_type_display(),
-                    'status': status,
-                    'user_name': alert.user.name,
-                })
-                
-                sender = AccountEmailSender(
-                    recipients=[alert.user.email_address],
-                    email_type=NotificationTypes.VISITOR_ARRIVAL,  # Placeholder - would need ALERT_STATUS_CHANGE type
-                    context=context
-                )
-                sender.send()
+            recipients = []
             
-            # Notify relevant emergency contacts
+            # Notify the user who created the alert
+            if alert.user:
+                recipients.append(alert.user)
+            
+            # Get relevant emergency contacts and convert to AccountUser objects
             contacts = EmergencyManager.get_emergency_contacts_for_type(
                 alert.cluster,
                 alert.emergency_type
             )
             
-            contact_emails = [contact.email for contact in contacts if contact.email]
+            from accounts.models import AccountUser
+            for contact in contacts:
+                if contact.email:
+                    # Try to find AccountUser by email
+                    user = AccountUser.objects.filter(
+                        email_address=contact.email,
+                        clusters=alert.cluster
+                    ).first()
+                    if user and user not in recipients:
+                        recipients.append(user)
             
-            if contact_emails:
-                context = Context({
-                    'alert_id': alert.alert_id,
-                    'emergency_type': alert.get_emergency_type_display(),
-                    'status': status,
-                    'user_name': alert.user.name,
-                })
-                
-                sender = AccountEmailSender(
-                    recipients=contact_emails,
-                    email_type=NotificationTypes.VISITOR_ARRIVAL,  # Placeholder - would need ALERT_STATUS_CHANGE type
-                    context=context
+            if recipients:
+                NotificationManager.send(
+                    event=NotificationEvents.EMERGENCY_STATUS_CHANGED,
+                    recipients=recipients,
+                    cluster=alert.cluster,
+                    context={
+                        'alert_id': alert.alert_id,
+                        'emergency_type': alert.get_emergency_type_display(),
+                        'status': status,
+                        'user_name': alert.user.name,
+                        'status_changed_at': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    }
                 )
-                sender.send()
             
         except Exception as e:
             logger.error(f"Failed to send alert status notification: {e}")

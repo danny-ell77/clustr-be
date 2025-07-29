@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.db.models import Q
 
 from core.common.models.helpdesk import IssueTicket, IssueStatus
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 logger = logging.getLogger('clustr')
 
@@ -52,7 +53,24 @@ class HelpdeskManager:
                 issue.save()
                 
                 # Send escalation notification
-                NotificationManager.send_issue_escalation_notification(issue)
+                recipients = []
+                if issue.assigned_to:
+                    recipients.append(issue.assigned_to)
+                
+                NotificationManager.send(
+                    event=NotificationEvents.ISSUE_ESCALATED,
+                    recipients=recipients,
+                    cluster=issue.cluster,
+                    context={
+                        "issue_number": issue.issue_no,
+                        "issue_title": issue.title,
+                        "issue_description": issue.description,
+                        "issue_type": issue.get_issue_type_display(),
+                        "priority": issue.get_priority_display(),
+                        "reported_by_name": issue.reported_by.name,
+                        "days_open": (timezone.now() - issue.created_at).days,
+                    }
+                )
                 escalated_count += 1
                 
                 logger.info(f"Escalated issue {issue.issue_no} due to being overdue")
@@ -89,11 +107,21 @@ class HelpdeskManager:
             reminders_sent = 0
             for issue in due_issues:
                 # Send reminder to assigned staff
-                if issue.assigned_to and issue.assigned_to.email_address:
-                    success = NotificationManager.send_issue_due_reminder(issue)
-                    if success:
-                        reminders_sent += 1
-                        logger.info(f"Sent due date reminder for issue {issue.issue_no}")
+                if issue.assigned_to:
+                    NotificationManager.send(
+                        event=NotificationEvents.ISSUE_DUE_REMINDER,
+                        recipients=[issue.assigned_to],
+                        cluster=issue.cluster,
+                        context={
+                            "issue_number": issue.issue_no,
+                            "issue_title": issue.title,
+                            "due_date": issue.due_date.strftime('%Y-%m-%d %H:%M') if issue.due_date else 'Not set',
+                            "priority": issue.get_priority_display(),
+                            "reported_by_name": issue.reported_by.name,
+                        }
+                    )
+                    reminders_sent += 1
+                    logger.info(f"Sent due date reminder for issue {issue.issue_no}")
             
             return reminders_sent
             
@@ -129,8 +157,18 @@ class HelpdeskManager:
                 issue.save()
                 
                 # Notify the reporter that their issue was auto-closed
-                if issue.reported_by and issue.reported_by.email_address:
-                    NotificationManager.send_issue_auto_close_notification(issue)
+                if issue.reported_by:
+                    NotificationManager.send(
+                        event=NotificationEvents.ISSUE_AUTO_CLOSED,
+                        recipients=[issue.reported_by],
+                        cluster=issue.cluster,
+                        context={
+                            "issue_number": issue.issue_no,
+                            "issue_title": issue.title,
+                            "resolved_date": issue.resolved_at.strftime('%Y-%m-%d %H:%M') if issue.resolved_at else 'Unknown',
+                            "closed_date": issue.closed_at.strftime('%Y-%m-%d %H:%M') if issue.closed_at else 'Unknown',
+                        }
+                    )
                 
                 closed_count += 1
                 logger.info(f"Auto-closed issue {issue.issue_no} after {days_threshold} days")

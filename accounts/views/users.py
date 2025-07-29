@@ -49,7 +49,7 @@ class UserViewSet(
 ):
     filter_backends = (DjangoFilterBackend,)
     filterset_class = AccountUserFilter
-):
+
     serializer_class = AccountSerializer
     permission_classes = [IsAuthenticated & CanManageAccountUsers]
 

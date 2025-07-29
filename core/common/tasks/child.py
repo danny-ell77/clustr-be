@@ -4,7 +4,8 @@ from celery import shared_task
 from django.utils import timezone
 
 from core.common.models import EntryExitLog
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,24 @@ def check_overdue_children():
             if log.mark_overdue():
                 overdue_count += 1
                 try:
-                    NotificationManager.send_child_overdue_notification(log)
+                    recipients = []
+                    if log.child.parent:
+                        recipients.append(log.child.parent)
+                    
+                    NotificationManager.send(
+                        event=NotificationEvents.CHILD_OVERDUE_ALERT,
+                        recipients=recipients,
+                        cluster=log.cluster,
+                        context={
+                            "child_name": log.child.name,
+                            "parent_name": log.child.parent.name if log.child.parent else "N/A",
+                            "expected_return_time": log.expected_return_time.strftime("%Y-%m-%d %H:%M"),
+                            "overdue_minutes": int((timezone.now() - log.expected_return_time).total_seconds() / 60),
+                            "destination": log.destination,
+                            "accompanying_adult": log.accompanying_adult,
+                            "parent_phone": log.child.parent.phone_number if log.child.parent else "N/A",
+                        }
+                    )
                     logger.info(f"Sent overdue notification for child: {log.child.name} (ID: {log.child.id})")
                 except Exception as e:
                     logger.error(f"Failed to send overdue notification for child {log.child.name}: {str(e)}")

@@ -1,3 +1,4 @@
+from typing import Any, Optional
 import logging
 from decimal import Decimal
 from django.conf import settings
@@ -18,7 +19,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
         if not self.secret_key:
             raise PaymentProviderError("Flutterwave secret key not configured")
     
-    def _make_request(self, method: str, endpoint: str, data: Dict = None) -> Dict[str, Any]:
+    def _make_request(self, method: str, endpoint: str, data: Optional[dict] = None) -> dict[str, Any]:
         """Make HTTP request to Flutterwave API."""
         url = f"{self.base_url}{endpoint}"
         headers = {
@@ -40,7 +41,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
             raise PaymentProviderError(f"API request failed: {str(e)}")
     
     def initialize_payment(self, amount: Decimal, currency: str, email: str, 
-                         callback_url: str, metadata: Dict = None) -> Dict[str, Any]:
+                         callback_url: str, metadata: Optional[dict] = None) -> dict[str, Any]:
         """Initialize a payment transaction with Flutterwave."""
         import uuid
         
@@ -73,7 +74,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
         else:
             raise PaymentProviderError(f"Payment initialization failed: {response.get('message', 'Unknown error')}")
     
-    def verify_payment(self, reference: str) -> Dict[str, Any]:
+    def verify_payment(self, reference: str) -> dict[str, Any]:
         """Verify a payment transaction with Flutterwave."""
         response = self._make_request('GET', f'/transactions/{reference}/verify')
         
@@ -96,7 +97,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
             raise PaymentProviderError(f"Payment verification failed: {response.get('message', 'Unknown error')}")
     
     def initiate_transfer(self, amount: Decimal, recipient_code: str, 
-                         reason: str, currency: str = "NGN") -> Dict[str, Any]:
+                         reason: str, currency: str = "NGN") -> dict[str, Any]:
         """Initiate a transfer with Flutterwave."""
         import uuid
         
@@ -127,7 +128,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
             raise PaymentProviderError(f"Transfer initiation failed: {response.get('message', 'Unknown error')}")
     
     def create_transfer_recipient(self, account_number: str, bank_code: str, 
-                                name: str, currency: str = "NGN") -> Dict[str, Any]:
+                                name: str, currency: str = "NGN") -> dict[str, Any]:
         """Create a transfer recipient with Flutterwave (not needed, direct transfer)."""
         # Flutterwave doesn't require recipient creation, return account details
         return {
@@ -138,7 +139,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
             'name': name,
         }
     
-    def verify_account(self, account_number: str, bank_code: str) -> Dict[str, Any]:
+    def verify_account(self, account_number: str, bank_code: str) -> dict[str, Any]:
         """Verify a bank account with Flutterwave."""
         data = {
             'account_number': account_number,
@@ -158,7 +159,7 @@ class FlutterwaveProvider(PaymentProviderInterface):
         else:
             raise PaymentProviderError(f"Account verification failed: {response.get('message', 'Unknown error')}")
     
-    def get_banks(self) -> Dict[str, Any]:
+    def get_banks(self) -> dict[str, Any]:
         """Get list of supported banks from Flutterwave."""
         response = self._make_request('GET', '/banks/NG')  # Nigeria banks
         

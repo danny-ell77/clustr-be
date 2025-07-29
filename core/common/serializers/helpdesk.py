@@ -15,6 +15,8 @@ from core.common.models.helpdesk import (
     IssuePriority,
 )
 from accounts.serializers.users import UserSummarySerializer
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 
 class IssueAttachmentSerializer(serializers.ModelSerializer):
@@ -223,12 +225,21 @@ class IssueTicketUpdateSerializer(serializers.ModelSerializer):
             )
             
             # Send notification about status change
-            from core.common.utils.notification_utils import NotificationManager
-            NotificationManager.send_issue_status_notification(
-                issue=instance,
-                old_status=old_status,
-                new_status=new_status,
-                changed_by=request.user
+            recipients = []
+            if instance.reported_by:
+                recipients.append(instance.reported_by)
+
+            NotificationManager.send(
+                event=NotificationEvents.ISSUE_STATUS_CHANGED,
+                recipients=recipients,
+                cluster=request.cluster_context,
+                context={
+                    "issue_number": instance.issue_no,
+                    "issue_title": instance.title,
+                    "old_status": old_status,
+                    "new_status": new_status,
+                    "changed_by_name": request.user.name,
+                }
             )
         
         return instance
@@ -257,11 +268,24 @@ class IssueCommentCreateSerializer(serializers.ModelSerializer):
         comment = super().create(validated_data)
         
         # Send notification about new comment
-        from core.common.utils.notification_utils import NotificationManager
-        NotificationManager.send_issue_comment_notification(
-            comment=comment,
-            issue=comment.issue
-        )
+        recipients = []
+        if comment.issue.reported_by and comment.issue.reported_by != request.user:
+            recipients.append(comment.issue.reported_by)
+        if comment.issue.assigned_to and comment.issue.assigned_to != request.user:
+            recipients.append(comment.issue.assigned_to)
+
+        if recipients:
+            NotificationManager.send(
+                event=NotificationEvents.COMMENT_REPLY,
+                recipients=recipients,
+                cluster=request.cluster_context,
+                context={
+                    "issue_number": comment.issue.issue_no,
+                    "issue_title": comment.issue.title,
+                    "comment_content": comment.content,
+                    "commenter_name": request.user.name,
+                }
+            )
         
         return comment
 

@@ -28,7 +28,8 @@ from core.common.serializers.child_serializers import (
     EntryExitActionSerializer,
 )
 from core.common.utils.file_storage import FileStorage
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 
 @audit_viewset(resource_type='child')
@@ -184,8 +185,17 @@ class ManagementExitRequestViewSet(ModelViewSet):
                     
                     # Send notification to parent
                     try:
-                        # NotificationManager.send_exit_request_approved_notification(exit_request)
-                        pass
+                        NotificationManager.send(
+                            event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for EXIT_REQUEST_APPROVED
+                            recipients=[exit_request.requested_by],
+                            cluster=exit_request.cluster,
+                            context={
+                                "request_id": exit_request.request_id,
+                                "child_name": exit_request.child.name,
+                                "approved_by_name": request.user.name,
+                                "expected_return_time": exit_request.expected_return_time.strftime('%Y-%m-%d %H:%M'),
+                            }
+                        )
                     except Exception as e:
                         # Log the error but don't fail the approval
                         pass
@@ -202,8 +212,17 @@ class ManagementExitRequestViewSet(ModelViewSet):
                 if success:
                     # Send notification to parent
                     try:
-                        # NotificationManager.send_exit_request_denied_notification(exit_request)
-                        pass
+                        NotificationManager.send(
+                            event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for EXIT_REQUEST_DENIED
+                            recipients=[exit_request.requested_by],
+                            cluster=exit_request.cluster,
+                            context={
+                                "request_id": exit_request.request_id,
+                                "child_name": exit_request.child.name,
+                                "denied_by_name": request.user.name,
+                                "denial_reason": reason,
+                            }
+                        )
                     except Exception as e:
                         # Log the error but don't fail the denial
                         pass
@@ -289,8 +308,18 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 
                 # Send notification to parent
                 try:
-                    # NotificationManager.send_child_exit_notification(log)
-                    pass
+                    NotificationManager.send(
+                        event=NotificationEvents.CHILD_EXIT_ALERT,
+                        recipients=[log.child.parent],
+                        cluster=log.cluster,
+                        context={
+                            "child_name": log.child.name,
+                            "exit_time": log.exit_time.strftime('%H:%M') if log.exit_time else 'Unknown',
+                            "expected_return_time": log.expected_return_time.strftime('%Y-%m-%d %H:%M') if log.expected_return_time else 'Not specified',
+                            "destination": log.destination,
+                            "accompanying_adult": log.accompanying_adult,
+                        }
+                    )
                 except Exception as e:
                     # Log the error but don't fail the action
                     pass
@@ -324,8 +353,16 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 
                 # Send notification to parent
                 try:
-                    # NotificationManager.send_child_entry_notification(log)
-                    pass
+                    NotificationManager.send(
+                        event=NotificationEvents.CHILD_ENTRY_ALERT,
+                        recipients=[log.child.parent],
+                        cluster=log.cluster,
+                        context={
+                            "child_name": log.child.name,
+                            "entry_time": log.entry_time.strftime('%H:%M') if log.entry_time else 'Unknown',
+                            "duration_minutes": log.duration_minutes,
+                        }
+                    )
                 except Exception as e:
                     # Log the error but don't fail the action
                     pass
@@ -353,8 +390,31 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
         if success:
             # Send overdue notification to parent and administrators
             try:
-                # NotificationManager.send_child_overdue_notification(log)
-                pass
+                recipients = []
+                if log.child.parent:
+                    recipients.append(log.child.parent)
+                # Add cluster admins
+                from accounts.models import AccountUser
+                cluster_admins = AccountUser.objects.filter(
+                    clusters=log.cluster,
+                    is_cluster_admin=True
+                )
+                recipients.extend(list(cluster_admins))
+
+                NotificationManager.send(
+                    event=NotificationEvents.CHILD_OVERDUE_ALERT,
+                    recipients=recipients,
+                    cluster=log.cluster,
+                    context={
+                        "child_name": log.child.name,
+                        "parent_name": log.child.parent.name if log.child.parent else "N/A",
+                        "expected_return_time": log.expected_return_time.strftime('%Y-%m-%d %H:%M'),
+                        "overdue_minutes": int((timezone.now() - log.expected_return_time).total_seconds() / 60),
+                        "destination": log.destination,
+                        "accompanying_adult": log.accompanying_adult,
+                        "parent_phone": log.child.parent.phone_number if log.child.parent else "N/A",
+                    }
+                )
             except Exception as e:
                 # Log the error but don't fail the action
                 pass
@@ -411,11 +471,26 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 
                 # Send overdue notification
                 try:
-                    # NotificationManager.send_child_overdue_notification(log)
-                    pass
+                    from core.notifications.manager import NotificationManager
+                    from core.notifications.events import NotificationEvents
+                    
+                    recipients = [log.child.parent] if log.child.parent else []
+                    if recipients:
+                        NotificationManager.send(
+                            event=NotificationEvents.CHILD_OVERDUE_ALERT,
+                            recipients=recipients,
+                            cluster=log.cluster,
+                            context={
+                                'child_name': log.child.name,
+                                'location': log.location or 'Unknown location',
+                                'expected_return_time': log.expected_return_time.strftime('%H:%M') if log.expected_return_time else 'Not specified',
+                                'overdue_minutes': (timezone.now() - log.expected_return_time).total_seconds() / 60 if log.expected_return_time else 0,
+                                'parent_name': log.child.parent.name if log.child.parent else 'Parent',
+                            }
+                        )
                 except Exception as e:
                     # Log the error but continue processing
-                    pass
+                    logger.error(f"Failed to send child overdue notification: {e}")
         
         return Response(
             {'message': f'{overdue_count} children marked as overdue'},

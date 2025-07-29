@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from decimal import Decimal
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -16,7 +16,7 @@ class PaystackProvider(PaymentProviderInterface):
         if not self.secret_key:
             raise PaymentProviderError("Paystack secret key not configured")
     
-    def _make_request(self, method: str, endpoint: str, data: Dict = None) -> Dict[str, Any]:
+    def _make_request(self, method: str, endpoint: str, data: Optional[dict] = None) -> dict[str, Any]:
         """Make HTTP request to Paystack API."""
         url = f"{self.base_url}{endpoint}"
         headers = {
@@ -38,7 +38,7 @@ class PaystackProvider(PaymentProviderInterface):
             raise PaymentProviderError(f"API request failed: {str(e)}")
     
     def initialize_payment(self, amount: Decimal, currency: str, email: str, 
-                         callback_url: str, metadata: Dict = None) -> Dict[str, Any]:
+                         callback_url: str, metadata: Optional[dict] = None) -> dict[str, Any]:
         """Initialize a payment transaction with Paystack."""
         data = {
             'amount': int(amount * 100),  # Convert to kobo
@@ -62,7 +62,7 @@ class PaystackProvider(PaymentProviderInterface):
         else:
             raise PaymentProviderError(f"Payment initialization failed: {response.get('message', 'Unknown error')}")
     
-    def verify_payment(self, reference: str) -> Dict[str, Any]:
+    def verify_payment(self, reference: str) -> dict[str, Any]:
         """Verify a payment transaction with Paystack."""
         response = self._make_request('GET', f'/transaction/verify/{reference}')
         
@@ -85,7 +85,7 @@ class PaystackProvider(PaymentProviderInterface):
             raise PaymentProviderError(f"Payment verification failed: {response.get('message', 'Unknown error')}")
     
     def initiate_transfer(self, amount: Decimal, recipient_code: str, 
-                         reason: str, currency: str = "NGN") -> Dict[str, Any]:
+                         reason: str, currency: str = "NGN") -> dict[str, Any]:
         """Initiate a transfer with Paystack."""
         data = {
             'source': 'balance',
@@ -112,7 +112,7 @@ class PaystackProvider(PaymentProviderInterface):
             raise PaymentProviderError(f"Transfer initiation failed: {response.get('message', 'Unknown error')}")
     
     def create_transfer_recipient(self, account_number: str, bank_code: str, 
-                                name: str, currency: str = "NGN") -> Dict[str, Any]:
+                                name: str, currency: str = "NGN") -> dict[str, Any]:
         """Create a transfer recipient with Paystack."""
         data = {
             'type': 'nuban',
@@ -138,7 +138,7 @@ class PaystackProvider(PaymentProviderInterface):
         else:
             raise PaymentProviderError(f"Recipient creation failed: {response.get('message', 'Unknown error')}")
     
-    def verify_account(self, account_number: str, bank_code: str) -> Dict[str, Any]:
+    def verify_account(self, account_number: str, bank_code: str) -> dict[str, Any]:
         """Verify a bank account with Paystack."""
         params = {
             'account_number': account_number,
@@ -158,7 +158,7 @@ class PaystackProvider(PaymentProviderInterface):
         else:
             raise PaymentProviderError(f"Account verification failed: {response.get('message', 'Unknown error')}")
     
-    def get_banks(self) -> Dict[str, Any]:
+    def get_banks(self) -> dict[str, Any]:
         """Get list of supported banks from Paystack."""
         response = self._make_request('GET', '/bank')
         

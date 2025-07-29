@@ -9,7 +9,8 @@ from django.db.models import Q, Count, Avg
 from django.core.exceptions import ValidationError
 
 from core.common.models import Shift, ShiftAttendance, ShiftSwapRequest, ShiftStatus
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.manager import NotificationManager
+from core.notifications.events import NotificationEvents
 
 logger = logging.getLogger('clustr')
 
@@ -361,15 +362,21 @@ class ShiftNotificationManager:
             bool: True if notification sent successfully
         """
         try:
-            if shift.assigned_staff.email_address:
-                # This would use the existing notification system
-                # For now, we'll log the notification
-                logger.info(
-                    f"Shift assignment notification sent to {shift.assigned_staff.email_address} "
-                    f"for shift: {shift.title} on {shift.start_time.strftime('%Y-%m-%d %H:%M')}"
-                )
-                return True
-            return False
+            NotificationManager.send(
+                event=NotificationEvents.SYSTEM_UPDATE, # Placeholder, should be a more specific event
+                recipients=[shift.assigned_staff],
+                cluster=shift.cluster,
+                context={
+                    "shift_title": shift.title,
+                    "start_time": shift.start_time.strftime('%Y-%m-%d %H:%M'),
+                    "end_time": shift.end_time.strftime('%Y-%m-%d %H:%M'),
+                }
+            )
+            logger.info(
+                f"Shift assignment notification sent to {shift.assigned_staff.email_address} "
+                f"for shift: {shift.title} on {shift.start_time.strftime('%Y-%m-%d %H:%M')}"
+            )
+            return True
         except Exception as e:
             logger.error(f"Failed to send shift assignment notification: {e}")
             return False
@@ -386,13 +393,21 @@ class ShiftNotificationManager:
             bool: True if notification sent successfully
         """
         try:
-            if shift.assigned_staff.email_address:
-                logger.info(
-                    f"Shift reminder notification sent to {shift.assigned_staff.email_address} "
-                    f"for shift: {shift.title} starting at {shift.start_time.strftime('%Y-%m-%d %H:%M')}"
-                )
-                return True
-            return False
+            NotificationManager.send(
+                event=NotificationEvents.SYSTEM_UPDATE, # Placeholder, should be a more specific event
+                recipients=[shift.assigned_staff],
+                cluster=shift.cluster,
+                context={
+                    "shift_title": shift.title,
+                    "start_time": shift.start_time.strftime('%Y-%m-%d %H:%M'),
+                    "end_time": shift.end_time.strftime('%Y-%m-%d %H:%M'),
+                }
+            )
+            logger.info(
+                f"Shift reminder notification sent to {shift.assigned_staff.email_address} "
+                f"for shift: {shift.title} starting at {shift.start_time.strftime('%Y-%m-%d %H:%M')}"
+            )
+            return True
         except Exception as e:
             logger.error(f"Failed to send shift reminder notification: {e}")
             return False
@@ -410,7 +425,7 @@ class ShiftNotificationManager:
         """
         try:
             # Notify the staff member and administrators
-            recipients = [shift.assigned_staff.email_address]
+            recipients = [shift.assigned_staff]
             
             # Add cluster admins
             from accounts.models import AccountUser
@@ -418,11 +433,23 @@ class ShiftNotificationManager:
                 clusters=shift.cluster,
                 is_cluster_admin=True
             )
-            recipients.extend([admin.email_address for admin in admins if admin.email_address])
+            recipients.extend(list(admins))
+            
+            NotificationManager.send(
+                event=NotificationEvents.SYSTEM_UPDATE, # Placeholder, should be a more specific event
+                recipients=recipients,
+                cluster=shift.cluster,
+                context={
+                    "shift_title": shift.title,
+                    "start_time": shift.start_time.strftime('%Y-%m-%d %H:%M'),
+                    "end_time": shift.end_time.strftime('%Y-%m-%d %H:%M'),
+                    "assigned_staff_name": shift.assigned_staff.name,
+                }
+            )
             
             for recipient in recipients:
                 logger.info(
-                    f"Missed shift notification sent to {recipient} "
+                    f"Missed shift notification sent to {recipient.email_address} "
                     f"for shift: {shift.title} on {shift.start_time.strftime('%Y-%m-%d %H:%M')}"
                 )
             
@@ -443,13 +470,21 @@ class ShiftNotificationManager:
             bool: True if notification sent successfully
         """
         try:
-            if swap_request.requested_with.email_address:
-                logger.info(
-                    f"Shift swap request notification sent to {swap_request.requested_with.email_address} "
-                    f"from {swap_request.requested_by.name} for shift: {swap_request.original_shift.title}"
-                )
-                return True
-            return False
+            NotificationManager.send(
+                event=NotificationEvents.SYSTEM_UPDATE, # Placeholder, should be a more specific event
+                recipients=[swap_request.requested_with],
+                cluster=swap_request.cluster,
+                context={
+                    "original_shift_title": swap_request.original_shift.title,
+                    "requested_by_name": swap_request.requested_by.name,
+                    "reason": swap_request.reason,
+                }
+            )
+            logger.info(
+                f"Shift swap request notification sent to {swap_request.requested_with.email_address} "
+                f"from {swap_request.requested_by.name} for shift: {swap_request.original_shift.title}"
+            )
+            return True
         except Exception as e:
             logger.error(f"Failed to send swap request notification: {e}")
             return False
@@ -466,14 +501,21 @@ class ShiftNotificationManager:
             bool: True if notification sent successfully
         """
         try:
-            if swap_request.requested_by.email_address:
-                status = "approved" if swap_request.status == ShiftSwapRequest.SwapStatus.APPROVED else "rejected"
-                logger.info(
-                    f"Shift swap {status} notification sent to {swap_request.requested_by.email_address} "
-                    f"for shift: {swap_request.original_shift.title}"
-                )
-                return True
-            return False
+            status = "approved" if swap_request.status == ShiftSwapRequest.SwapStatus.APPROVED else "rejected"
+            NotificationManager.send(
+                event=NotificationEvents.SYSTEM_UPDATE, # Placeholder, should be a more specific event
+                recipients=[swap_request.requested_by],
+                cluster=swap_request.cluster,
+                context={
+                    "original_shift_title": swap_request.original_shift.title,
+                    "status": status,
+                }
+            )
+            logger.info(
+                f"Shift swap {status} notification sent to {swap_request.requested_by.email_address} "
+                f"for shift: {swap_request.original_shift.title}"
+            )
+            return True
         except Exception as e:
             logger.error(f"Failed to send swap response notification: {e}")
             return False

@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 from typing import Dict, List, Optional, Any
 
-from core.common.utils.notification_utils import NotificationManager
+from core.notifications.manager import NotificationManager
 
 
 class SessionManager:
@@ -104,7 +104,7 @@ class SessionManager:
         return hashlib.sha256(fingerprint_string.encode()).hexdigest()[:64]
     
     @classmethod
-    def get_location_info(cls, ip_address: str) -> Dict[str, Any]:
+    def get_location_info(cls, ip_address: str) -> dict[str, Any]:
         """
         Get approximate location information for an IP address.
         
@@ -251,32 +251,20 @@ class SessionManager:
         is_new_device = not security_settings.is_trusted_device(session.device_fingerprint)
         
         if is_new_device:
-            notification_manager = NotificationManager()
-            
-            subject = "New Login to Your ClustR Account"
-            message = f"""
-            A new login to your ClustR account was detected:
-            
-            Time: {session.created_at.strftime('%Y-%m-%d %H:%M:%S')}
-            IP Address: {session.ip_address}
-            Device: {session.user_agent[:100]}
-            Location: {session.location_info.get('city', 'Unknown')}, {session.location_info.get('country', 'Unknown')}
-            
-            If this wasn't you, please secure your account immediately by changing your password and enabling two-factor authentication.
-            """
-            
-            try:
-                notification_manager.send_email(
-                    email=user.email_address,
-                    subject=subject,
-                    message=message
-                )
-            except Exception as e:
-                # Log error but don't fail the login
-                print(f"Error sending login notification: {e}")
+            NotificationManager.send(
+                event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for a more specific login notification event
+                recipients=[user],
+                cluster=user.cluster, # Assuming user has a cluster attribute
+                context={
+                    "time": session.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    "ip_address": session.ip_address,
+                    "device": session.user_agent[:100],
+                    "location": f"{session.location_info.get('city', 'Unknown')}, {session.location_info.get('country', 'Unknown')}",
+                }
+            )
     
     @classmethod
-    def detect_suspicious_activity(cls, user, request) -> Dict[str, Any]:
+    def detect_suspicious_activity(cls, user, request) -> dict[str, Any]:
         """
         Detect suspicious login activity.
         
@@ -377,7 +365,7 @@ class DeviceManager:
     """Manager for trusted device operations."""
     
     @classmethod
-    def add_trusted_device(cls, user, request, device_name: str = '') -> Dict[str, Any]:
+    def add_trusted_device(cls, user, request, device_name: str = '') -> dict[str, Any]:
         """
         Add a device to the user's trusted devices list.
         
@@ -414,7 +402,7 @@ class DeviceManager:
         }
     
     @classmethod
-    def remove_trusted_device(cls, user, device_fingerprint: str) -> Dict[str, Any]:
+    def remove_trusted_device(cls, user, device_fingerprint: str) -> dict[str, Any]:
         """
         Remove a device from the user's trusted devices list.
         

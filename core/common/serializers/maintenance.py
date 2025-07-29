@@ -10,15 +10,15 @@ from core.common.models import (
     MaintenanceCost, MaintenanceComment, MaintenanceType,
     MaintenanceStatus, MaintenancePriority, PropertyType
 )
-from accounts.serializers import AccountUserSummarySerializer
+from accounts.serializers import AccountSerializer
 
 
 class MaintenanceLogSerializer(serializers.ModelSerializer):
     """Serializer for MaintenanceLog model."""
     
-    performed_by = AccountUserSummarySerializer(read_only=True)
-    supervised_by = AccountUserSummarySerializer(read_only=True)
-    requested_by = AccountUserSummarySerializer(read_only=True)
+    performed_by = AccountSerializer(read_only=True)
+    supervised_by = AccountSerializer(read_only=True)
+    requested_by = AccountSerializer(read_only=True)
     
     maintenance_type_display = serializers.CharField(source='get_maintenance_type_display', read_only=True)
     property_type_display = serializers.CharField(source='get_property_type_display', read_only=True)
@@ -113,7 +113,7 @@ class MaintenanceLogUpdateSerializer(serializers.ModelSerializer):
 class MaintenanceAttachmentSerializer(serializers.ModelSerializer):
     """Serializer for MaintenanceAttachment model."""
     
-    uploaded_by = AccountUserSummarySerializer(read_only=True)
+    uploaded_by = AccountSerializer(read_only=True)
     attachment_type_display = serializers.CharField(source='get_attachment_type_display', read_only=True)
     
     class Meta:
@@ -129,7 +129,7 @@ class MaintenanceAttachmentSerializer(serializers.ModelSerializer):
 class MaintenanceScheduleSerializer(serializers.ModelSerializer):
     """Serializer for MaintenanceSchedule model."""
     
-    assigned_to = AccountUserSummarySerializer(read_only=True)
+    assigned_to = AccountSerializer(read_only=True)
     property_type_display = serializers.CharField(source='get_property_type_display', read_only=True)
     frequency_type_display = serializers.CharField(source='get_frequency_type_display', read_only=True)
     
@@ -180,7 +180,7 @@ class MaintenanceCostSerializer(serializers.ModelSerializer):
 class MaintenanceCommentSerializer(serializers.ModelSerializer):
     """Serializer for MaintenanceComment model."""
     
-    author = AccountUserSummarySerializer(read_only=True)
+    author = AccountSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
     
     class Meta:

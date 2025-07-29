@@ -21,7 +21,7 @@ from accounts.serializers import (
     GeneralPreferencesUpdateSerializer,
     CommunicationPreferencesUpdateSerializer,
 )
-from core.common.permissions import IsOwnerOrReadOnly
+from accounts.permissions import IsOwnerOrReadOnly
 
 
 class UserSettingsViewSet(ModelViewSet):

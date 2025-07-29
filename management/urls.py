@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_nested.routers import NestedSimpleRouter
+from rest_framework_nested.routers import NestedDefaultRouter
 from . import views
 from . import views_visitor
 from . import views_invitation
@@ -15,9 +15,13 @@ app_name = "management"
 router = DefaultRouter()
 router.register(r'maintenance-logs', views_maintenance.MaintenanceLogViewSet, basename='management-maintenance-log')
 router.register(r'maintenance-schedules', views_maintenance.MaintenanceScheduleViewSet, basename='management-maintenance-schedule')
+router.register(r'invitations', views_invitation.ManagementInvitationViewSet, basename='management-invitation')
+router.register(r'events', views_event.ManagementEventViewSet, basename='management-event')
+router.register(r'announcements', views_announcement.ManagementAnnouncementViewSet, basename='management-announcement')
+router.register(r'children', views_child.ManagementChildViewSet, basename='management-child')
 
 # Create nested routers for event guests
-events_router = NestedSimpleRouter(router, r'events', lookup='event')
+events_router = NestedDefaultRouter(router, r'events', lookup='event')
 events_router.register(r'guests', views_event.ManagementEventGuestViewSet, basename='management-event-guest')
 
 urlpatterns = [

@@ -4,7 +4,6 @@ User settings models for ClustR application.
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.contrib.postgres.fields import JSONField
 
 from core.common.models import UUIDPrimaryKey, ObjectHistoryTracker
 
@@ -64,28 +63,28 @@ class UserSettings(UUIDPrimaryKey, ObjectHistoryTracker):
     )
     
     # Notification preferences
-    notification_preferences = JSONField(
+    notification_preferences = models.JSONField(
         default=dict,
         verbose_name=_("Notification Preferences"),
         help_text=_("JSON object storing notification preferences by type and channel")
     )
     
     # Privacy settings
-    privacy_settings = JSONField(
+    privacy_settings = models.JSONField(
         default=dict,
         verbose_name=_("Privacy Settings"),
         help_text=_("JSON object storing privacy preferences")
     )
     
     # General preferences
-    general_preferences = JSONField(
+    general_preferences = models.JSONField(
         default=dict,
         verbose_name=_("General Preferences"),
         help_text=_("JSON object storing general user preferences")
     )
     
     # Communication preferences
-    communication_preferences = JSONField(
+    communication_preferences = models.JSONField(
         default=dict,
         verbose_name=_("Communication Preferences"),
         help_text=_("JSON object storing communication preferences")

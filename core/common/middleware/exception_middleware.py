@@ -85,7 +85,7 @@ class ExceptionMiddleware(MiddlewareMixin):
         
         return False
     
-    def _prepare_error_data(self, exception: Exception) -> Dict[str, Any]:
+    def _prepare_error_data(self, exception: Exception) -> dict[str, Any]:
         """
         Prepare error data for the response.
         

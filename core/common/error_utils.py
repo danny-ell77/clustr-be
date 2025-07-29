@@ -46,7 +46,7 @@ T = TypeVar("T")
 
 def log_exceptions(
     exception_mapping: Optional[
-        Dict[Type[Exception], Type[ClustRBaseException]]
+        dict[Type[Exception], Type[ClustRBaseException]]
     ] = None,
     log_level: int = logging.ERROR,
     reraise: bool = True,
@@ -97,7 +97,7 @@ def log_exception_with_context(
     exc: Exception,
     log_level: int = logging.ERROR,
     request: Optional[HttpRequest] = None,
-    context: Optional[Dict[str, Any]] = None,
+    context: Optional[dict[str, Any]] = None,
 ) -> None:
     """
     Log an exception with context.
@@ -146,7 +146,7 @@ def log_exception_with_context(
 
 
 def exception_to_response_mapper(
-    exception_mapping: Optional[Dict[Type[Exception], Union[Callable, Response]]] = None,
+    exception_mapping: Optional[dict[Type[Exception], Union[Callable, Response]]] = None,
     log_exceptions: bool = True,
     default_response: Optional[Union[Callable, Response]] = None
 ) -> Callable:
@@ -154,7 +154,7 @@ def exception_to_response_mapper(
     Decorator that maps exceptions to response functions or Response objects to be used for function views.
     
     Args:
-        exception_mapping: Dict mapping exception types to response functions or Response objects
+        exception_mapping: dict mapping exception types to response functions or Response objects
         log_exceptions: Whether to log caught exceptions
         default_response: Default response function/object for unmapped exceptions
         

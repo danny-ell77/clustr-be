@@ -34,7 +34,7 @@ from core.common.error_codes import CommonAPIErrorCodes
 logger = logging.getLogger("clustr")
 
 
-def custom_exception_handler(exc: Exception, context: Dict[str, Any]) -> Optional[Response]:
+def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Optional[Response]:
     """
     Custom exception handler for REST framework that formats the response consistently.
     
@@ -174,7 +174,7 @@ def _get_error_code(exc: Exception) -> str:
         return CommonAPIErrorCodes.INTERNAL_SERVER_ERROR
 
 
-def _get_error_message(exc: Exception, data: Dict[str, Any]) -> str:
+def _get_error_message(exc: Exception, data: dict[str, Any]) -> str:
     """
     Get a human-readable error message.
     
@@ -195,7 +195,7 @@ def _get_error_message(exc: Exception, data: Dict[str, Any]) -> str:
         return str(exc)
 
 
-def _get_error_details(data: Dict[str, Any]) -> Union[Dict[str, Any], str, None]:
+def _get_error_details(data: dict[str, Any]) -> Union[dict[str, Any], str, None]:
     """
     Extract detailed error information.
     

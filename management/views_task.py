@@ -24,7 +24,7 @@ from core.common.serializers.task_serializers import (
 )
 from core.common.utils import TaskManager, TaskNotificationManager, TaskFileManager
 from accounts.models import AccountUser
-from core.common.permissions import ManagementPermissions
+from accounts.permissions import IsClusterStaffOrAdmin
 
 
 class ManagementTaskViewSet(viewsets.ModelViewSet):
@@ -33,7 +33,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
     Provides full CRUD operations and task management functionality.
     """
     
-    permission_classes = [IsAuthenticated, ManagementPermissions]
+    permission_classes = [IsAuthenticated, IsClusterStaffOrAdmin]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = TaskFilter
     ordering = ['-created_at']
@@ -364,7 +364,7 @@ class ManagementTaskCommentViewSet(viewsets.ModelViewSet):
     ViewSet for managing task comments in the management app.
     """
     
-    permission_classes = [IsAuthenticated, ManagementPermissions]
+    permission_classes = [IsAuthenticated, IsClusterStaffOrAdmin]
     serializer_class = TaskCommentSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = TaskCommentFilter

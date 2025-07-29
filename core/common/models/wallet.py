@@ -12,11 +12,12 @@ from django.utils import timezone
 
 from core.common.models.base import AbstractClusterModel
 
-logger = logging.getLogger('clustr')
+logger = logging.getLogger("clustr")
 
 
 class WalletStatus(models.TextChoices):
     """Wallet status choices"""
+
     ACTIVE = "active", _("Active")
     SUSPENDED = "suspended", _("Suspended")
     CLOSED = "closed", _("Closed")
@@ -24,6 +25,7 @@ class WalletStatus(models.TextChoices):
 
 class TransactionType(models.TextChoices):
     """Transaction type choices"""
+
     DEPOSIT = "deposit", _("Deposit")
     WITHDRAWAL = "withdrawal", _("Withdrawal")
     PAYMENT = "payment", _("Payment")
@@ -34,6 +36,7 @@ class TransactionType(models.TextChoices):
 
 class TransactionStatus(models.TextChoices):
     """Transaction status choices"""
+
     PENDING = "pending", _("Pending")
     PROCESSING = "processing", _("Processing")
     COMPLETED = "completed", _("Completed")
@@ -44,6 +47,7 @@ class TransactionStatus(models.TextChoices):
 
 class PaymentProvider(models.TextChoices):
     """Payment provider choices"""
+
     PAYSTACK = "paystack", _("Paystack")
     FLUTTERWAVE = "flutterwave", _("Flutterwave")
     BANK_TRANSFER = "bank_transfer", _("Bank Transfer")
@@ -52,6 +56,7 @@ class PaymentProvider(models.TextChoices):
 
 class BillType(models.TextChoices):
     """Bill type choices"""
+
     ELECTRICITY = "electricity", _("Electricity")
     WATER = "water", _("Water")
     SECURITY = "security", _("Security")
@@ -63,6 +68,7 @@ class BillType(models.TextChoices):
 
 class BillStatus(models.TextChoices):
     """Bill status choices"""
+
     DRAFT = "draft", _("Draft")
     PENDING_ACKNOWLEDGMENT = "pending_acknowledgment", _("Pending Acknowledgment")
     ACKNOWLEDGED = "acknowledged", _("Acknowledged")
@@ -76,6 +82,7 @@ class BillStatus(models.TextChoices):
 
 class RecurringPaymentStatus(models.TextChoices):
     """Recurring payment status choices"""
+
     ACTIVE = "active", _("Active")
     PAUSED = "paused", _("Paused")
     CANCELLED = "cancelled", _("Cancelled")
@@ -84,6 +91,7 @@ class RecurringPaymentStatus(models.TextChoices):
 
 class RecurringPaymentFrequency(models.TextChoices):
     """Recurring payment frequency choices"""
+
     DAILY = "daily", _("Daily")
     WEEKLY = "weekly", _("Weekly")
     MONTHLY = "monthly", _("Monthly")
@@ -93,6 +101,7 @@ class RecurringPaymentFrequency(models.TextChoices):
 
 class PaymentErrorType(models.TextChoices):
     """Payment error type choices"""
+
     INSUFFICIENT_FUNDS = "insufficient_funds", _("Insufficient Funds")
     INVALID_CARD = "invalid_card", _("Invalid Card")
     EXPIRED_CARD = "expired_card", _("Expired Card")
@@ -109,6 +118,7 @@ class PaymentErrorType(models.TextChoices):
 
 class PaymentErrorSeverity(models.TextChoices):
     """Payment error severity choices"""
+
     LOW = "low", _("Low")
     MEDIUM = "medium", _("Medium")
     HIGH = "high", _("High")
@@ -119,37 +129,37 @@ class Wallet(AbstractClusterModel):
     """
     User wallet model for managing balances and payment information.
     """
-    
+
     user_id = models.UUIDField(
         verbose_name=_("user id"),
         help_text=_("The ID of the user who owns this wallet"),
     )
-    
+
     balance = models.DecimalField(
         verbose_name=_("balance"),
         max_digits=15,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
         help_text=_("Current wallet balance"),
     )
-    
+
     available_balance = models.DecimalField(
         verbose_name=_("available balance"),
         max_digits=15,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
         help_text=_("Available balance (excluding pending transactions)"),
     )
-    
+
     currency = models.CharField(
         verbose_name=_("currency"),
         max_length=3,
         default="NGN",
         help_text=_("Currency code (e.g., NGN, USD)"),
     )
-    
+
     account_number = models.CharField(
         verbose_name=_("account number"),
         max_length=20,
@@ -157,7 +167,7 @@ class Wallet(AbstractClusterModel):
         null=True,
         help_text=_("Associated bank account number"),
     )
-    
+
     status = models.CharField(
         verbose_name=_("status"),
         max_length=20,
@@ -165,7 +175,7 @@ class Wallet(AbstractClusterModel):
         default=WalletStatus.ACTIVE,
         help_text=_("Current wallet status"),
     )
-    
+
     pin_hash = models.CharField(
         verbose_name=_("PIN hash"),
         max_length=255,
@@ -173,13 +183,13 @@ class Wallet(AbstractClusterModel):
         null=True,
         help_text=_("Hashed wallet PIN for transactions"),
     )
-    
+
     is_pin_set = models.BooleanField(
         verbose_name=_("is PIN set"),
         default=False,
         help_text=_("Whether the user has set a wallet PIN"),
     )
-    
+
     last_transaction_at = models.DateTimeField(
         verbose_name=_("last transaction date"),
         null=True,
@@ -202,28 +212,32 @@ class Wallet(AbstractClusterModel):
     def update_balance(self, amount, transaction_type):
         """
         Update wallet balance based on transaction type.
-        
+
         Args:
-            amount: Transaction amount
-            transaction_type: Type of transaction
+            amount: Amount to add/subtract
+            transaction_type: Type of transaction (deposit, withdrawal, etc.)
         """
         if transaction_type in [TransactionType.DEPOSIT, TransactionType.REFUND]:
             self.balance += amount
             self.available_balance += amount
-        elif transaction_type in [TransactionType.WITHDRAWAL, TransactionType.PAYMENT, TransactionType.BILL_PAYMENT]:
+        elif transaction_type in [
+            TransactionType.WITHDRAWAL,
+            TransactionType.PAYMENT,
+            TransactionType.BILL_PAYMENT,
+        ]:
             self.balance -= amount
             self.available_balance -= amount
-        
+
         self.last_transaction_at = timezone.now()
-        self.save()
+        self.save(update_fields=["balance", "available_balance", "last_transaction_at"])
 
     def has_sufficient_balance(self, amount):
         """
         Check if wallet has sufficient balance for a transaction.
-        
+
         Args:
             amount: Amount to check
-            
+
         Returns:
             bool: True if sufficient balance, False otherwise
         """
@@ -232,32 +246,32 @@ class Wallet(AbstractClusterModel):
     def freeze_amount(self, amount):
         """
         Freeze an amount from available balance for pending transactions.
-        
+
         Args:
             amount: Amount to freeze
         """
         if self.has_sufficient_balance(amount):
             self.available_balance -= amount
-            self.save()
+            self.save(update_fields=["available_balance"])
             return True
         return False
 
     def unfreeze_amount(self, amount):
         """
         Unfreeze an amount back to available balance.
-        
+
         Args:
             amount: Amount to unfreeze
         """
         self.available_balance += amount
-        self.save()
+        self.save(update_fields=["available_balance"])
 
 
 class Transaction(AbstractClusterModel):
     """
     Transaction model for tracking all wallet transactions.
     """
-    
+
     wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,
@@ -265,14 +279,14 @@ class Transaction(AbstractClusterModel):
         verbose_name=_("wallet"),
         help_text=_("The wallet this transaction belongs to"),
     )
-    
+
     transaction_id = models.CharField(
         verbose_name=_("transaction ID"),
         max_length=100,
         unique=True,
         help_text=_("Unique transaction identifier"),
     )
-    
+
     reference = models.CharField(
         verbose_name=_("reference"),
         max_length=100,
@@ -280,29 +294,29 @@ class Transaction(AbstractClusterModel):
         null=True,
         help_text=_("External reference (e.g., payment gateway reference)"),
     )
-    
+
     type = models.CharField(
         verbose_name=_("type"),
         max_length=20,
         choices=TransactionType.choices,
         help_text=_("Type of transaction"),
     )
-    
+
     amount = models.DecimalField(
         verbose_name=_("amount"),
         max_digits=15,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
+        validators=[MinValueValidator(Decimal("0.01"))],
         help_text=_("Transaction amount"),
     )
-    
+
     currency = models.CharField(
         verbose_name=_("currency"),
         max_length=3,
         default="NGN",
         help_text=_("Currency code"),
     )
-    
+
     status = models.CharField(
         verbose_name=_("status"),
         max_length=20,
@@ -310,12 +324,12 @@ class Transaction(AbstractClusterModel):
         default=TransactionStatus.PENDING,
         help_text=_("Current transaction status"),
     )
-    
+
     description = models.TextField(
         verbose_name=_("description"),
         help_text=_("Transaction description"),
     )
-    
+
     provider = models.CharField(
         verbose_name=_("provider"),
         max_length=20,
@@ -324,35 +338,35 @@ class Transaction(AbstractClusterModel):
         null=True,
         help_text=_("Payment provider used"),
     )
-    
+
     provider_response = models.JSONField(
         verbose_name=_("provider response"),
         blank=True,
         null=True,
         help_text=_("Response from payment provider"),
     )
-    
+
     metadata = models.JSONField(
         verbose_name=_("metadata"),
         blank=True,
         null=True,
         help_text=_("Additional transaction metadata"),
     )
-    
+
     processed_at = models.DateTimeField(
         verbose_name=_("processed at"),
         null=True,
         blank=True,
         help_text=_("Date and time when transaction was processed"),
     )
-    
+
     failed_at = models.DateTimeField(
         verbose_name=_("failed at"),
         null=True,
         blank=True,
         help_text=_("Date and time when transaction failed"),
     )
-    
+
     failure_reason = models.TextField(
         verbose_name=_("failure reason"),
         blank=True,
@@ -387,7 +401,7 @@ class Transaction(AbstractClusterModel):
             self.status = TransactionStatus.COMPLETED
             self.processed_at = timezone.now()
             self.wallet.update_balance(self.amount, self.type)
-            self.save()
+            self.save(update_fields=["status", "processed_at"])
 
     def mark_as_failed(self, reason=None):
         """Mark transaction as failed and unfreeze amount if needed."""
@@ -395,13 +409,17 @@ class Transaction(AbstractClusterModel):
             self.status = TransactionStatus.FAILED
             self.failed_at = timezone.now()
             self.failure_reason = reason
-            
+
             # Unfreeze amount for withdrawal/payment transactions
-            if self.type in [TransactionType.WITHDRAWAL, TransactionType.PAYMENT, TransactionType.BILL_PAYMENT]:
+            if self.type in [
+                TransactionType.WITHDRAWAL,
+                TransactionType.PAYMENT,
+                TransactionType.BILL_PAYMENT,
+            ]:
                 self.wallet.unfreeze_amount(self.amount)
-            
-            self.save()
-    
+
+            self.save(update_fields=["status", "failed_at", "failure_reason"])
+
     @property
     def failed_payments(self):
         return self.payment_errors.filter(is_resolved=False)
@@ -411,7 +429,7 @@ class PaymentError(AbstractClusterModel):
     """
     Payment error model for tracking transaction failures and providing user-friendly audit trails.
     """
-    
+
     transaction = models.ForeignKey(
         Transaction,
         on_delete=models.CASCADE,
@@ -419,21 +437,21 @@ class PaymentError(AbstractClusterModel):
         verbose_name=_("transaction"),
         help_text=_("The transaction that failed"),
     )
-    
+
     error_type = models.CharField(
         verbose_name=_("error type"),
         max_length=30,
         choices=PaymentErrorType.choices,
         help_text=_("Categorized error type"),
     )
-    
+
     severity = models.CharField(
         verbose_name=_("severity"),
         max_length=20,
         choices=PaymentErrorSeverity.choices,
         help_text=_("Error severity level"),
     )
-    
+
     provider_error_code = models.CharField(
         verbose_name=_("provider error code"),
         max_length=50,
@@ -441,55 +459,55 @@ class PaymentError(AbstractClusterModel):
         null=True,
         help_text=_("Error code from payment provider"),
     )
-    
+
     provider_error_message = models.TextField(
         verbose_name=_("provider error message"),
         help_text=_("Original error message from payment provider"),
     )
-    
+
     user_friendly_message = models.TextField(
         verbose_name=_("user friendly message"),
         help_text=_("User-friendly error message"),
     )
-    
+
     recovery_options = models.JSONField(
         verbose_name=_("recovery options"),
         blank=True,
         null=True,
         help_text=_("Available recovery options for the user"),
     )
-    
+
     retry_count = models.PositiveIntegerField(
         verbose_name=_("retry count"),
         default=0,
         help_text=_("Number of retry attempts made"),
     )
-    
+
     max_retries = models.PositiveIntegerField(
         verbose_name=_("max retries"),
         default=3,
         help_text=_("Maximum number of retry attempts allowed"),
     )
-    
+
     can_retry = models.BooleanField(
         verbose_name=_("can retry"),
         default=True,
         help_text=_("Whether this error allows retry attempts"),
     )
-    
+
     is_resolved = models.BooleanField(
         verbose_name=_("is resolved"),
         default=False,
         help_text=_("Whether this error has been resolved"),
     )
-    
+
     resolved_at = models.DateTimeField(
         verbose_name=_("resolved at"),
         null=True,
         blank=True,
         help_text=_("Date and time when error was resolved"),
     )
-    
+
     resolution_method = models.CharField(
         verbose_name=_("resolution method"),
         max_length=50,
@@ -497,19 +515,19 @@ class PaymentError(AbstractClusterModel):
         null=True,
         help_text=_("Method used to resolve the error"),
     )
-    
+
     admin_notified = models.BooleanField(
         verbose_name=_("admin notified"),
         default=False,
         help_text=_("Whether administrators have been notified"),
     )
-    
+
     user_notified = models.BooleanField(
         verbose_name=_("user notified"),
         default=False,
         help_text=_("Whether user has been notified"),
     )
-    
+
     metadata = models.JSONField(
         verbose_name=_("metadata"),
         blank=True,
@@ -534,12 +552,16 @@ class PaymentError(AbstractClusterModel):
 
     def can_be_retried(self):
         """Check if this error can be retried."""
-        return self.can_retry and self.retry_count < self.max_retries and not self.is_resolved
+        return (
+            self.can_retry
+            and self.retry_count < self.max_retries
+            and not self.is_resolved
+        )
 
     def increment_retry_count(self):
         """Increment the retry count."""
         self.retry_count += 1
-        self.save()
+        self.save(update_fields=["retry_count"])
 
     def mark_as_resolved(self, resolution_method=None):
         """Mark the error as resolved."""
@@ -547,66 +569,66 @@ class PaymentError(AbstractClusterModel):
         self.resolved_at = timezone.now()
         if resolution_method:
             self.resolution_method = resolution_method
-        self.save()
+        self.save(update_fields=["is_resolved", "resolved_at", "resolution_method"])
 
     def get_next_retry_delay(self):
         """Get the delay before next retry attempt in minutes."""
         # Exponential backoff: 2, 4, 8 minutes
-        return min(2 ** self.retry_count, 30)  # Cap at 30 minutes
+        return min(2**self.retry_count, 30)  # Cap at 30 minutes
 
 
 class Bill(AbstractClusterModel):
     """
     Bill model for managing estate bills and charges.
     """
-    
+
     bill_number = models.CharField(
         verbose_name=_("bill number"),
         max_length=50,
         unique=True,
         help_text=_("Unique bill number"),
     )
-    
+
     user_id = models.UUIDField(
         verbose_name=_("user id"),
         help_text=_("The ID of the user this bill is for"),
     )
-    
+
     title = models.CharField(
         verbose_name=_("title"),
         max_length=200,
         help_text=_("Bill title"),
     )
-    
+
     description = models.TextField(
         verbose_name=_("description"),
         blank=True,
         null=True,
         help_text=_("Bill description"),
     )
-    
+
     type = models.CharField(
         verbose_name=_("type"),
         max_length=20,
         choices=BillType.choices,
         help_text=_("Type of bill"),
     )
-    
+
     amount = models.DecimalField(
         verbose_name=_("amount"),
         max_digits=15,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
+        validators=[MinValueValidator(Decimal("0.01"))],
         help_text=_("Bill amount"),
     )
-    
+
     currency = models.CharField(
         verbose_name=_("currency"),
         max_length=3,
         default="NGN",
         help_text=_("Currency code"),
     )
-    
+
     status = models.CharField(
         verbose_name=_("status"),
         max_length=25,
@@ -614,56 +636,56 @@ class Bill(AbstractClusterModel):
         default=BillStatus.PENDING_ACKNOWLEDGMENT,
         help_text=_("Current bill status"),
     )
-    
+
     acknowledged_at = models.DateTimeField(
         verbose_name=_("acknowledged at"),
         null=True,
         blank=True,
         help_text=_("Date and time when bill was acknowledged by user"),
     )
-    
+
     acknowledged_by = models.UUIDField(
         verbose_name=_("acknowledged by"),
         null=True,
         blank=True,
         help_text=_("ID of the user who acknowledged this bill"),
     )
-    
+
     dispute_reason = models.TextField(
         verbose_name=_("dispute reason"),
         blank=True,
         null=True,
         help_text=_("Reason for disputing the bill"),
     )
-    
+
     disputed_at = models.DateTimeField(
         verbose_name=_("disputed at"),
         null=True,
         blank=True,
         help_text=_("Date and time when bill was disputed"),
     )
-    
+
     due_date = models.DateTimeField(
         verbose_name=_("due date"),
         help_text=_("Bill due date"),
     )
-    
+
     paid_amount = models.DecimalField(
         verbose_name=_("paid amount"),
         max_digits=15,
         decimal_places=2,
-        default=Decimal('0.00'),
-        validators=[MinValueValidator(Decimal('0.00'))],
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
         help_text=_("Amount already paid"),
     )
-    
+
     paid_at = models.DateTimeField(
         verbose_name=_("paid at"),
         null=True,
         blank=True,
         help_text=_("Date and time when bill was paid"),
     )
-    
+
     payment_transaction = models.ForeignKey(
         Transaction,
         on_delete=models.SET_NULL,
@@ -673,7 +695,7 @@ class Bill(AbstractClusterModel):
         verbose_name=_("payment transaction"),
         help_text=_("Transaction used to pay this bill"),
     )
-    
+
     metadata = models.JSONField(
         verbose_name=_("metadata"),
         blank=True,
@@ -705,7 +727,10 @@ class Bill(AbstractClusterModel):
     @property
     def is_overdue(self):
         """Check if bill is overdue."""
-        return self.due_date < timezone.now() and self.status not in [BillStatus.PAID, BillStatus.CANCELLED]
+        return self.due_date < timezone.now() and self.status not in [
+            BillStatus.PAID,
+            BillStatus.CANCELLED,
+        ]
 
     @property
     def remaining_amount(self):
@@ -719,7 +744,9 @@ class Bill(AbstractClusterModel):
         self.paid_at = timezone.now()
         if transaction:
             self.payment_transaction = transaction
-        self.save()
+        self.save(
+            update_fields=["status", "paid_amount", "paid_at", "payment_transaction"]
+        )
 
     def acknowledge(self, acknowledged_by: str):
         """Acknowledge the bill."""
@@ -727,10 +754,10 @@ class Bill(AbstractClusterModel):
             self.status = BillStatus.ACKNOWLEDGED
             self.acknowledged_at = timezone.now()
             self.acknowledged_by = acknowledged_by
-            self.save()
+            self.save(update_fields=["status", "acknowledged_at", "acknowledged_by"])
             return True
         return False
-    
+
     def dispute(self, disputed_by: str, reason: str):
         """Dispute the bill."""
         if self.status in [BillStatus.PENDING_ACKNOWLEDGMENT, BillStatus.ACKNOWLEDGED]:
@@ -738,37 +765,54 @@ class Bill(AbstractClusterModel):
             self.disputed_at = timezone.now()
             self.dispute_reason = reason
             self.last_modified_by = disputed_by
-            self.save()
+            self.save(
+                update_fields=[
+                    "status",
+                    "disputed_at",
+                    "dispute_reason",
+                    "last_modified_by",
+                ]
+            )
             return True
         return False
-    
+
     def can_be_paid(self):
         """Check if bill can be paid."""
-        return self.status in [BillStatus.ACKNOWLEDGED, BillStatus.PENDING, BillStatus.PARTIALLY_PAID, BillStatus.OVERDUE]
-    
+        return self.status in [
+            BillStatus.ACKNOWLEDGED,
+            BillStatus.PENDING,
+            BillStatus.PARTIALLY_PAID,
+            BillStatus.OVERDUE,
+        ]
+
     def add_payment(self, amount, transaction=None):
         """Add a partial payment to the bill."""
         if not self.can_be_paid():
             raise ValueError(f"Bill cannot be paid in current status: {self.status}")
-        
+
         self.paid_amount += amount
         if self.paid_amount >= self.amount:
             self.status = BillStatus.PAID
             self.paid_at = timezone.now()
         else:
             self.status = BillStatus.PARTIALLY_PAID
-        
+
         if transaction:
             self.payment_transaction = transaction
-        
-        self.save()
-        
+
+        self.save(
+            update_fields=["paid_amount", "status", "paid_at", "payment_transaction"]
+        )
+
         # Credit the cluster's main wallet immediately after successful bill payment
         self._credit_cluster_wallet(amount, transaction)
-    
+
     def _credit_cluster_wallet(self, amount, transaction=None):
         """Credit the cluster's main wallet with bill payment."""
-        from core.common.utils.cluster_wallet_utils import credit_cluster_from_bill_payment
+        from core.common.utils.cluster_wallet_utils import (
+            credit_cluster_from_bill_payment,
+        )
+
         credit_cluster_from_bill_payment(self.cluster, amount, self, transaction)
 
 
@@ -776,15 +820,10 @@ class RecurringPayment(AbstractClusterModel):
     """
     Recurring payment model for scheduled payments.
     """
-    
+
     user_id = models.UUIDField(
         verbose_name=_("user id"),
         help_text=_("The ID of the user who set up this recurring payment"),
-    )
-    
-    bill = models.ForeignKey(
-        Bill,
-        
     )
 
     wallet = models.ForeignKey(
@@ -794,42 +833,42 @@ class RecurringPayment(AbstractClusterModel):
         verbose_name=_("wallet"),
         help_text=_("The wallet to debit for payments"),
     )
-    
+
     title = models.CharField(
         verbose_name=_("title"),
         max_length=200,
         help_text=_("Recurring payment title"),
     )
-    
+
     description = models.TextField(
         verbose_name=_("description"),
         blank=True,
         null=True,
         help_text=_("Recurring payment description"),
     )
-    
+
     amount = models.DecimalField(
         verbose_name=_("amount"),
         max_digits=15,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
+        validators=[MinValueValidator(Decimal("0.01"))],
         help_text=_("Payment amount"),
     )
-    
+
     currency = models.CharField(
         verbose_name=_("currency"),
         max_length=3,
         default="NGN",
         help_text=_("Currency code"),
     )
-    
+
     frequency = models.CharField(
         verbose_name=_("frequency"),
         max_length=20,
         choices=RecurringPaymentFrequency.choices,
         help_text=_("Payment frequency"),
     )
-    
+
     status = models.CharField(
         verbose_name=_("status"),
         max_length=20,
@@ -837,49 +876,49 @@ class RecurringPayment(AbstractClusterModel):
         default=RecurringPaymentStatus.ACTIVE,
         help_text=_("Current recurring payment status"),
     )
-    
+
     start_date = models.DateTimeField(
         verbose_name=_("start date"),
         help_text=_("Date when recurring payments should start"),
     )
-    
+
     end_date = models.DateTimeField(
         verbose_name=_("end date"),
         null=True,
         blank=True,
         help_text=_("Date when recurring payments should end (optional)"),
     )
-    
+
     next_payment_date = models.DateTimeField(
         verbose_name=_("next payment date"),
         help_text=_("Date of the next scheduled payment"),
     )
-    
+
     last_payment_date = models.DateTimeField(
         verbose_name=_("last payment date"),
         null=True,
         blank=True,
         help_text=_("Date of the last successful payment"),
     )
-    
+
     total_payments = models.PositiveIntegerField(
         verbose_name=_("total payments"),
         default=0,
         help_text=_("Total number of successful payments made"),
     )
-    
+
     failed_attempts = models.PositiveIntegerField(
         verbose_name=_("failed attempts"),
         default=0,
         help_text=_("Number of consecutive failed payment attempts"),
     )
-    
+
     max_failed_attempts = models.PositiveIntegerField(
         verbose_name=_("max failed attempts"),
         default=3,
         help_text=_("Maximum failed attempts before pausing"),
     )
-    
+
     metadata = models.JSONField(
         verbose_name=_("metadata"),
         blank=True,
@@ -904,9 +943,9 @@ class RecurringPayment(AbstractClusterModel):
     def calculate_next_payment_date(self):
         """Calculate the next payment date based on frequency."""
         from dateutil.relativedelta import relativedelta
-        
+
         current_date = self.next_payment_date or self.start_date
-        
+
         if self.frequency == RecurringPaymentFrequency.DAILY:
             return current_date + relativedelta(days=1)
         elif self.frequency == RecurringPaymentFrequency.WEEKLY:
@@ -917,28 +956,29 @@ class RecurringPayment(AbstractClusterModel):
             return current_date + relativedelta(months=3)
         elif self.frequency == RecurringPaymentFrequency.YEARLY:
             return current_date + relativedelta(years=1)
-        
+
         return current_date
 
     def process_payment(self):
         """Process the recurring payment."""
         if self.status != RecurringPaymentStatus.ACTIVE:
             return False
-        
+
         if not self.wallet.has_sufficient_balance(self.amount):
             self.failed_attempts += 1
             if self.failed_attempts >= self.max_failed_attempts:
                 self.status = RecurringPaymentStatus.PAUSED
-            self.save()
-            
+            self.save(update_fields=["failed_attempts", "status"])
+
             # Handle recurring payment failure with error handling
             from core.common.utils.payment_error_utils import PaymentErrorHandler
+
             PaymentErrorHandler.handle_recurring_payment_failure(
                 self, "Insufficient wallet balance"
             )
-            
+
             return False
-        
+
         # Create transaction
         transaction = Transaction.objects.create(
             cluster=self.cluster,
@@ -952,36 +992,44 @@ class RecurringPayment(AbstractClusterModel):
             created_by=self.created_by,
             last_modified_by=self.last_modified_by,
         )
-        
+
         # Update wallet balance
         self.wallet.update_balance(self.amount, TransactionType.PAYMENT)
-        
+
         # Update recurring payment
         self.last_payment_date = timezone.now()
         self.next_payment_date = self.calculate_next_payment_date()
         self.total_payments += 1
         self.failed_attempts = 0
-        
+
         # Check if recurring payment should end
         if self.end_date and self.next_payment_date > self.end_date:
             self.status = RecurringPaymentStatus.EXPIRED
-        
-        self.save()
+
+        self.save(
+            update_fields=[
+                "last_payment_date",
+                "next_payment_date",
+                "total_payments",
+                "failed_attempts",
+                "status",
+            ]
+        )
         return True
 
     def pause(self):
         """Pause the recurring payment."""
         self.status = RecurringPaymentStatus.PAUSED
-        self.save()
+        self.save(update_fields=["status"])
 
     def resume(self):
         """Resume the recurring payment."""
         if self.status == RecurringPaymentStatus.PAUSED:
             self.status = RecurringPaymentStatus.ACTIVE
             self.failed_attempts = 0
-            self.save()
+            self.save(update_fields=["status", "failed_attempts"])
 
     def cancel(self):
         """Cancel the recurring payment."""
         self.status = RecurringPaymentStatus.CANCELLED
-        self.save()
+        self.save(update_fields=["status"])

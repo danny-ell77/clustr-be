@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from accounts.models import PRIMARY_ROLE_NAME, AccountUser, UserVerification, Role
-from core.common.email_sender import NotificationTypes
+from core.notifications.events import NotificationEvents
 
 
 def create_mock_email_verification(owner, otp=None, token=None, **kwargs):
@@ -11,7 +11,7 @@ def create_mock_email_verification(owner, otp=None, token=None, **kwargs):
         "token": token,
         "requested_at": timezone.now(),
         "requested_by": owner,
-        "notification_type": NotificationTypes.OTP_PASSWORD_RESET,
+        "notification_type": NotificationEvents.SYSTEM_UPDATE.value, # Placeholder
     }
     valid_data.update(kwargs)
     return valid_data, UserVerification.objects.create(**valid_data)

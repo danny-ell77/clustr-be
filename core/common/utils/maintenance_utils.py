@@ -613,17 +613,29 @@ class MaintenanceManager:
             True if notification sent successfully, False otherwise
         """
         try:
-            if (
-                maintenance_log.performed_by
-                and maintenance_log.performed_by.email_address
-            ):
-                # This would use the NotificationManager to send the notification
-                # For now, we'll just log it
-                logger.info(
-                    f"Would send assignment notification for maintenance {maintenance_log.maintenance_number} to {maintenance_log.performed_by.email_address}"
-                )
-                return True
-            return False
+            if not maintenance_log.performed_by:
+                return False
+            
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
+            return NotificationManager.send(
+                event=NotificationEvents.MAINTENANCE_SCHEDULED,
+                recipients=[maintenance_log.performed_by],
+                cluster=maintenance_log.cluster,
+                context={
+                    'maintenance_number': maintenance_log.maintenance_number,
+                    'title': maintenance_log.title,
+                    'description': maintenance_log.description[:200] + '...' if len(maintenance_log.description) > 200 else maintenance_log.description,
+                    'maintenance_type': maintenance_log.get_maintenance_type_display(),
+                    'property_type': maintenance_log.get_property_type_display(),
+                    'property_location': maintenance_log.property_location,
+                    'equipment_name': maintenance_log.equipment_name or 'Not specified',
+                    'scheduled_date': maintenance_log.scheduled_date.strftime('%Y-%m-%d %H:%M') if maintenance_log.scheduled_date else 'Not scheduled',
+                    'assigned_to_name': maintenance_log.performed_by.name,
+                    'requested_by_name': maintenance_log.requested_by.name if maintenance_log.requested_by else 'System',
+                }
+            )
         except Exception as e:
             logger.error(f"Failed to send assignment notification: {str(e)}")
             return False
@@ -640,17 +652,27 @@ class MaintenanceManager:
             True if notification sent successfully, False otherwise
         """
         try:
-            if (
-                maintenance_log.performed_by
-                and maintenance_log.performed_by.email_address
-            ):
-                # This would use the NotificationManager to send the notification
-                # For now, we'll just log it
-                logger.info(
-                    f"Would send due reminder for maintenance {maintenance_log.maintenance_number} to {maintenance_log.performed_by.email_address}"
-                )
-                return True
-            return False
+            if not maintenance_log.performed_by:
+                return False
+            
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
+            return NotificationManager.send(
+                event=NotificationEvents.MAINTENANCE_URGENT,
+                recipients=[maintenance_log.performed_by],
+                cluster=maintenance_log.cluster,
+                context={
+                    'maintenance_number': maintenance_log.maintenance_number,
+                    'title': maintenance_log.title,
+                    'property_location': maintenance_log.property_location,
+                    'equipment_name': maintenance_log.equipment_name or 'Not specified',
+                    'scheduled_date': maintenance_log.scheduled_date.strftime('%Y-%m-%d %H:%M') if maintenance_log.scheduled_date else 'Not scheduled',
+                    'time_remaining': str(maintenance_log.scheduled_date - timezone.now()) if maintenance_log.scheduled_date else 'Overdue',
+                    'maintenance_type': maintenance_log.get_maintenance_type_display(),
+                    'assigned_to_name': maintenance_log.performed_by.name,
+                }
+            )
         except Exception as e:
             logger.error(f"Failed to send due reminder: {str(e)}")
             return False
@@ -667,14 +689,72 @@ class MaintenanceManager:
             True if notification sent successfully, False otherwise
         """
         try:
-            if schedule.assigned_to and schedule.assigned_to.email_address:
-                # This would use the NotificationManager to send the notification
-                # For now, we'll just log it
-                logger.info(
-                    f"Would send preventive maintenance reminder for {schedule.name} to {schedule.assigned_to.email_address}"
-                )
-                return True
-            return False
+            if not schedule.assigned_to:
+                return False
+            
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
+            return NotificationManager.send(
+                event=NotificationEvents.MAINTENANCE_SCHEDULED,
+                recipients=[schedule.assigned_to],
+                cluster=schedule.cluster,
+                context={
+                    'schedule_name': schedule.name,
+                    'description': schedule.description,
+                    'property_location': schedule.property_location,
+                    'equipment_name': schedule.equipment_name or 'Not specified',
+                    'next_due_date': schedule.next_due_date.strftime('%Y-%m-%d %H:%M') if schedule.next_due_date else 'Not scheduled',
+                    'frequency_type': schedule.get_frequency_type_display(),
+                    'property_type': schedule.get_property_type_display(),
+                    'assigned_to_name': schedule.assigned_to.name,
+                }
+            )
         except Exception as e:
             logger.error(f"Failed to send preventive maintenance reminder: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_completion_notification(maintenance_log, completed_by):
+        """
+        Send notification when maintenance is completed.
+
+        Args:
+            maintenance_log: MaintenanceLog object
+            completed_by: User who completed the maintenance
+
+        Returns:
+            True if notification sent successfully, False otherwise
+        """
+        try:
+            recipients = []
+            
+            # Notify the person who requested the maintenance
+            if maintenance_log.requested_by and maintenance_log.requested_by != completed_by:
+                recipients.append(maintenance_log.requested_by)
+            
+            if not recipients:
+                return True
+            
+            from core.notifications.manager import NotificationManager
+            from core.notifications.events import NotificationEvents
+            
+            return NotificationManager.send(
+                event=NotificationEvents.MAINTENANCE_COMPLETED,
+                recipients=recipients,
+                cluster=maintenance_log.cluster,
+                context={
+                    'maintenance_number': maintenance_log.maintenance_number,
+                    'title': maintenance_log.title,
+                    'property_location': maintenance_log.property_location,
+                    'equipment_name': maintenance_log.equipment_name or 'Not specified',
+                    'completed_date': maintenance_log.completed_at.strftime('%Y-%m-%d %H:%M') if maintenance_log.completed_at else timezone.now().strftime('%Y-%m-%d %H:%M'),
+                    'completed_by_name': completed_by.name,
+                    'maintenance_type': maintenance_log.get_maintenance_type_display(),
+                    'completion_notes': maintenance_log.completion_notes or 'No additional notes',
+                    'cost': f"${maintenance_log.cost:.2f}" if maintenance_log.cost else 'Not specified',
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to send completion notification: {str(e)}")
             return False

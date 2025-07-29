@@ -1,7 +1,7 @@
 import mimetypes
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Type, cast
+from typing import Any, Type, cast, Optional
 
 from django.apps import apps
 from django.http.response import FileResponse, HttpResponseBase
@@ -45,7 +45,7 @@ class GenericModelImporter:
         import_serializer_class: Type[DynamicFieldsSerializer],
         import_data_serializer_class: Type[BaseImportedDataSerializer],
         is_async: bool,
-        serializer_context: dict = None,
+        serializer_context: Optional[dict] = None,
     ):
         """
         Parameters
