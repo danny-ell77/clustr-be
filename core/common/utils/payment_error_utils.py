@@ -19,6 +19,8 @@ from core.common.models.wallet import (
 from core.common.email_sender import AccountEmailSender, NotificationTypes
 from core.common.error_utils import log_exceptions
 from core.common.models import PaymentError
+from core.notifications.events import NotificationEvents
+from core.notifications.manager import NotificationManager
 
 logger = logging.getLogger('clustr')
 
@@ -520,29 +522,26 @@ class PaymentErrorNotificationManager:
                 is_cluster_admin=True
             )
             
-            admin_emails = [admin.email_address for admin in admins if admin.email_address]
-            
-            if not admin_emails:
+            if not admins.exists():
+                logger.warning(f"No administrators found for cluster {transaction.cluster.name}")
                 return False
             
-            context = Context({
-                'transaction_id': transaction.transaction_id,
-                'user_id': str(transaction.wallet.user_id),
-                'amount': transaction.amount,
-                'currency': transaction.currency,
-                'error_type': error_type.value,
-                'error_message': transaction.failure_reason,
-                'cluster_name': transaction.cluster.name,
-                'timestamp': transaction.failed_at.strftime('%Y-%m-%d %H:%M:%S'),
-            })
-            
-            sender = AccountEmailSender(
-                recipients=admin_emails,
-                email_type=NotificationTypes.BILL_REMINDER,  # Would need PAYMENT_ADMIN_ALERT type
-                context=context
+            return NotificationManager.send(
+                event=NotificationEvents.PAYMENT_FAILED,
+                recipients=list(admins),
+                cluster=transaction.cluster,
+                context={
+                    'transaction_id': transaction.transaction_id,
+                    'user_id': str(transaction.wallet.user_id),
+                    'amount': transaction.amount,
+                    'currency': transaction.currency,
+                    'error_type': error_type.value,
+                    'error_message': transaction.failure_reason or PaymentErrorHandler.get_user_friendly_message(error_type),
+                    'cluster_name': transaction.cluster.name,
+                    'timestamp': transaction.failed_at.strftime('%Y-%m-%d %H:%M:%S') if transaction.failed_at else timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'is_admin_alert': True,
+                }
             )
-            
-            return sender.send()
         
         except Exception as e:
             logger.error(f"Failed to send admin alert: {e}")

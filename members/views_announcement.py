@@ -92,7 +92,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         serializer = self.get_serializer(announcement)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="like",
+        url_name="like",
+    )
     def like(self, request, pk=None):
         """
         Like an announcement.
@@ -119,7 +124,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="unlike",
+        url_name="unlike",
+    )
     def unlike(self, request, pk=None):
         """
         Unlike an announcement.
@@ -148,7 +158,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(detail=True, methods=["get"])
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="comments",
+        url_name="comments",
+    )
     def comments(self, request, pk=None):
         """
         Get comments for a specific announcement.
@@ -165,7 +180,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         serializer = AnnouncementCommentSerializer(comments, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="add-comment",
+        url_name="add_comment",
+    )
     def add_comment(self, request, pk=None):
         """
         Add a comment to an announcement.
@@ -182,7 +202,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                 # Update comments count
                 announcement.comments_count += 1
                 announcement.save(update_fields=["comments_count"])
-                
+
                 # Send notification to announcement author if different user
                 if announcement.author_id != request.user.id:
                     try:
@@ -194,9 +214,9 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                                 "announcement_title": announcement.title,
                                 "comment_content": comment.content,
                                 "commenter_name": request.user.name,
-                            }
+                            },
                         )
-                    except Exception as e:
+                    except Exception:
                         # Log the error but don't fail the comment creation
                         pass
 
@@ -206,7 +226,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="mark-as-read",
+        url_name="mark_as_read",
+    )
     def mark_as_read(self, request, pk=None):
         """
         Mark an announcement as read.
@@ -227,7 +252,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="mark-as-unread",
+        url_name="mark_as_unread",
+    )
     def mark_as_unread(self, request, pk=None):
         """
         Mark an announcement as unread.
@@ -252,7 +282,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-    @action(detail=False, methods=["get"])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="unread-count",
+        url_name="unread_count",
+    )
     def unread_count(self, request):
         """
         Get the count of unread announcements for the current user.
@@ -273,7 +308,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
 
         return Response({"unread_count": unread_count})
 
-    @action(detail=False, methods=["get"])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="categories",
+        url_name="categories",
+    )
     def categories(self, request):
         """
         Get available announcement categories.
@@ -287,7 +327,12 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
 
         return Response(categories)
 
-    @action(detail=True, methods=["get"])
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="attachments",
+        url_name="attachments",
+    )
     def attachments(self, request, pk=None):
         """
         Get attachments for a specific announcement.

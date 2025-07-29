@@ -13,4 +13,5 @@ router.register(r'files', FileUploadViewSet, basename='files')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('', include('core.common.urls_utility')),
 ]

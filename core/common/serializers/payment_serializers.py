@@ -186,11 +186,21 @@ class BillSerializer(serializers.ModelSerializer):
 class RecurringPaymentSerializer(serializers.ModelSerializer):
     """Serializer for RecurringPayment model"""
 
+    bill_title = serializers.CharField(source="bill.title", read_only=True)
+    bill_amount = serializers.DecimalField(source="bill.amount", max_digits=15, decimal_places=2, read_only=True)
+    bill_status = serializers.CharField(source="bill.status", read_only=True)
+    utility_provider_name = serializers.CharField(source="utility_provider.name", read_only=True)
+
     class Meta:
         model = RecurringPayment
         fields = [
             "id",
             "user_id",
+            "bill",
+            "bill_title",
+            "bill_amount", 
+            "bill_status",
+            "wallet",
             "title",
             "description",
             "amount",
@@ -204,11 +214,21 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
             "total_payments",
             "failed_attempts",
             "max_failed_attempts",
+            "utility_provider",
+            "utility_provider_name",
+            "customer_id",
+            "payment_source",
+            "spending_limit",
+            "metadata",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
             "id",
+            "bill_title",
+            "bill_amount",
+            "bill_status",
+            "utility_provider_name",
             "next_payment_date",
             "last_payment_date",
             "total_payments",
@@ -298,6 +318,8 @@ class UpdateBillStatusSerializer(serializers.Serializer):
 class CreateRecurringPaymentSerializer(serializers.Serializer):
     """Serializer for creating recurring payments"""
 
+    bill_id = serializers.UUIDField(required=False, allow_null=True)
+    wallet_id = serializers.UUIDField()
     title = serializers.CharField(max_length=200)
     description = serializers.CharField(
         max_length=1000, required=False, allow_blank=True
@@ -308,11 +330,52 @@ class CreateRecurringPaymentSerializer(serializers.Serializer):
     frequency = serializers.ChoiceField(choices=RecurringPaymentFrequency.choices)
     start_date = serializers.DateTimeField()
     end_date = serializers.DateTimeField(required=False, allow_null=True)
+    utility_provider_id = serializers.UUIDField(required=False, allow_null=True)
+    customer_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    payment_source = serializers.ChoiceField(
+        choices=[("wallet", "Wallet"), ("direct", "Direct Payment")],
+        default="wallet"
+    )
+    spending_limit = serializers.DecimalField(
+        max_digits=15, decimal_places=2, min_value=Decimal("0.01"), required=False, allow_null=True
+    )
     metadata = serializers.JSONField(required=False)
 
 
 class PauseRecurringPaymentSerializer(serializers.Serializer):
     """Serializer for pausing recurring payments"""
+
+    payment_id = serializers.UUIDField()
+
+
+class UpdateRecurringPaymentSerializer(serializers.Serializer):
+    """Serializer for updating recurring payments"""
+
+    payment_id = serializers.UUIDField()
+    bill_id = serializers.UUIDField(required=False, allow_null=True)
+    title = serializers.CharField(max_length=200, required=False)
+    description = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    amount = serializers.DecimalField(
+        max_digits=15, decimal_places=2, min_value=Decimal("0.01"), required=False
+    )
+    frequency = serializers.ChoiceField(choices=RecurringPaymentFrequency.choices, required=False)
+    end_date = serializers.DateTimeField(required=False, allow_null=True)
+    utility_provider_id = serializers.UUIDField(required=False, allow_null=True)
+    customer_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    spending_limit = serializers.DecimalField(
+        max_digits=15, decimal_places=2, min_value=Decimal("0.01"), required=False, allow_null=True
+    )
+    metadata = serializers.JSONField(required=False)
+
+
+class ResumeRecurringPaymentSerializer(serializers.Serializer):
+    """Serializer for resuming recurring payments"""
+
+    payment_id = serializers.UUIDField()
+
+
+class CancelRecurringPaymentSerializer(serializers.Serializer):
+    """Serializer for cancelling recurring payments"""
 
     payment_id = serializers.UUIDField()
 

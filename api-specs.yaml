@@ -1037,6 +1037,544 @@ components:
         - date
         - status
 
+    # --- Utility Bill Automation Schemas ---
+    UtilityProvider:
+      type: object
+      description: Represents a utility service provider for bill payments.
+      required:
+        - id
+        - name
+        - provider_type
+        - api_provider
+        - provider_code
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the utility provider.
+        name:
+          type: string
+          maxLength: 100
+          description: Utility provider name.
+          example: "Ikeja Electric"
+        provider_type:
+          type: string
+          enum: [electricity, water, security, maintenance, service_charge, waste_management, electricity_utility, water_utility, internet_utility, cable_tv_utility, other]
+          description: Type of utility service provided.
+        api_provider:
+          type: string
+          enum: [paystack, flutterwave, bank_transfer, cash]
+          description: Payment API provider.
+        provider_code:
+          type: string
+          maxLength: 50
+          description: Unique provider code for API calls.
+          example: "ikeja-electric"
+        is_active:
+          type: boolean
+          description: Whether this provider is currently active.
+          default: true
+        supports_validation:
+          type: boolean
+          description: Whether this provider supports customer validation.
+          default: true
+        supports_info_lookup:
+          type: boolean
+          description: Whether this provider supports customer info lookup.
+          default: true
+        minimum_amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Minimum payment amount.
+          example: 100.00
+        maximum_amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Maximum payment amount.
+          example: 100000.00
+        metadata:
+          type: object
+          description: Additional provider metadata and configuration.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the provider was created.
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the provider was last updated.
+          readOnly: true
+
+    UtilityBill:
+      type: object
+      description: Represents a utility bill.
+      required:
+        - id
+        - title
+        - type
+        - amount
+        - status
+        - due_date
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the bill.
+        bill_number:
+          type: string
+          description: Unique bill number.
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+          description: Bill title.
+          example: "Electricity Bill - January 2025"
+        description:
+          type: string
+          description: Bill description.
+        type:
+          type: string
+          enum: [electricity, water, security, maintenance, service_charge, waste_management, electricity_utility, water_utility, internet_utility, cable_tv_utility, other]
+          description: Type of bill.
+        category:
+          type: string
+          enum: [cluster_managed, user_managed]
+          description: Bill category.
+          default: user_managed
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Bill amount.
+        currency:
+          type: string
+          maxLength: 3
+          description: Currency code.
+          default: "NGN"
+        status:
+          type: string
+          enum: [draft, pending_acknowledgment, acknowledged, disputed, pending, overdue, paid, partially_paid, cancelled]
+          description: Current bill status.
+        utility_provider:
+          type: string
+          format: uuid
+          description: ID of the utility provider.
+        utility_provider_name:
+          type: string
+          description: Name of the utility provider.
+          readOnly: true
+        customer_id:
+          type: string
+          maxLength: 100
+          description: Customer ID/meter number for utility bills.
+        is_automated:
+          type: boolean
+          description: Whether this bill has automated recurring payments.
+          default: false
+        due_date:
+          type: string
+          format: date-time
+          description: Bill due date.
+        paid_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Amount already paid.
+          readOnly: true
+        remaining_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Remaining amount to be paid.
+          readOnly: true
+        paid_at:
+          type: string
+          format: date-time
+          description: Date and time when bill was paid.
+          readOnly: true
+        is_overdue:
+          type: boolean
+          description: Whether the bill is overdue.
+          readOnly: true
+        metadata:
+          type: object
+          description: Additional bill metadata.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the bill was created.
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the bill was last updated.
+          readOnly: true
+
+    RecurringUtilityPayment:
+      type: object
+      description: Represents a recurring utility payment setup.
+      required:
+        - id
+        - title
+        - amount
+        - frequency
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the recurring payment.
+        title:
+          type: string
+          maxLength: 200
+          description: Payment title.
+          example: "Monthly Electricity Payment"
+        description:
+          type: string
+          maxLength: 500
+          description: Payment description.
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Payment amount.
+        currency:
+          type: string
+          maxLength: 3
+          description: Currency code.
+          default: "NGN"
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly, yearly]
+          description: Payment frequency.
+        status:
+          type: string
+          enum: [active, paused, cancelled, expired]
+          description: Current payment status.
+        utility_provider:
+          type: string
+          format: uuid
+          description: ID of the utility provider.
+        utility_provider_name:
+          type: string
+          description: Name of the utility provider.
+          readOnly: true
+        customer_id:
+          type: string
+          maxLength: 100
+          description: Customer ID/meter number.
+        payment_source:
+          type: string
+          enum: [wallet, direct]
+          description: Payment source.
+          default: "wallet"
+        spending_limit:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Monthly spending limit.
+        start_date:
+          type: string
+          format: date-time
+          description: Payment start date.
+        end_date:
+          type: string
+          format: date-time
+          description: Payment end date.
+        next_payment_date:
+          type: string
+          format: date-time
+          description: Next scheduled payment date.
+        last_payment_date:
+          type: string
+          format: date-time
+          description: Last payment date.
+          readOnly: true
+        total_payments:
+          type: integer
+          minimum: 0
+          description: Total number of payments made.
+          readOnly: true
+        failed_attempts:
+          type: integer
+          minimum: 0
+          description: Number of failed payment attempts.
+          readOnly: true
+        max_failed_attempts:
+          type: integer
+          minimum: 1
+          description: Maximum allowed failed attempts.
+          default: 3
+        next_payment_in_days:
+          type: integer
+          minimum: 0
+          description: Days until next payment.
+          readOnly: true
+        can_be_paused:
+          type: boolean
+          description: Whether payment can be paused.
+          readOnly: true
+        can_be_resumed:
+          type: boolean
+          description: Whether payment can be resumed.
+          readOnly: true
+        metadata:
+          type: object
+          description: Additional payment metadata.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the payment was created.
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the payment was last updated.
+          readOnly: true
+
+    UtilityCustomerValidationRequest:
+      type: object
+      description: Request body for validating utility customer.
+      required:
+        - utility_provider_id
+        - customer_id
+      properties:
+        utility_provider_id:
+          type: string
+          format: uuid
+          description: ID of the utility provider.
+        customer_id:
+          type: string
+          maxLength: 100
+          description: Customer ID or meter number.
+
+    UtilityCustomerValidationResponse:
+      type: object
+      description: Response for utility customer validation.
+      properties:
+        success:
+          type: boolean
+          description: Whether validation was successful.
+        customer_name:
+          type: string
+          description: Customer name from provider.
+        customer_id:
+          type: string
+          description: Validated customer ID.
+        address:
+          type: string
+          description: Customer address.
+        provider_code:
+          type: string
+          description: Provider code used.
+        error:
+          type: string
+          description: Error message if validation failed.
+
+    UtilityPaymentRequest:
+      type: object
+      description: Request body for one-time utility payment.
+      required:
+        - utility_provider_id
+        - customer_id
+        - amount
+      properties:
+        utility_provider_id:
+          type: string
+          format: uuid
+          description: ID of the utility provider.
+        customer_id:
+          type: string
+          maxLength: 100
+          description: Customer ID or meter number.
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Payment amount.
+        description:
+          type: string
+          maxLength: 500
+          description: Payment description.
+
+    UtilityPaymentResponse:
+      type: object
+      description: Response for utility payment.
+      properties:
+        success:
+          type: boolean
+          description: Whether payment was successful.
+        transaction_id:
+          type: string
+          description: Internal transaction ID.
+        bill_id:
+          type: string
+          format: uuid
+          description: Created bill ID.
+        provider_transaction_id:
+          type: string
+          description: Provider transaction ID.
+        message:
+          type: string
+          description: Success or error message.
+        error:
+          type: string
+          description: Error message if payment failed.
+        details:
+          type: string
+          description: Additional error details.
+
+    SetupRecurringUtilityPaymentRequest:
+      type: object
+      description: Request body for setting up recurring utility payment.
+      required:
+        - utility_provider_id
+        - customer_id
+        - amount
+        - frequency
+      properties:
+        utility_provider_id:
+          type: string
+          format: uuid
+          description: ID of the utility provider.
+        customer_id:
+          type: string
+          maxLength: 100
+          description: Customer ID or meter number.
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Payment amount.
+        frequency:
+          type: string
+          enum: [daily, weekly, monthly, quarterly, yearly]
+          description: Payment frequency.
+        title:
+          type: string
+          maxLength: 200
+          description: Payment title.
+        description:
+          type: string
+          maxLength: 500
+          description: Payment description.
+        payment_source:
+          type: string
+          enum: [wallet, direct]
+          description: Payment source.
+          default: "wallet"
+        spending_limit:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Monthly spending limit.
+        start_date:
+          type: string
+          format: date-time
+          description: Payment start date.
+        end_date:
+          type: string
+          format: date-time
+          description: Payment end date.
+
+    SetupRecurringUtilityPaymentResponse:
+      type: object
+      description: Response for setting up recurring utility payment.
+      properties:
+        success:
+          type: boolean
+          description: Whether setup was successful.
+        recurring_payment_id:
+          type: string
+          format: uuid
+          description: Created recurring payment ID.
+        message:
+          type: string
+          description: Success or error message.
+        error:
+          type: string
+          description: Error message if setup failed.
+        details:
+          type: string
+          description: Additional error details.
+
+    UtilityBillSummary:
+      type: object
+      description: Summary of utility bills.
+      properties:
+        total_bills:
+          type: integer
+          minimum: 0
+          description: Total number of bills.
+        paid_bills:
+          type: integer
+          minimum: 0
+          description: Number of paid bills.
+        pending_bills:
+          type: integer
+          minimum: 0
+          description: Number of pending bills.
+        overdue_bills:
+          type: integer
+          minimum: 0
+          description: Number of overdue bills.
+        total_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Total amount of all bills.
+        paid_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Total amount paid.
+
+    RecurringPaymentSummary:
+      type: object
+      description: Summary of recurring payments.
+      properties:
+        total_payments:
+          type: integer
+          minimum: 0
+          description: Total number of recurring payments.
+        active_payments:
+          type: integer
+          minimum: 0
+          description: Number of active payments.
+        paused_payments:
+          type: integer
+          minimum: 0
+          description: Number of paused payments.
+        cancelled_payments:
+          type: integer
+          minimum: 0
+          description: Number of cancelled payments.
+        total_monthly_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Total monthly payment amount.
+        next_payments:
+          type: array
+          description: Upcoming payments.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              amount:
+                type: number
+                format: decimal
+              next_payment_date:
+                type: string
+                format: date-time
+
     Poll:
       type: object
       properties:
@@ -4353,6 +4891,886 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: User or role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # --- Utility Bill Automation Endpoints ---
+  /utility/providers:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility providers
+      description: Retrieve list of available utility providers for the user's cluster.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of utility providers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UtilityProvider'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/providers/by-type:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility providers grouped by type
+      description: Retrieve utility providers grouped by service type.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Utility providers grouped by type retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UtilityProvider'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/bills:
+    get:
+      tags: [Utility Bills]
+      summary: Get user's utility bills
+      description: Retrieve list of utility bills for the current user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Filter by bill type
+          required: false
+          schema:
+            type: string
+            enum: [electricity, water, security, maintenance, service_charge, waste_management, electricity_utility, water_utility, internet_utility, cable_tv_utility, other]
+        - name: status
+          in: query
+          description: Filter by bill status
+          required: false
+          schema:
+            type: string
+            enum: [draft, pending_acknowledgment, acknowledged, disputed, pending, overdue, paid, partially_paid, cancelled]
+      responses:
+        '200':
+          description: List of utility bills retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UtilityBill'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Utility Bills]
+      summary: Create utility bill
+      description: Create a new utility bill.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityBill'
+      responses:
+        '201':
+          description: Utility bill created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBill'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/bills/{id}:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility bill details
+      description: Retrieve details of a specific utility bill.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Utility bill ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Utility bill details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBill'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utility bill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Utility Bills]
+      summary: Update utility bill
+      description: Update an existing utility bill.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Utility bill ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityBill'
+      responses:
+        '200':
+          description: Utility bill updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBill'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utility bill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Utility Bills]
+      summary: Delete utility bill
+      description: Delete a utility bill.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Utility bill ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Utility bill deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utility bill not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/bills/summary:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility bills summary
+      description: Retrieve summary statistics of user's utility bills.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Utility bills summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBillSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/recurring-payments:
+    get:
+      tags: [Utility Bills]
+      summary: Get recurring utility payments
+      description: Retrieve list of recurring utility payments for the current user.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of recurring utility payments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecurringUtilityPayment'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Utility Bills]
+      summary: Create recurring utility payment
+      description: Create a new recurring utility payment.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringUtilityPayment'
+      responses:
+        '201':
+          description: Recurring utility payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPayment'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/recurring-payments/{id}:
+    get:
+      tags: [Utility Bills]
+      summary: Get recurring payment details
+      description: Retrieve details of a specific recurring utility payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recurring payment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPayment'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recurring payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Utility Bills]
+      summary: Update recurring payment
+      description: Update an existing recurring utility payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recurring payment ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringUtilityPayment'
+      responses:
+        '200':
+          description: Recurring payment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPayment'
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recurring payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Utility Bills]
+      summary: Delete recurring payment
+      description: Delete a recurring utility payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recurring payment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Recurring payment deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recurring payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/recurring-payments/{id}/pause:
+    post:
+      tags: [Utility Bills]
+      summary: Pause recurring payment
+      description: Pause an active recurring utility payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recurring payment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment paused successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recurring payment paused successfully"
+        '400':
+          description: Invalid operation - payment cannot be paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recurring payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/recurring-payments/{id}/resume:
+    post:
+      tags: [Utility Bills]
+      summary: Resume recurring payment
+      description: Resume a paused recurring utility payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recurring payment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment resumed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recurring payment resumed successfully"
+        '400':
+          description: Invalid operation - payment cannot be resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recurring payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/recurring-payments/{id}/cancel:
+    post:
+      tags: [Utility Bills]
+      summary: Cancel recurring payment
+      description: Cancel a recurring utility payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Recurring payment ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recurring payment cancelled successfully"
+        '400':
+          description: Invalid operation - payment is already cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recurring payment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/recurring-payments/summary:
+    get:
+      tags: [Utility Bills]
+      summary: Get recurring payments summary
+      description: Retrieve summary statistics of user's recurring utility payments.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Recurring payments summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringPaymentSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/payments/validate-customer:
+    post:
+      tags: [Utility Bills]
+      summary: Validate utility customer
+      description: Validate a customer ID with a utility provider.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityCustomerValidationRequest'
+      responses:
+        '200':
+          description: Customer validation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityCustomerValidationResponse'
+        '400':
+          description: Invalid input data or validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityCustomerValidationResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utility provider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/payments/pay-utility:
+    post:
+      tags: [Utility Bills]
+      summary: Process utility payment
+      description: Process a one-time utility payment.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityPaymentRequest'
+      responses:
+        '201':
+          description: Utility payment processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityPaymentResponse'
+        '400':
+          description: Invalid input data or payment failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityPaymentResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utility provider or wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/payments/setup-recurring:
+    post:
+      tags: [Utility Bills]
+      summary: Setup recurring utility payment
+      description: Set up a new recurring utility payment.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetupRecurringUtilityPaymentRequest'
+      responses:
+        '201':
+          description: Recurring utility payment set up successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupRecurringUtilityPaymentResponse'
+        '400':
+          description: Invalid input data or setup failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupRecurringUtilityPaymentResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Utility provider or wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /utility/payments/payment-history:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility payment history
+      description: Retrieve user's utility payment history with pagination.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Filter by bill type
+          required: false
+          schema:
+            type: string
+            enum: [electricity, water, security, maintenance, service_charge, waste_management, electricity_utility, water_utility, internet_utility, cable_tv_utility, other]
+        - name: status
+          in: query
+          description: Filter by bill status
+          required: false
+          schema:
+            type: string
+            enum: [draft, pending_acknowledgment, acknowledged, disputed, pending, overdue, paid, partially_paid, cancelled]
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: Payment history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UtilityBill'
+                  count:
+                    type: integer
+                    description: Total number of records
+                  num_pages:
+                    type: integer
+                    description: Total number of pages
+                  current_page:
+                    type: integer
+                    description: Current page number
+                  has_next:
+                    type: boolean
+                    description: Whether there is a next page
+                  has_previous:
+                    type: boolean
+                    description: Whether there is a previous page
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient permissions
           content:
             application/json:
               schema:

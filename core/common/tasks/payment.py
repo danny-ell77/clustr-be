@@ -1,4 +1,3 @@
-
 import logging
 from celery import shared_task
 
@@ -16,12 +15,16 @@ def process_recurring_payments_for_cluster(cluster_id):
     try:
         cluster = Cluster.objects.get(id=cluster_id)
         results = RecurringPaymentManager.process_due_payments(cluster)
-        if results['processed'] > 0 or results['failed'] > 0:
-            logger.info(f"Cluster {cluster.name}: Processed {results['processed']}, Failed {results['failed']}, Paused {results['paused']}")
+        if results["processed"] > 0 or results["failed"] > 0:
+            logger.info(
+                f"Cluster {cluster.name}: Processed {results['processed']}, Failed {results['failed']}, Paused {results['paused']}"
+            )
     except Cluster.DoesNotExist:
         logger.error(f"Cluster with id {cluster_id} not found.")
     except Exception as e:
-        logger.error(f"Error processing recurring payments for cluster {cluster_id}: {str(e)}")
+        logger.error(
+            f"Error processing recurring payments for cluster {cluster_id}: {str(e)}"
+        )
 
 
 @shared_task(name="spawn_process_recurring_payments")
@@ -40,13 +43,19 @@ def send_recurring_payment_reminders_for_cluster(cluster_id):
     """
     try:
         cluster = Cluster.objects.get(id=cluster_id)
-        reminders_sent = RecurringPaymentManager.send_payment_reminders(cluster, days_before=1)
+        reminders_sent = RecurringPaymentManager.send_payment_reminders(
+            cluster, days_before=1
+        )
         if reminders_sent > 0:
-            logger.info(f"Sent {reminders_sent} recurring payment reminders for cluster {cluster.name}")
+            logger.info(
+                f"Sent {reminders_sent} recurring payment reminders for cluster {cluster.name}"
+            )
     except Cluster.DoesNotExist:
         logger.error(f"Cluster with id {cluster_id} not found.")
     except Exception as e:
-        logger.error(f"Error sending recurring payment reminders for cluster {cluster_id}: {str(e)}")
+        logger.error(
+            f"Error sending recurring payment reminders for cluster {cluster_id}: {str(e)}"
+        )
 
 
 @shared_task(name="spawn_send_recurring_payment_reminders")

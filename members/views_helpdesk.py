@@ -8,8 +8,11 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
-from members.filters import MembersIssueTicketFilter
-
+from members.filters import (
+    MembersIssueTicketFilter,
+    MembersIssueCommentFilter,
+    MembersIssueAttachmentFilter,
+)
 from core.common.decorators import audit_viewset
 from core.common.models.helpdesk import (
     IssueTicket,
@@ -17,6 +20,7 @@ from core.common.models.helpdesk import (
     IssueAttachment,
     IssueStatus,
 )
+
 from core.common.serializers.helpdesk import (
     IssueTicketListSerializer,
     IssueTicketDetailSerializer,
@@ -27,6 +31,7 @@ from core.common.serializers.helpdesk import (
     IssueAttachmentCreateSerializer,
 )
 from core.common.utils.file_storage import FileStorage
+from django.shortcuts import get_object_or_404
 
 
 @audit_viewset(resource_type="issue_ticket")
@@ -102,7 +107,12 @@ class MembersIssueTicketViewSet(ModelViewSet):
             {"error": "You cannot delete issues"}, status=status.HTTP_403_FORBIDDEN
         )
 
-    @action(detail=False, methods=["get"])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="my-statistics",
+        url_name="my_statistics",
+    )
     def my_statistics(self, request):
         """Get user's issue statistics"""
         queryset = self.get_queryset()
@@ -133,16 +143,17 @@ class MembersIssueCommentViewSet(ModelViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = IssueCommentSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = MembersIssueCommentFilter
 
     def get_queryset(self):
         """Get comments for issues reported by the current user"""
         issue_id = self.kwargs.get("issue_pk")
 
         # Verify the issue belongs to the current user
-        try:
-            issue = IssueTicket.objects.get(id=issue_id, reported_by=self.request.user)
-        except IssueTicket.DoesNotExist:
-            return IssueComment.objects.none()
+        issue = get_object_or_404(
+            IssueTicket, id=issue_id, reported_by=self.request.user
+        )
 
         return (
             IssueComment.objects.filter(
@@ -227,6 +238,8 @@ class MembersIssueAttachmentViewSet(ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = IssueAttachmentSerializer
     parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = MembersIssueAttachmentFilter
 
     def get_queryset(self):
         """Get attachments for issues/comments by the current user"""
@@ -234,19 +247,15 @@ class MembersIssueAttachmentViewSet(ModelViewSet):
         comment_id = self.kwargs.get("comment_pk")
 
         # Verify the issue belongs to the current user
-        try:
-            issue = IssueTicket.objects.get(id=issue_id, reported_by=self.request.user)
-        except IssueTicket.DoesNotExist:
-            return IssueAttachment.objects.none()
+        issue = get_object_or_404(
+            IssueTicket, id=issue_id, reported_by=self.request.user
+        )
 
-        queryset = IssueAttachment.objects.filter()
-
-        if comment_id:
-            queryset = queryset.filter(comment_id=comment_id)
-        else:
-            queryset = queryset.filter(issue=issue)
-
-        return queryset.select_related("uploaded_by")
+        return (
+            IssueAttachment.objects.filter(issue=issue, comment_id=comment_id)
+            .select_related("uploaded_by")
+            .order_by("-created_at")
+        )
 
     def get_serializer_class(self):
         """Return appropriate serializer based on action"""
@@ -265,12 +274,7 @@ class MembersIssueAttachmentViewSet(ModelViewSet):
         """Upload and create attachment"""
         # Verify the issue belongs to the current user
         issue_id = self.kwargs.get("issue_pk")
-        try:
-            issue = IssueTicket.objects.get(id=issue_id, reported_by=self.request.user)
-        except IssueTicket.DoesNotExist:
-            return Response(
-                {"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND
-            )
+        get_object_or_404(IssueTicket, id=issue_id, reported_by=self.request.user)
 
         file_obj = request.FILES.get("file")
         if not file_obj:

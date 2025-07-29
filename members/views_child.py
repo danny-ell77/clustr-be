@@ -5,7 +5,7 @@ Views for child security management in the members app.
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 from members.filters import MemberChildFilter
 from django.utils import timezone
@@ -60,7 +60,12 @@ class MemberChildViewSet(ModelViewSet):
         """
         serializer.save(parent=self.request.user)
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="upload-photo",
+        url_name="upload_photo",
+    )
     def upload_photo(self, request, pk=None):
         """
         Upload a profile photo for the child.
@@ -145,18 +150,14 @@ class MemberExitRequestViewSet(ModelViewSet):
                 timezone.now() + timezone.timedelta(hours=24)
             )
 
-        exit_request = serializer.save(requested_by=self.request.user)
+        serializer.save(requested_by=self.request.user)
 
-        # Send notification to estate management
-        try:
-            # In a real implementation, you would get admin emails from the database
-            # For now, we'll just use a placeholder
-            pass  # NotificationManager.send_exit_request_notification(exit_request)
-        except Exception:
-            # Log the error but don't fail the creation
-            pass
-
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="cancel",
+        url_name="cancel",
+    )
     def cancel(self, request, pk=None):
         """
         Cancel an exit request.
@@ -181,7 +182,7 @@ class MemberExitRequestViewSet(ModelViewSet):
         )
 
 
-class MemberEntryExitLogViewSet(ModelViewSet):
+class MemberEntryExitLogViewSet(ReadOnlyModelViewSet):
     """
     ViewSet for viewing entry/exit logs in the members app.
     Allows residents to view logs for their own children.
@@ -192,7 +193,6 @@ class MemberEntryExitLogViewSet(ModelViewSet):
         HasClusterPermission(AccessControlPermissions.ViewInvitation),
     ]
     serializer_class = EntryExitLogSerializer
-    http_method_names = ["get", "head", "options"]  # Read-only for members
 
     def get_queryset(self):
         """
@@ -203,7 +203,7 @@ class MemberEntryExitLogViewSet(ModelViewSet):
         )
         return EntryExitLog.objects.filter(child_id__in=child_ids)
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["get"], url_path="overdue", url_name="overdue")
     def overdue(self, request):
         """
         Get all overdue children for the current user.
@@ -218,7 +218,12 @@ class MemberEntryExitLogViewSet(ModelViewSet):
         serializer = self.get_serializer(overdue_logs, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="active-exits",
+        url_name="active_exits",
+    )
     def active_exits(self, request):
         """
         Get all active exits (children currently out) for the current user.

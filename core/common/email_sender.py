@@ -19,30 +19,14 @@ logger = logging.getLogger('clustr')
 class NotificationTypes(str, Enum):
     """
     Types of email notifications that can be sent.
+    
+    This enum has been cleaned up to only include notification types that are
+    actively used by the new notification system and legacy authentication flows.
     """
-    # Authentication notifications
-    ONBOARDING_OTP_PASSWORD_RESET = "ONBOARDING_OTP_PASSWORD_RESET"
-    ONBOARDING_TOKEN_PASSWORD_RESET = "ONBOARDING_TOKEN_PASSWORD_RESET"
-    OTP_PASSWORD_RESET = "OTP_PASSWORD_RESET"
-    WEB_TOKEN_PASSWORD_RESET = "WEB_TOKEN_PASSWORD_RESET"
-    RESEND_OTP = "RESEND_OTP"
-    RESEND_WEB_TOKEN = "RESEND_WEB_TOKEN"
-    NEW_ADMIN_ONBOARDING = "NEW_ADMIN_ONBOARDING"
-    NEW_SUBUSER_ACCOUNT_TO_OWNER = "NEW_SUBUSER_ACCOUNT_TO_OWNER"
-    
-    # Verification notifications
-    EMAIL_VERIFICATION_OTP = "EMAIL_VERIFICATION_OTP"
-    EMAIL_VERIFICATION_TOKEN = "EMAIL_VERIFICATION_TOKEN"
-    PHONE_VERIFICATION_OTP = "PHONE_VERIFICATION_OTP"
-    PROFILE_UPDATE_OTP = "PROFILE_UPDATE_OTP"
-    PROFILE_UPDATE_TOKEN = "PROFILE_UPDATE_TOKEN"
-    
-    # Account notifications
-    ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
+    # Account notifications (still used by authentication system)
     PASSWORD_CHANGED = "PASSWORD_CHANGED"
-    PROFILE_UPDATED = "PROFILE_UPDATED"
     
-    # Other notifications
+    # Notification system email types (mapped from NotificationEvents)
     ANNOUNCEMENT = "ANNOUNCEMENT"
     VISITOR_ARRIVAL = "VISITOR_ARRIVAL"
     VISITOR_OVERSTAY = "VISITOR_OVERSTAY"
@@ -72,132 +56,7 @@ class EmailTemplate:
 
 # Email templates for different notification types
 EMAIL_TEMPLATES = {
-    NotificationTypes.ONBOARDING_OTP_PASSWORD_RESET: EmailTemplate(
-        subject_template="Welcome to ClustR - Verify Your Account",
-        body_template="""
-        Hello {{ user.name }},
-        
-        Welcome to ClustR! To complete your registration, please use the following verification code:
-        
-        {{ otp }}
-        
-        This code will expire in 2 hours.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.ONBOARDING_TOKEN_PASSWORD_RESET: EmailTemplate(
-        subject_template="Welcome to ClustR - Verify Your Account",
-        body_template="""
-        Hello {{ user.name }},
-        
-        Welcome to ClustR! To complete your registration, please click the link below:
-        
-        {{ verification_url }}?token={{ token }}
-        
-        This link will expire in 2 hours.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.OTP_PASSWORD_RESET: EmailTemplate(
-        subject_template="ClustR - Password Reset Code",
-        body_template="""
-        Hello {{ user.name }},
-        
-        You requested a password reset. Please use the following code to reset your password:
-        
-        {{ otp }}
-        
-        This code will expire in 2 hours.
-        
-        If you did not request this password reset, please ignore this email.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.WEB_TOKEN_PASSWORD_RESET: EmailTemplate(
-        subject_template="ClustR - Password Reset Link",
-        body_template="""
-        Hello {{ user.name }},
-        
-        You requested a password reset. Please click the link below to reset your password:
-        
-        {{ reset_url }}?token={{ token }}
-        
-        This link will expire in 2 hours.
-        
-        If you did not request this password reset, please ignore this email.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.EMAIL_VERIFICATION_OTP: EmailTemplate(
-        subject_template="ClustR - Verify Your Email Address",
-        body_template="""
-        Hello {{ user.name }},
-        
-        Please use the following code to verify your email address:
-        
-        {{ otp }}
-        
-        This code will expire in 2 hours.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.EMAIL_VERIFICATION_TOKEN: EmailTemplate(
-        subject_template="ClustR - Verify Your Email Address",
-        body_template="""
-        Hello {{ user.name }},
-        
-        Please click the link below to verify your email address:
-        
-        {{ verification_url }}?token={{ token }}
-        
-        This link will expire in 2 hours.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.PROFILE_UPDATE_OTP: EmailTemplate(
-        subject_template="ClustR - Verify Profile Changes",
-        body_template="""
-        Hello {{ user.name }},
-        
-        You recently requested to update your profile information. Please use the following code to confirm these changes:
-        
-        {{ otp }}
-        
-        This code will expire in 2 hours.
-        
-        If you did not request these changes, please contact support immediately.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
-    NotificationTypes.ACCOUNT_LOCKED: EmailTemplate(
-        subject_template="ClustR - Account Security Alert",
-        body_template="""
-        Hello {{ user.name }},
-        
-        Your ClustR account has been temporarily locked due to multiple failed login attempts.
-        
-        Your account will be automatically unlocked after {{ lockout_duration }} minutes, or you can contact support for assistance.
-        
-        If you did not attempt to log in, please contact support immediately as your account may be at risk.
-        
-        Thank you,
-        The ClustR Team
-        """
-    ),
+    # Account notification templates (still used by authentication system)
     NotificationTypes.PASSWORD_CHANGED: EmailTemplate(
         subject_template="ClustR - Password Changed",
         body_template="""
@@ -213,28 +72,50 @@ EMAIL_TEMPLATES = {
         The ClustR Team
         """
     ),
-    # Visitor notification templates
+    
+    # Notification system email templates (mapped from NotificationEvents)
+    NotificationTypes.EMERGENCY_ALERT: EmailTemplate(
+        subject_template="ClustR - Emergency Alert",
+        body_template="""
+        EMERGENCY ALERT
+        
+        {{ alert_message }}
+        
+        Location: {{ location }}
+        Time: {{ formatted_alert_time }}
+        Severity: {{ severity }}
+        
+        Please take immediate action as required.
+        
+        The ClustR Team
+        """
+    ),
+    
     NotificationTypes.VISITOR_ARRIVAL: EmailTemplate(
         subject_template="ClustR - Visitor Arrival Notification",
         body_template="""
-        Hello,
+        Hello {{ user_name }},
         
         Your visitor {{ visitor_name }} has arrived at the estate.
         
-        Access Code: {{ access_code }}
+        {% if access_code %}Access Code: {{ access_code }}{% endif %}
+        {% if formatted_arrival_time %}Arrival Time: {{ formatted_arrival_time }}{% endif %}
+        {% if unit %}Unit: {{ unit }}{% endif %}
         
         Thank you,
         The ClustR Team
         """
     ),
+    
     NotificationTypes.VISITOR_OVERSTAY: EmailTemplate(
         subject_template="ClustR - Visitor Overstay Alert",
         body_template="""
-        Hello,
+        Hello {{ user_name }},
         
         Your visitor {{ visitor_name }} has exceeded their scheduled visit duration.
         
-        Access Code: {{ access_code }}
+        {% if access_code %}Access Code: {{ access_code }}{% endif %}
+        {% if formatted_departure_time %}Expected Departure: {{ formatted_departure_time }}{% endif %}
         
         Please check on your visitor or update their visit duration if needed.
         
@@ -242,7 +123,7 @@ EMAIL_TEMPLATES = {
         The ClustR Team
         """
     ),
-    # Bill notification templates
+    
     NotificationTypes.BILL_REMINDER: EmailTemplate(
         subject_template="ClustR - Bill Payment Reminder",
         body_template="""
@@ -250,11 +131,11 @@ EMAIL_TEMPLATES = {
         
         This is a reminder that you have a bill due for payment:
         
-        Bill Number: {{ bill_number }}
-        Title: {{ bill_title }}
-        Amount: {{ currency }} {{ bill_amount }}
-        Due Date: {{ due_date }}
-        Type: {{ bill_type }}
+        {% if bill_number %}Bill Number: {{ bill_number }}{% endif %}
+        {% if bill_title %}Title: {{ bill_title }}{% endif %}
+        {% if formatted_amount %}Amount: {{ formatted_amount }}{% endif %}
+        {% if formatted_due_date %}Due Date: {{ formatted_due_date }}{% endif %}
+        {% if bill_type %}Type: {{ bill_type }}{% endif %}
         
         {% if days_until_due %}
         This bill is due in {{ days_until_due }} day(s).
@@ -270,6 +151,7 @@ EMAIL_TEMPLATES = {
         The ClustR Team
         """
     ),
+    
     NotificationTypes.PAYMENT_RECEIPT: EmailTemplate(
         subject_template="ClustR - Payment Receipt",
         body_template="""
@@ -277,26 +159,49 @@ EMAIL_TEMPLATES = {
         
         Thank you for your payment. Here are the details:
         
-        Bill Number: {{ bill_number }}
-        Bill Title: {{ bill_title }}
-        Payment Amount: {{ currency }} {{ payment_amount }}
-        Transaction ID: {{ transaction_id }}
-        Payment Date: {{ payment_date }}
+        {% if bill_number %}Bill Number: {{ bill_number }}{% endif %}
+        {% if bill_title %}Bill Title: {{ bill_title }}{% endif %}
+        {% if formatted_payment_amount %}Payment Amount: {{ formatted_payment_amount }}{% endif %}
+        {% if transaction_id %}Transaction ID: {{ transaction_id }}{% endif %}
+        {% if formatted_payment_date %}Payment Date: {{ formatted_payment_date }}{% endif %}
         
-        {% if remaining_amount > 0 %}
-        Remaining Balance: {{ currency }} {{ remaining_amount }}
+        {% if remaining_amount and remaining_amount > 0 %}
+        Remaining Balance: {{ formatted_remaining_amount }}
         {% else %}
         This bill has been paid in full.
         {% endif %}
         
-        Bill Status: {{ bill_status }}
+        {% if bill_status %}Bill Status: {{ bill_status }}{% endif %}
         
         Thank you for using ClustR!
         
         The ClustR Team
         """
     ),
-    # Add templates for other notification types as needed
+    
+    NotificationTypes.ANNOUNCEMENT: EmailTemplate(
+        subject_template="ClustR - {{ announcement_title|default:'New Announcement' }}",
+        body_template="""
+        Hello {{ user_name }},
+        
+        {% if announcement_title %}{{ announcement_title }}{% endif %}
+        
+        {% if announcement_content %}
+        {{ announcement_content }}
+        {% endif %}
+        
+        {% if announcement_date %}
+        Posted on: {{ announcement_date }}
+        {% endif %}
+        
+        {% if author_name %}
+        From: {{ author_name }}
+        {% endif %}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
 }
 
 

@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 
-from accounts.permissions import HasSpecificPermission
+from accounts.permissions import HasSpecificPermission, IsClusterStaffOrAdmin
 from core.common.permissions import PaymentsPermissions
 from core.common.models import (
     Wallet,
@@ -19,14 +19,22 @@ from core.common.models import (
     RecurringPayment,
     BillStatus,
     TransactionStatus,
+    TransactionType,
+    PaymentError,
 )
 from core.common.utils import (
     BillManager,
     RecurringPaymentManager,
 )
+from core.common.models.wallet import UtilityProvider
+from members.filters import RecurringPaymentFilter
 from core.common.utils.cluster_wallet_utils import ClusterWalletManager
-from core.common.utils.third_party_services import PaymentProviderFactory, PaymentProviderError
+from core.common.utils.third_party_services import (
+    PaymentProviderFactory,
+    PaymentProviderError,
+)
 from core.common.responses import success_response, error_response
+from core.common.utils.payment_error_utils import retry_failed_payment
 from core.common.serializers.payment_serializers import (
     PaymentDashboardSerializer,
     CreateBillSerializer,
@@ -38,12 +46,15 @@ from core.common.serializers.payment_serializers import (
     RecurringPaymentListResponseSerializer,
     RecurringPaymentSerializer,
     UpdateBillStatusSerializer,
-    PauseRecurringPaymentSerializer,
+    UpdateRecurringPaymentSerializer,
+    CreateRecurringPaymentSerializer,
+    ResumeRecurringPaymentSerializer,
+    CancelRecurringPaymentSerializer,
     ClusterWalletResponseSerializer,
     ClusterWalletTransferSerializer,
     ClusterWalletCreditSerializer,
-    PaymentErrorSerializer,
 )
+from django.shortcuts import get_object_or_404
 
 logger = logging.getLogger("clustr")
 
@@ -55,6 +66,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
     permission_classes = [
         IsAuthenticated,
+        IsClusterStaffOrAdmin,
         HasSpecificPermission(
             [
                 PaymentsPermissions.ManageWallet,
@@ -171,7 +183,6 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             data = serializer.validated_data
 
-            # Create bill
             bill = BillManager.create_bill(
                 cluster=cluster,
                 user_id=data["user_id"],
@@ -211,7 +222,6 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             bills_data = serializer.validated_data["bills"]
 
-            # Process bills data
             processed_bills = []
             for bill_data in bills_data:
                 processed_bills.append(
@@ -226,7 +236,6 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     }
                 )
 
-            # Create bills
             created_bills = BillManager.create_bulk_bills(
                 cluster=cluster,
                 user_bills=processed_bills,
@@ -260,12 +269,10 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
 
-            # Get query parameters
             user_id = request.query_params.get("user_id")
             status_filter = request.query_params.get("status")
             bill_type = request.query_params.get("type")
 
-            # Build queryset
             queryset = Bill.objects.filter(cluster=cluster)
 
             if user_id:
@@ -279,7 +286,6 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             queryset = queryset.order_by("-created_at")
 
-            # Apply pagination
             paginator = PageNumberPagination()
             paginated_bills = paginator.paginate_queryset(queryset, request)
 
@@ -318,12 +324,10 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
 
-            # Get query parameters
             user_id = request.query_params.get("user_id")
             transaction_type = request.query_params.get("type")
             status_filter = request.query_params.get("status")
 
-            # Build queryset
             queryset = Transaction.objects.filter(cluster=cluster)
 
             if user_id:
@@ -337,7 +341,6 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             queryset = queryset.order_by("-created_at")
 
-            # Apply pagination
             paginator = PageNumberPagination()
             paginated_transactions = paginator.paginate_queryset(queryset, request)
 
@@ -376,22 +379,14 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
 
-            # Get query parameters
-            user_id = request.query_params.get("user_id")
-            status_filter = request.query_params.get("status")
-
-            # Build queryset
             queryset = RecurringPayment.objects.filter(cluster=cluster)
 
-            if user_id:
-                queryset = queryset.filter(user_id=user_id)
-
-            if status_filter:
-                queryset = queryset.filter(status=status_filter)
+            filterset = RecurringPaymentFilter(request.query_params, queryset=queryset)
+            if filterset.is_valid():
+                queryset = filterset.qs
 
             queryset = queryset.order_by("-created_at")
 
-            # Apply pagination
             paginator = PageNumberPagination()
             paginated_payments = paginator.paginate_queryset(queryset, request)
 
@@ -424,89 +419,269 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=False, methods=["post"])
+    @action(detail=True, methods=["post"])
     def update_bill_status(self, request):
         """
         Update bill status.
         """
-        try:
-            cluster = request.cluster_context
-            serializer = UpdateBillStatusSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        serializer = UpdateBillStatusSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            data = serializer.validated_data
-            bill_id = data["bill_id"]
-            new_status = data["status"]
+        data = serializer.validated_data
+        bill = get_object_or_404(
+            Bill, id=data["bill_id"], cluster=request.cluster_context
+        )
+        new_status = data["status"]
 
-            # Get bill
-            try:
-                bill = Bill.objects.get(id=bill_id, cluster=cluster)
-            except Bill.DoesNotExist:
-                return error_response(
-                    message="Bill not found", status_code=status.HTTP_404_NOT_FOUND
-                )
+        BillManager.update_bill_status(
+            bill=bill, new_status=new_status, updated_by=str(request.user.id)
+        )
 
-            # Update status
-            BillManager.update_bill_status(
-                bill=bill, new_status=new_status, updated_by=str(request.user.id)
-            )
+        response_serializer = BillSerializer(bill)
 
-            response_serializer = BillSerializer(bill)
+        return success_response(
+            data=response_serializer.data,
+            message="Bill status updated successfully",
+        )
 
-            return success_response(
-                data=response_serializer.data,
-                message="Bill status updated successfully",
-            )
-
-        except Exception as e:
-            logger.error(f"Error updating bill status: {e}")
-            return error_response(
-                message="Failed to update bill status",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @action(detail=False, methods=["post"])
+    @action(detail=True, methods=["post"])
     def pause_recurring_payment(self, request):
         """
         Pause a recurring payment.
         """
+        payment = get_object_or_404(
+            RecurringPayment,
+            id=request.data["payment_id"],
+            cluster=request.cluster_context,
+        )
+
+        success = RecurringPaymentManager.pause_recurring_payment(
+            payment=payment, paused_by=str(request.user.id)
+        )
+
+        if success:
+            response_serializer = RecurringPaymentSerializer(payment)
+            return success_response(
+                data=response_serializer.data,
+                message="Recurring payment paused successfully",
+            )
+        else:
+            return error_response(
+                message="Cannot pause recurring payment in current status",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(detail=False, methods=["post"])
+    def create_recurring_payment(self, request):
+        """
+        Create a new recurring payment (admin).
+        """
         try:
             cluster = request.cluster_context
-            serializer = PauseRecurringPaymentSerializer(data=request.data)
+            serializer = CreateRecurringPaymentSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
-            payment_id = serializer.validated_data["payment_id"]
+            validated_data = serializer.validated_data
 
-            # Get recurring payment
-            try:
-                payment = RecurringPayment.objects.get(id=payment_id, cluster=cluster)
-            except RecurringPayment.DoesNotExist:
-                return error_response(
-                    message="Recurring payment not found",
-                    status_code=status.HTTP_404_NOT_FOUND,
+            wallet = get_object_or_404(
+                Wallet,
+                id=validated_data["wallet_id"],
+                cluster=cluster,
+            )
+
+            bill = None
+            if validated_data.get("bill_id"):
+                bill = get_object_or_404(
+                    Bill, id=validated_data["bill_id"], cluster=cluster
                 )
 
-            # Pause payment
-            success = RecurringPaymentManager.pause_recurring_payment(
-                payment=payment, paused_by=str(request.user.id)
+            utility_provider = None
+            if validated_data.get("utility_provider_id"):
+                utility_provider = get_object_or_404(
+                    UtilityProvider,
+                    id=validated_data["utility_provider_id"],
+                    cluster=cluster,
+                )
+
+            payment = RecurringPaymentManager.create_recurring_payment(
+                wallet=wallet,
+                title=validated_data["title"],
+                amount=validated_data["amount"],
+                frequency=validated_data["frequency"],
+                start_date=validated_data["start_date"],
+                end_date=validated_data.get("end_date"),
+                description=validated_data.get("description"),
+                metadata=validated_data.get("metadata", {}),
+                created_by=str(request.user.id),
+                bill=bill,
+                utility_provider=utility_provider,
+                customer_id=validated_data.get("customer_id"),
+                payment_source=validated_data.get("payment_source", "wallet"),
+                spending_limit=validated_data.get("spending_limit"),
+            )
+
+            response_serializer = RecurringPaymentSerializer(payment)
+
+            return success_response(
+                data=response_serializer.data,
+                message="Recurring payment created successfully",
+                status_code=status.HTTP_201_CREATED,
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating recurring payment: {e}")
+            return error_response(
+                message="Failed to create recurring payment",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=["put"])
+    def update_recurring_payment(self, request):
+        """
+        Update a recurring payment (admin).
+        """
+        try:
+            cluster = request.cluster_context
+            serializer = UpdateRecurringPaymentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            validated_data = serializer.validated_data
+            payment_id = validated_data["payment_id"]
+
+            payment = get_object_or_404(
+                RecurringPayment, id=payment_id, cluster=cluster
+            )
+
+            bill = None
+            if "bill_id" in validated_data and validated_data["bill_id"]:
+                bill = get_object_or_404(
+                    Bill, id=validated_data["bill_id"], cluster=cluster
+                )
+
+            utility_provider = None
+            if (
+                "utility_provider_id" in validated_data
+                and validated_data["utility_provider_id"]
+            ):
+                utility_provider = get_object_or_404(
+                    UtilityProvider,
+                    id=validated_data["utility_provider_id"],
+                    cluster=cluster,
+                )
+
+            success = RecurringPaymentManager.update_recurring_payment(
+                payment=payment,
+                bill=bill if "bill_id" in validated_data else None,
+                title=validated_data.get("title"),
+                description=validated_data.get("description"),
+                amount=validated_data.get("amount"),
+                frequency=validated_data.get("frequency"),
+                end_date=validated_data.get("end_date"),
+                utility_provider=(
+                    utility_provider
+                    if "utility_provider_id" in validated_data
+                    else None
+                ),
+                customer_id=validated_data.get("customer_id"),
+                spending_limit=validated_data.get("spending_limit"),
+                metadata=validated_data.get("metadata"),
+                updated_by=str(request.user.id),
             )
 
             if success:
                 response_serializer = RecurringPaymentSerializer(payment)
                 return success_response(
                     data=response_serializer.data,
-                    message="Recurring payment paused successfully",
+                    message="Recurring payment updated successfully",
                 )
             else:
                 return error_response(
-                    message="Cannot pause recurring payment in current status",
+                    message="Cannot update recurring payment in current status",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
 
         except Exception as e:
-            logger.error(f"Error pausing recurring payment: {e}")
+            logger.error(f"Error updating recurring payment: {e}")
             return error_response(
-                message="Failed to pause recurring payment",
+                message="Failed to update recurring payment",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=True, methods=["post"])
+    def resume_recurring_payment(self, request):
+        """
+        Resume a paused recurring payment (admin).
+        """
+        try:
+            cluster = request.cluster_context
+            serializer = ResumeRecurringPaymentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            payment_id = serializer.validated_data["payment_id"]
+
+            payment = get_object_or_404(
+                RecurringPayment, id=payment_id, cluster=cluster
+            )
+
+            success = RecurringPaymentManager.resume_recurring_payment(
+                payment=payment, resumed_by=str(request.user.id)
+            )
+
+            if success:
+                response_serializer = RecurringPaymentSerializer(payment)
+                return success_response(
+                    data=response_serializer.data,
+                    message="Recurring payment resumed successfully",
+                )
+            else:
+                return error_response(
+                    message="Cannot resume recurring payment in current status",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+        except Exception as e:
+            logger.error(f"Error resuming recurring payment: {e}")
+            return error_response(
+                message="Failed to resume recurring payment",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["post"])
+    def cancel_recurring_payment(self, request):
+        """
+        Cancel a recurring payment (admin).
+        """
+        try:
+            cluster = request.cluster_context
+            serializer = CancelRecurringPaymentSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            payment_id = serializer.validated_data["payment_id"]
+
+            payment = get_object_or_404(
+                RecurringPayment, id=payment_id, cluster=cluster
+            )
+
+            success = RecurringPaymentManager.cancel_recurring_payment(
+                payment=payment, cancelled_by=str(request.user.id)
+            )
+
+            if success:
+                response_serializer = RecurringPaymentSerializer(payment)
+                return success_response(
+                    data=response_serializer.data,
+                    message="Recurring payment cancelled successfully",
+                )
+            else:
+                return error_response(
+                    message="Recurring payment is already cancelled",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+        except Exception as e:
+            logger.error(f"Error cancelling recurring payment: {e}")
+            return error_response(
+                message="Failed to cancel recurring payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -518,10 +693,8 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
 
-            # Get comprehensive cluster wallet analytics
             analytics = ClusterWalletManager.get_cluster_wallet_analytics(cluster)
 
-            # Get recent transactions
             recent_transactions = ClusterWalletManager.get_cluster_wallet_transactions(
                 cluster, limit=20
             )
@@ -560,7 +733,6 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             data = serializer.validated_data
 
-            # Validate recipient account details
             recipient_account = data.get("recipient_account")
             if not recipient_account:
                 return error_response(
@@ -569,17 +741,17 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 )
 
             required_fields = ["account_number", "bank_code", "account_name"]
-            missing_fields = [field for field in required_fields if not recipient_account.get(field)]
+            missing_fields = [
+                field for field in required_fields if not recipient_account.get(field)
+            ]
             if missing_fields:
                 return error_response(
                     message=f"Missing recipient account fields: {', '.join(missing_fields)}",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Determine payment provider
             provider = data.get("provider", "paystack")
 
-            # Process transfer with payment provider integration
             transaction = ClusterWalletManager.transfer_from_cluster_wallet(
                 cluster=cluster,
                 amount=data["amount"],
@@ -599,7 +771,11 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 "reference": transaction.reference,
                 "recipient_account": {
                     "account_number": recipient_account["account_number"],
-                    "account_name": transaction.metadata.get("verified_account_name") if transaction.metadata else recipient_account["account_name"],
+                    "account_name": (
+                        transaction.metadata.get("verified_account_name")
+                        if transaction.metadata
+                        else recipient_account["account_name"]
+                    ),
                     "bank_code": recipient_account["bank_code"],
                 },
             }
@@ -612,11 +788,12 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
         except ValueError as e:
             return error_response(
-                message=str(e), 
-                status_code=status.HTTP_400_BAD_REQUEST
+                message=str(e), status_code=status.HTTP_400_BAD_REQUEST
             )
         except PaymentProviderError as e:
-            logger.error(f"Payment provider error processing cluster wallet transfer: {e}")
+            logger.error(
+                f"Payment provider error processing cluster wallet transfer: {e}"
+            )
             return error_response(
                 message=f"Payment provider error: {str(e)}",
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -636,29 +813,22 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             transaction_id = request.data.get("transaction_id")
-            
+
             if not transaction_id:
                 return error_response(
                     message="Transaction ID is required",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Get transaction
-            try:
-                transaction = Transaction.objects.get(
-                    transaction_id=transaction_id,
-                    cluster=cluster,
-                    type=TransactionType.DEPOSIT
-                )
-            except Transaction.DoesNotExist:
-                return error_response(
-                    message="Transaction not found",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
+            transaction = get_object_or_404(
+                Transaction,
+                transaction_id=transaction_id,
+                cluster=cluster,
+                type=TransactionType.DEPOSIT,
+            )
 
-            # Verify payment
             success = ClusterWalletManager.verify_manual_credit_payment(transaction)
-            
+
             if success:
                 response_data = {
                     "transaction_id": transaction.transaction_id,
@@ -667,7 +837,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     "processed_at": transaction.processed_at,
                     "verified": True,
                 }
-                
+
                 return success_response(
                     data=response_data,
                     message="Manual credit payment verified successfully",
@@ -691,33 +861,21 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         Retry a failed payment transaction.
         """
         try:
-            from core.common.models.wallet import PaymentError
-            from core.common.utils.payment_error_utils import retry_failed_payment
-            
             cluster = request.cluster_context
             error_id = request.data.get("error_id")
-            
+
             if not error_id:
                 return error_response(
                     message="Payment error ID is required",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Get payment error
-            try:
-                payment_error = PaymentError.objects.get(
-                    id=error_id,
-                    cluster=cluster
-                )
-            except PaymentError.DoesNotExist:
-                return error_response(
-                    message="Payment error not found",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
+            payment_error = get_object_or_404(
+                PaymentError, id=error_id, cluster=cluster
+            )
 
-            # Retry payment
             success, message = retry_failed_payment(payment_error)
-            
+
             if success:
                 response_data = {
                     "error_id": payment_error.id,
@@ -725,7 +883,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     "retry_count": payment_error.retry_count,
                     "status": payment_error.transaction.status,
                 }
-                
+
                 return success_response(
                     data=response_data,
                     message=message,
@@ -750,18 +908,18 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         """
         try:
             available_providers = PaymentProviderFactory.get_available_providers()
-            
+
             response_data = {
                 "providers": [
                     {
                         "code": provider,
-                        "name": provider.replace('_', ' ').title(),
+                        "name": provider.replace("_", " ").title(),
                         "available": True,
                     }
                     for provider in available_providers
                 ]
             }
-            
+
             return success_response(
                 data=response_data,
                 message="Available payment providers retrieved successfully",
@@ -786,10 +944,8 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             data = serializer.validated_data
 
-            # Determine payment provider
             provider = data.get("provider", "bank_transfer")
-            
-            # Add credit with payment provider integration
+
             transaction = ClusterWalletManager.add_manual_credit(
                 cluster=cluster,
                 amount=data["amount"],
@@ -799,32 +955,21 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 provider=provider,
             )
 
-            response_data = {
-                "transaction_id": transaction.transaction_id,
-                "amount": transaction.amount,
-                "currency": transaction.currency,
-                "description": transaction.description,
-                "status": transaction.status,
-                "processed_at": transaction.processed_at,
-                "payment_url": transaction.metadata.get("payment_url") if transaction.metadata else None,
-                "reference": transaction.reference,
-                "requires_verification": transaction.metadata.get("requires_verification", False) if transaction.metadata else False,
-            }
+            serializer = TransactionSerializer(transaction)
 
             message = "Cluster wallet credit initiated successfully"
             if transaction.metadata and transaction.metadata.get("payment_url"):
                 message += ". Please complete payment using the provided URL."
 
             return success_response(
-                data=response_data,
+                data=serializer.data,
                 message=message,
                 status_code=status.HTTP_201_CREATED,
             )
 
         except ValueError as e:
             return error_response(
-                message=str(e), 
-                status_code=status.HTTP_400_BAD_REQUEST
+                message=str(e), status_code=status.HTTP_400_BAD_REQUEST
             )
         except PaymentProviderError as e:
             logger.error(f"Payment provider error adding cluster wallet credit: {e}")

@@ -286,4 +286,8 @@ CELERY_BEAT_SCHEDULE = {
         "task": "spawn_send_bill_reminders",
         "schedule": 86400.0,  # Every day
     },
+    "retry-failed-utility-payments-daily": {
+        "task": "retry_failed_utility_payments",
+        "schedule": 86400.0,  # Every day
+    },
 }

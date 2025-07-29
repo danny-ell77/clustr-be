@@ -57,12 +57,19 @@ class PaymentProvider(models.TextChoices):
 class BillType(models.TextChoices):
     """Bill type choices"""
 
+    # Existing cluster-based bills
     ELECTRICITY = "electricity", _("Electricity")
     WATER = "water", _("Water")
     SECURITY = "security", _("Security")
     MAINTENANCE = "maintenance", _("Maintenance")
     SERVICE_CHARGE = "service_charge", _("Service Charge")
     WASTE_MANAGEMENT = "waste_management", _("Waste Management")
+
+    # New utility bills (user-managed)
+    ELECTRICITY_UTILITY = "electricity_utility", _("Electricity (Direct)")
+    WATER_UTILITY = "water_utility", _("Water (Direct)")
+    INTERNET_UTILITY = "internet_utility", _("Internet")
+    CABLE_TV_UTILITY = "cable_tv_utility", _("Cable TV")
     OTHER = "other", _("Other")
 
 
@@ -99,6 +106,13 @@ class RecurringPaymentFrequency(models.TextChoices):
     YEARLY = "yearly", _("Yearly")
 
 
+class BillCategory(models.TextChoices):
+    """Bill category choices"""
+
+    CLUSTER_MANAGED = "cluster_managed", _("Cluster Managed")
+    USER_MANAGED = "user_managed", _("User Managed")
+
+
 class PaymentErrorType(models.TextChoices):
     """Payment error type choices"""
 
@@ -114,6 +128,16 @@ class PaymentErrorType(models.TextChoices):
     LIMIT_EXCEEDED = "limit_exceeded", _("Limit Exceeded")
     ACCOUNT_SUSPENDED = "account_suspended", _("Account Suspended")
     UNKNOWN_ERROR = "unknown_error", _("Unknown Error")
+    # Utility-specific errors
+    UTILITY_PROVIDER_ERROR = "utility_provider_error", _("Utility Provider Error")
+    INVALID_CUSTOMER_ID = "invalid_customer_id", _("Invalid Customer ID")
+    UTILITY_SERVICE_UNAVAILABLE = "utility_service_unavailable", _(
+        "Utility Service Unavailable"
+    )
+    METER_NOT_FOUND = "meter_not_found", _("Meter Not Found")
+    CUSTOMER_VALIDATION_FAILED = "customer_validation_failed", _(
+        "Customer Validation Failed"
+    )
 
 
 class PaymentErrorSeverity(models.TextChoices):
@@ -123,6 +147,98 @@ class PaymentErrorSeverity(models.TextChoices):
     MEDIUM = "medium", _("Medium")
     HIGH = "high", _("High")
     CRITICAL = "critical", _("Critical")
+
+
+class UtilityProvider(AbstractClusterModel):
+    """
+    Utility provider model for managing external utility service providers.
+    """
+
+    name = models.CharField(
+        verbose_name=_("name"),
+        max_length=100,
+        help_text=_("Utility provider name"),
+    )
+
+    provider_type = models.CharField(
+        verbose_name=_("provider type"),
+        max_length=20,
+        choices=BillType.choices,
+        help_text=_("Type of utility service provided"),
+    )
+
+    api_provider = models.CharField(
+        verbose_name=_("API provider"),
+        max_length=20,
+        choices=PaymentProvider.choices,
+        help_text=_("Payment API provider (Paystack/Flutterwave)"),
+    )
+
+    provider_code = models.CharField(
+        verbose_name=_("provider code"),
+        max_length=50,
+        help_text=_("Unique provider code for API calls (e.g., 'ikeja-electric')"),
+    )
+
+    is_active = models.BooleanField(
+        verbose_name=_("is active"),
+        default=True,
+        help_text=_("Whether this provider is currently active"),
+    )
+
+    supports_validation = models.BooleanField(
+        verbose_name=_("supports validation"),
+        default=True,
+        help_text=_("Whether this provider supports customer validation"),
+    )
+
+    supports_info_lookup = models.BooleanField(
+        verbose_name=_("supports info lookup"),
+        default=True,
+        help_text=_("Whether this provider supports customer info lookup"),
+    )
+
+    minimum_amount = models.DecimalField(
+        verbose_name=_("minimum amount"),
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal("100.00"),
+        validators=[MinValueValidator(Decimal("0.01"))],
+        help_text=_("Minimum payment amount"),
+    )
+
+    maximum_amount = models.DecimalField(
+        verbose_name=_("maximum amount"),
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal("100000.00"),
+        validators=[MinValueValidator(Decimal("0.01"))],
+        help_text=_("Maximum payment amount"),
+    )
+
+    metadata = models.JSONField(
+        verbose_name=_("metadata"),
+        blank=True,
+        null=True,
+        help_text=_("Additional provider metadata and configuration"),
+    )
+
+    class Meta:
+        verbose_name = _("Utility Provider")
+        verbose_name_plural = _("Utility Providers")
+        unique_together = [["provider_code", "api_provider", "cluster"]]
+        indexes = [
+            models.Index(fields=["provider_type", "cluster"]),
+            models.Index(fields=["api_provider"]),
+            models.Index(fields=["is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.provider_type})"
+
+    def is_amount_valid(self, amount):
+        """Check if the payment amount is within provider limits."""
+        return self.minimum_amount <= amount <= self.maximum_amount
 
 
 class Wallet(AbstractClusterModel):
@@ -614,6 +730,38 @@ class Bill(AbstractClusterModel):
         help_text=_("Type of bill"),
     )
 
+    category = models.CharField(
+        verbose_name=_("category"),
+        max_length=20,
+        choices=BillCategory.choices,
+        default=BillCategory.CLUSTER_MANAGED,
+        help_text=_("Bill category (cluster-managed or user-managed)"),
+    )
+
+    utility_provider = models.ForeignKey(
+        UtilityProvider,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bills",
+        verbose_name=_("utility provider"),
+        help_text=_("Utility provider for user-managed bills"),
+    )
+
+    customer_id = models.CharField(
+        verbose_name=_("customer ID"),
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text=_("Customer ID/meter number for utility bills"),
+    )
+
+    is_automated = models.BooleanField(
+        verbose_name=_("is automated"),
+        default=False,
+        help_text=_("Whether this bill has automated recurring payments"),
+    )
+
     amount = models.DecimalField(
         verbose_name=_("amount"),
         max_digits=15,
@@ -805,15 +953,41 @@ class Bill(AbstractClusterModel):
         )
 
         # Credit the cluster's main wallet immediately after successful bill payment
-        self._credit_cluster_wallet(amount, transaction)
+        self.credit_cluster_wallet(amount, transaction)
 
-    def _credit_cluster_wallet(self, amount, transaction=None):
+    def credit_cluster_wallet(self, amount, transaction=None):
         """Credit the cluster's main wallet with bill payment."""
         from core.common.utils.cluster_wallet_utils import (
             credit_cluster_from_bill_payment,
         )
 
         credit_cluster_from_bill_payment(self.cluster, amount, self, transaction)
+
+    def is_utility_bill(self):
+        """Check if this is a user-managed utility bill."""
+        return self.category == BillCategory.USER_MANAGED
+
+    def can_automate_payment(self):
+        """Check if this bill can have automated payments."""
+        return self.is_utility_bill() and self.utility_provider is not None
+
+    def get_utility_metadata(self):
+        """Get utility-specific metadata."""
+        if not self.is_utility_bill():
+            return {}
+
+        return {
+            "customer_id": self.customer_id,
+            "provider_name": (
+                self.utility_provider.name if self.utility_provider else None
+            ),
+            "provider_code": (
+                self.utility_provider.provider_code if self.utility_provider else None
+            ),
+            "api_provider": (
+                self.utility_provider.api_provider if self.utility_provider else None
+            ),
+        }
 
 
 class RecurringPayment(AbstractClusterModel):
@@ -824,6 +998,16 @@ class RecurringPayment(AbstractClusterModel):
     user_id = models.UUIDField(
         verbose_name=_("user id"),
         help_text=_("The ID of the user who set up this recurring payment"),
+    )
+
+    bill = models.ForeignKey(
+        Bill,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recurring_payments",
+        verbose_name=_("bill"),
+        help_text=_("The bill to debit for payments"),
     )
 
     wallet = models.ForeignKey(
@@ -919,6 +1103,42 @@ class RecurringPayment(AbstractClusterModel):
         help_text=_("Maximum failed attempts before pausing"),
     )
 
+    utility_provider = models.ForeignKey(
+        UtilityProvider,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recurring_payments",
+        verbose_name=_("utility provider"),
+        help_text=_("Utility provider for automated utility payments"),
+    )
+
+    customer_id = models.CharField(
+        verbose_name=_("customer ID"),
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text=_("Customer ID/meter number for utility payments"),
+    )
+
+    payment_source = models.CharField(
+        verbose_name=_("payment source"),
+        max_length=20,
+        choices=[("wallet", _("Wallet")), ("direct", _("Direct Payment"))],
+        default="wallet",
+        help_text=_("Source of payment (wallet or direct)"),
+    )
+
+    spending_limit = models.DecimalField(
+        verbose_name=_("spending limit"),
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        help_text=_("Maximum amount that can be spent per payment"),
+    )
+
     metadata = models.JSONField(
         verbose_name=_("metadata"),
         blank=True,
@@ -959,11 +1179,22 @@ class RecurringPayment(AbstractClusterModel):
 
         return current_date
 
+    def is_utility_payment(self):
+        """Check if this is a utility payment."""
+        return self.utility_provider is not None
+
     def process_payment(self):
         """Process the recurring payment."""
         if self.status != RecurringPaymentStatus.ACTIVE:
             return False
 
+        if self.is_utility_payment():
+            return self.process_utility_payment()
+        else:
+            return self.process_cluster_payment()
+
+    def process_cluster_payment(self):
+        """Process regular cluster-based recurring payment."""
         if not self.wallet.has_sufficient_balance(self.amount):
             self.failed_attempts += 1
             if self.failed_attempts >= self.max_failed_attempts:
@@ -996,6 +1227,8 @@ class RecurringPayment(AbstractClusterModel):
         # Update wallet balance
         self.wallet.update_balance(self.amount, TransactionType.PAYMENT)
 
+        self.bill.credit_cluster_wallet(self.amount, transaction)
+
         # Update recurring payment
         self.last_payment_date = timezone.now()
         self.next_payment_date = self.calculate_next_payment_date()
@@ -1017,19 +1250,92 @@ class RecurringPayment(AbstractClusterModel):
         )
         return True
 
-    def pause(self):
+    def process_utility_payment(self):
+        """Process utility-specific recurring payment."""
+        # Check spending limit
+        if self.spending_limit and self.amount > self.spending_limit:
+            self.failed_attempts += 1
+            if self.failed_attempts >= self.max_failed_attempts:
+                self.status = RecurringPaymentStatus.PAUSED
+            self.save(update_fields=["failed_attempts", "status"])
+            return False
+
+        # Check wallet balance
+        if not self.wallet.has_sufficient_balance(self.amount):
+            self.failed_attempts += 1
+            if self.failed_attempts >= self.max_failed_attempts:
+                self.status = RecurringPaymentStatus.PAUSED
+            self.save(update_fields=["failed_attempts", "status"])
+            return False
+
+        try:
+            # Process utility payment via service
+            from core.common.services.utility_service import UtilityPaymentManager
+
+            result = UtilityPaymentManager.process_utility_payment(
+                user_id=self.user_id,
+                utility_provider=self.utility_provider,
+                customer_id=self.customer_id,
+                amount=self.amount,
+                wallet=self.wallet,
+                description=f"Automated utility payment: {self.title}",
+            )
+
+            if result.get("success"):
+                # Update recurring payment on success
+                self.last_payment_date = timezone.now()
+                self.next_payment_date = self.calculate_next_payment_date()
+                self.total_payments += 1
+                self.failed_attempts = 0
+
+                # Check if recurring payment should end
+                if self.end_date and self.next_payment_date > self.end_date:
+                    self.status = RecurringPaymentStatus.EXPIRED
+
+                self.save(
+                    update_fields=[
+                        "last_payment_date",
+                        "next_payment_date",
+                        "total_payments",
+                        "failed_attempts",
+                        "status",
+                    ]
+                )
+                return True
+            else:
+                # Handle failure
+                self.failed_attempts += 1
+                if self.failed_attempts >= self.max_failed_attempts:
+                    self.status = RecurringPaymentStatus.PAUSED
+                self.save(update_fields=["failed_attempts", "status"])
+                return False
+
+        except Exception as e:
+            logger.error(
+                f"Utility payment failed for recurring payment {self.id}: {str(e)}"
+            )
+            self.failed_attempts += 1
+            if self.failed_attempts >= self.max_failed_attempts:
+                self.status = RecurringPaymentStatus.PAUSED
+            self.save(update_fields=["failed_attempts", "status"])
+            return False
+
+    def pause(self, paused_by: str = None):
         """Pause the recurring payment."""
         self.status = RecurringPaymentStatus.PAUSED
-        self.save(update_fields=["status"])
+        self.last_modified_by = paused_by
+        self.save(update_fields=["status", "last_modified_by"])
 
-    def resume(self):
+    def resume(self, resumed_by: str = None):
         """Resume the recurring payment."""
         if self.status == RecurringPaymentStatus.PAUSED:
             self.status = RecurringPaymentStatus.ACTIVE
             self.failed_attempts = 0
-            self.save(update_fields=["status", "failed_attempts"])
+            self.last_modified_by = resumed_by
+            self.save(update_fields=["status", "failed_attempts", "last_modified_by"])
 
-    def cancel(self):
+    def cancel(self, cancelled_by: str = None):
         """Cancel the recurring payment."""
         self.status = RecurringPaymentStatus.CANCELLED
-        self.save(update_fields=["status"])
+        self.last_modified_by = cancelled_by
+        self.save(update_fields=["status", "last_modified_by"])

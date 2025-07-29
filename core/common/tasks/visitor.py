@@ -1,4 +1,3 @@
-
 import logging
 from datetime import timedelta
 from celery import shared_task
@@ -19,32 +18,45 @@ def detect_visitor_overstays():
     """
     current_time = timezone.now()
     grace_period = timedelta(hours=2)
-    
+
     overstaying_visitors = Visitor.objects.filter(
         status=Visitor.Status.CHECKED_IN,
-        estimated_arrival__lt=current_time - grace_period
+        estimated_arrival__lt=current_time - grace_period,
     ).iterator()
-    
+
     for visitor in overstaying_visitors:
         logger.info(f"Detected overstaying visitor: {visitor.name} (ID: {visitor.id})")
-        
+
         try:
             try:
                 user = AccountUser.objects.get(id=visitor.user_id)
             except AccountUser.DoesNotExist:
-                logger.error(f"User not found for visitor: {visitor.name} (ID: {visitor.id})")
-                return
-            
-            NotificationManager.send(
-                event=NotificationEvents.VISITOR_OVERSTAY,
+                logger.error(
+                    f"User not found for visitor: {visitor.name} (ID: {visitor.id})"
+                )
+                continue
+
+            # Use the new async notification approach
+            success = NotificationManager.send(
+                event_name=NotificationEvents.VISITOR_OVERSTAY,
                 recipients=[user],
                 cluster=visitor.cluster,
                 context={
                     "visitor_name": visitor.name,
                     "access_code": visitor.access_code,
-                }
+                },
             )
-            
-            logger.info(f"Sent overstay notification for visitor: {visitor.name} (ID: {visitor.id})")
+
+            if success:
+                logger.info(
+                    f"Overstay notification dispatched for visitor: {visitor.name} (ID: {visitor.id})"
+                )
+            else:
+                logger.error(
+                    f"Failed to dispatch overstay notification for visitor: {visitor.name} (ID: {visitor.id})"
+                )
+
         except Exception as e:
-            logger.error(f"Failed to send overstay notification for {visitor.name}: {str(e)}")
+            logger.error(
+                f"Failed to process overstay notification for {visitor.name}: {str(e)}"
+            )

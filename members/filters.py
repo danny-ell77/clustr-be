@@ -200,14 +200,26 @@ class RecurringPaymentFilter(django_filters.FilterSet):
     amount_max = django_filters.NumberFilter(field_name='amount', lookup_expr='lte')
     start_date_from = django_filters.DateTimeFilter(field_name='start_date', lookup_expr='gte')
     start_date_to = django_filters.DateTimeFilter(field_name='start_date', lookup_expr='lte')
+    bill_id = django_filters.UUIDFilter(field_name='bill__id')
+    bill_type = django_filters.CharFilter(field_name='bill__type')
+    bill_status = django_filters.CharFilter(field_name='bill__status')
+    utility_provider = django_filters.UUIDFilter(field_name='utility_provider__id')
+    payment_source = django_filters.CharFilter(field_name='payment_source')
     search = django_filters.CharFilter(method='filter_search')
     
     class Meta:
         model = RecurringPayment
-        fields = ['status', 'frequency', 'amount_min', 'amount_max', 'start_date_from', 'start_date_to', 'search']
+        fields = [
+            'status', 'frequency', 'amount_min', 'amount_max', 
+            'start_date_from', 'start_date_to', 'bill_id', 'bill_type', 
+            'bill_status', 'utility_provider', 'payment_source', 'search'
+        ]
     
     def filter_search(self, queryset, name, value):
         return queryset.filter(
             Q(title__icontains=value) |
-            Q(description__icontains=value)
+            Q(description__icontains=value) |
+            Q(bill__title__icontains=value) |
+            Q(customer_id__icontains=value) |
+            Q(utility_provider__name__icontains=value)
         )

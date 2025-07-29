@@ -6,6 +6,5 @@ concrete implementations for different delivery methods.
 """
 
 from .base import BaseNotificationChannel
-from .sms import SmsChannel
 
-__all__ = ['BaseNotificationChannel', 'SmsChannel']
+__all__ = ['BaseNotificationChannel']

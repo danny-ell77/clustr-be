@@ -72,7 +72,9 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
         )
         serializer.instance = maintenance_log
 
-    @action(detail=True, methods=["get"])
+    @action(
+        detail=True, methods=["get"], url_path="attachments", url_name="attachments"
+    )
     def attachments(self, request, pk=None):
         """
         Get attachments for a maintenance request.
@@ -85,7 +87,13 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
             message="Maintenance attachments retrieved successfully",
         )
 
-    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
+    @action(
+        detail=True,
+        methods=["post"],
+        parser_classes=[MultiPartParser, FormParser],
+        url_path="upload-attachment",
+        url_name="upload_attachment",
+    )
     def upload_attachment(self, request, pk=None):
         """
         Upload an attachment for a maintenance request.
@@ -122,7 +130,9 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["get", "post"])
+    @action(
+        detail=True, methods=["get", "post"], url_path="comments", url_name="comments"
+    )
     def comments(self, request, pk=None):
         """
         Get comments for a maintenance request or add a new comment.
@@ -159,7 +169,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(detail=False, methods=["get"])
+    @action(detail=False, methods=["get"], url_path="history", url_name="history")
     def history(self, request):
         """
         Get maintenance history for properties associated with the current user.
@@ -191,7 +201,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
             data=serializer.data, message="Maintenance history retrieved successfully"
         )
 
-    @action(detail=True, methods=["get"])
+    @action(detail=True, methods=["get"], url_path="status", url_name="status")
     def status(self, request, pk=None):
         """
         Get the current status of a maintenance request.
