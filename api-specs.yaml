@@ -1102,7 +1102,7 @@ components:
           format: date-time
           description: Timestamp when the provider was created.
           readOnly: true
-        updated_at:
+        last_modified_at:
           type: string
           format: date-time
           description: Timestamp when the provider was last updated.
@@ -1207,7 +1207,7 @@ components:
           format: date-time
           description: Timestamp when the bill was created.
           readOnly: true
-        updated_at:
+        last_modified_at:
           type: string
           format: date-time
           description: Timestamp when the bill was last updated.
@@ -1329,7 +1329,7 @@ components:
           format: date-time
           description: Timestamp when the payment was created.
           readOnly: true
-        updated_at:
+        last_modified_at:
           type: string
           format: date-time
           description: Timestamp when the payment was last updated.

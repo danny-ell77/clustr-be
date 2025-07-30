@@ -37,7 +37,7 @@ class BaseTask(UUIDPrimaryKey, ObjectHistoryTracker):
     )
     owner_id = models.UUIDField(
         verbose_name=_("created by"),
-        editable=False,
+        # editable=False,
         help_text=_(
             "the Id of the ClustR account user who created this data exchange."
         ),
@@ -49,13 +49,13 @@ class BaseTask(UUIDPrimaryKey, ObjectHistoryTracker):
         verbose_name=_("status"),
         max_length=50,
         choices=TaskStatuses.choices,
-        editable=False,
+        # editable=False,
     )
     content_type = models.ForeignKey(
         verbose_name=_("content type"),
         to=ContentType,
         on_delete=models.CASCADE,
-        editable=False,
+        # editable=False,
         help_text=_("django model content type to be exported or imported."),
     )
     notify_on_success = models.BooleanField(
@@ -109,7 +109,7 @@ class ExportTask(BaseTask):
     external_file_id = models.UUIDField(
         verbose_name=_("external file id"),
         null=True,
-        editable=False,
+        # editable=False,
         help_text=_(
             "the external file id (AWS/Cloudinary) if the file is stored in external."
         ),
@@ -117,7 +117,7 @@ class ExportTask(BaseTask):
 
     sql_query = models.TextField(
         verbose_name=_("sql query"),
-        editable=False,
+        # editable=False,
         help_text=_(
             "the SQL query used to extract the exported data. Maybe from queryset.query"
         ),

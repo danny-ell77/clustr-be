@@ -53,7 +53,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
     pagination_class = MaintenancePagination
 
     def get_queryset(self):
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         return self.queryset.filter(
             cluster=cluster, requested_by=self.request.user
         ).order_by("-created_at")
@@ -66,7 +66,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     def perform_create(self, serializer):
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         maintenance_log = MaintenanceManager.create_maintenance_log(
             cluster=cluster, requested_by=self.request.user, **serializer.validated_data
         )
@@ -174,7 +174,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
         """
         Get maintenance history for properties associated with the current user.
         """
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         queryset = MaintenanceLog.objects.filter(
             cluster=cluster, requested_by=self.request.user
         ).order_by("-created_at")

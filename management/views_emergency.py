@@ -58,7 +58,7 @@ class EmergencyContactManagementViewSet(ModelViewSet):
     def get_queryset(self):
         """Get all emergency contacts for the cluster"""
         return EmergencyContact.objects.filter(
-            cluster=self.request.cluster_context
+            cluster=getattr(self.request, "cluster_context", None)
         )
     
     def get_serializer_class(self):
@@ -151,7 +151,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
     def get_queryset(self):
         """Get all SOS alerts for the cluster"""
         return SOSAlert.objects.filter(
-            cluster=self.request.cluster_context
+            cluster=getattr(self.request, "cluster_context", None)
         )
     
     def get_serializer_class(self):
@@ -172,7 +172,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
             )
         
         from accounts.models import AccountUser
-        user = get_object_or_404(AccountUser, id=user_id, clusters=self.request.cluster_context)
+        user = get_object_or_404(AccountUser, id=user_id, clusters=getattr(self.request, "cluster_context", None))
         
         alert = EmergencyManager.create_sos_alert(
             user=user,
@@ -399,7 +399,7 @@ class EmergencyResponseManagementViewSet(ModelViewSet):
     def get_queryset(self):
         """Get all emergency responses for the cluster"""
         return EmergencyResponse.objects.filter(
-            cluster=self.request.cluster_context
+            cluster=getattr(self.request, "cluster_context", None)
         )
     
     def get_serializer_class(self):

@@ -36,9 +36,9 @@ class TaskCommentSerializer(serializers.ModelSerializer):
         model = TaskComment
         fields = [
             'id', 'content', 'author', 'is_internal', 'parent',
-            'replies', 'created_at', 'updated_at'
+            'replies', 'created_at', 'last_modified_at'
         ]
-        read_only_fields = ['id', 'author', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'author', 'created_at', 'last_modified_at']
     
     def get_replies(self, obj):
         """Get replies to this comment."""
@@ -108,12 +108,12 @@ class TaskListSerializer(serializers.ModelSerializer):
             'id', 'task_number', 'title', 'task_type', 'priority', 'status',
             'assigned_to', 'created_by', 'due_date', 'location',
             'estimated_hours', 'actual_hours', 'escalated_to', 'escalated_at',
-            'started_at', 'completed_at', 'created_at', 'updated_at',
+            'started_at', 'completed_at', 'created_at', 'last_modified_at',
             'is_overdue', 'is_due_soon', 'time_remaining', 'duration_worked'
         ]
         read_only_fields = [
             'id', 'task_number', 'created_by', 'started_at', 'completed_at',
-            'escalated_at', 'escalated_to', 'created_at', 'updated_at'
+            'escalated_at', 'escalated_to', 'created_at', 'last_modified_at'
         ]
     
     def get_time_remaining(self, obj):
@@ -174,14 +174,14 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             'priority', 'status', 'assigned_to', 'created_by', 'due_date',
             'started_at', 'completed_at', 'estimated_hours', 'actual_hours',
             'location', 'notes', 'completion_notes', 'escalated_at',
-            'escalated_to', 'created_at', 'updated_at',
+            'escalated_to', 'created_at', 'last_modified_at',
             'attachments', 'comments', 'status_history', 'escalation_history',
             'assignment_history', 'is_overdue', 'is_due_soon', 'time_remaining',
             'duration_worked', 'comments_count'
         ]
         read_only_fields = [
             'id', 'task_number', 'created_by', 'started_at', 'completed_at',
-            'escalated_at', 'escalated_to', 'created_at', 'updated_at'
+            'escalated_at', 'escalated_to', 'created_at', 'last_modified_at'
         ]
     
     def get_assignment_history(self, obj):

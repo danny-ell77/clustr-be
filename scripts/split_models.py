@@ -64,7 +64,8 @@ class GenericModelSplitter:
         # Parse the AST to find classes and their relationships
         tree = ast.parse(content)
         
-        for node in ast.walk(tree):
+        # Only process top-level classes, not nested classes like Meta
+        for node in tree.body:
             if isinstance(node, ast.ClassDef):
                 model_info = self.extract_model_info(node, content, lines)
                 self.models_info[node.name] = model_info

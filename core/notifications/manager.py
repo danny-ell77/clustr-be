@@ -10,7 +10,6 @@ import logging
 from typing import List, Any, Optional
 
 from django.contrib.auth import get_user_model
-from accounts.models import AccountUser
 
 from core.notifications.events import (
     NotificationEvents,

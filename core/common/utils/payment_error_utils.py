@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 from django.utils import timezone
 from django.template import Context
 
-from core.common.models.wallet import (
+from core.common.models import (
     Transaction,
     TransactionStatus,
     PaymentProvider,

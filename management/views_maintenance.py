@@ -61,7 +61,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
     pagination_class = MaintenancePagination
 
     def get_queryset(self):
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         return self.queryset.filter(cluster=cluster).order_by("-created_at")
 
     def get_serializer_class(self):
@@ -72,7 +72,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     def perform_create(self, serializer):
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         maintenance_log = MaintenanceManager.create_maintenance_log(
             cluster=cluster, requested_by=self.request.user, **serializer.validated_data
         )
@@ -283,7 +283,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
     filterset_class = MaintenanceScheduleFilter
 
     def get_queryset(self):
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         return self.queryset.filter(cluster=cluster).order_by("next_due_date")
 
     def get_serializer_class(self):
@@ -292,7 +292,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     def perform_create(self, serializer):
-        cluster = self.request.cluster_context
+        cluster= getattr(self.request, "cluster_context", None)
         schedule = MaintenanceManager.create_preventive_maintenance_schedule(
             cluster=cluster, created_by=self.request.user, **serializer.validated_data
         )

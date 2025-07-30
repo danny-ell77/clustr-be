@@ -498,7 +498,7 @@
 
 - [ ] 16.1 Implement chat features and moderation
   - Create message storage and offline delivery system (Logic in core/common/utils.py)
-  - Implement group chat functionality with permission-based access (Permissions in core/common/permissions.py)
+  <!-- - Implement group chat functionality with permission-based access (Permissions in core/common/permissions.py) -->
   - Add chat history and search functionality
   - Create content moderation system for inappropriate messages (Logic in core/common/utils.py or management app)
   - _Requirements: 15.3, 15.4, 15.5, 15.6_

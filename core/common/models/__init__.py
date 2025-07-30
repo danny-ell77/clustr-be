@@ -73,7 +73,7 @@ from core.common.models.child import (
     ExitRequest,
     EntryExitLog,
 )
-from core.common.models.wallet import (
+from core.common.models.payments import (
     Wallet,
     Transaction,
     Bill,
@@ -83,10 +83,12 @@ from core.common.models.wallet import (
     TransactionStatus,
     PaymentProvider,
     BillType,
+    BillCategory,
     BillStatus,
     RecurringPaymentStatus,
     RecurringPaymentFrequency,
-    PaymentError
+    PaymentError,
+    UtilityProvider
 )
 
 __all__ = [
@@ -159,4 +161,7 @@ __all__ = [
     "BillStatus",
     "RecurringPaymentStatus",
     "RecurringPaymentFrequency",
+    "UtilityProvider"
+    "BillCategory",
+    "PaymentError",
 ]

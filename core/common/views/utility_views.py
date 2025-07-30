@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
-from core.common.models.wallet import (
+from core.common.models import (
     UtilityProvider,
     Bill,
     RecurringPayment,
@@ -26,7 +26,6 @@ from core.common.serializers.utility_serializers import (
     SetupRecurringUtilityPaymentSerializer,
 )
 from core.common.services.utility_service import UtilityPaymentManager
-from accounts.permissions import IsClusterMember
 
 logger = logging.getLogger("clustr")
 
@@ -35,7 +34,7 @@ class UtilityProviderViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for utility providers."""
 
     serializer_class = UtilityProviderSerializer
-    permission_classes = [IsAuthenticated, IsClusterMember]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Get utility providers for user's cluster."""
@@ -63,7 +62,7 @@ class UtilityBillViewSet(viewsets.ModelViewSet):
     """ViewSet for utility bills."""
 
     serializer_class = UtilityBillSerializer
-    permission_classes = [IsAuthenticated, IsClusterMember]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Get utility bills for the current user."""
@@ -108,7 +107,7 @@ class RecurringUtilityPaymentViewSet(viewsets.ModelViewSet):
     """ViewSet for recurring utility payments."""
 
     serializer_class = RecurringUtilityPaymentSerializer
-    permission_classes = [IsAuthenticated, IsClusterMember]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Get recurring utility payments for the current user."""
@@ -216,7 +215,7 @@ class RecurringUtilityPaymentViewSet(viewsets.ModelViewSet):
 class UtilityPaymentViewSet(viewsets.ViewSet):
     """ViewSet for utility payment operations."""
 
-    permission_classes = [IsAuthenticated, IsClusterMember]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["post"])
     def validate_customer(self, request):

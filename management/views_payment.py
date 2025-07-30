@@ -26,7 +26,7 @@ from core.common.utils import (
     BillManager,
     RecurringPaymentManager,
 )
-from core.common.models.wallet import UtilityProvider
+from core.common.models import UtilityProvider
 from members.filters import RecurringPaymentFilter
 from core.common.utils.cluster_wallet_utils import ClusterWalletManager
 from core.common.utils.third_party_services import (

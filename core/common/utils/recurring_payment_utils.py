@@ -8,7 +8,7 @@ from typing import List, Optional, Any
 from django.utils import timezone
 from django.db import transaction
 
-from core.common.models.wallet import (
+from core.common.models import (
     RecurringPayment,
     RecurringPaymentStatus,
     RecurringPaymentFrequency,

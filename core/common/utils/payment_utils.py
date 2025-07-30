@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional, Tuple
 from django.conf import settings
 from django.utils import timezone
 
-from core.common.models.wallet import (
+from core.common.models import (
     Transaction,
     TransactionStatus,
     TransactionType,
@@ -373,7 +373,7 @@ def initialize_deposit(wallet, amount: Decimal, provider: PaymentProvider,
     return transaction, response
 
 
-def process_bill_payment(wallet, bill, provider: PaymentProvider) -> Transaction:
+def process_bill_payment(wallet, bill, provider: PaymentProvider, user=None) -> Transaction:
     """
     Process a bill payment transaction.
     
@@ -381,10 +381,27 @@ def process_bill_payment(wallet, bill, provider: PaymentProvider) -> Transaction
         wallet: Wallet object
         bill: Bill object
         provider: Payment provider
+        user: User making the payment (for validation)
         
     Returns:
         Transaction: Created transaction object
     """
+    # Validate user can pay this bill
+    if user and not bill.can_be_paid_by(user):
+        if not bill.acknowledged_by.filter(id=user.id).exists():
+            raise ValueError("Bill must be acknowledged before payment")
+        elif bill.is_overdue and not bill.allow_payment_after_due:
+            raise ValueError("Payment not allowed after due date")
+        else:
+            raise ValueError("You are not authorized to pay this bill")
+    
+    # Validate bill can be paid
+    if not bill.can_be_paid():
+        if bill.is_fully_paid:
+            raise ValueError("Bill is already fully paid")
+        else:
+            raise ValueError("Bill cannot be paid")
+    
     manager = PaymentManager()
     
     transaction = manager.create_payment_transaction(

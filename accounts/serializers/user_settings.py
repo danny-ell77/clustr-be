@@ -31,9 +31,9 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
             'enabled',
             'cluster',
             'created_at',
-            'updated_at',
+            'last_modified_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'last_modified_at']
 
 
 class NotificationPreferencesUpdateSerializer(serializers.Serializer):
@@ -97,9 +97,9 @@ class UserSettingsSerializer(serializers.ModelSerializer):
             'theme',
             'notification_preferences_detailed',
             'created_at',
-            'updated_at',
+            'last_modified_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'last_modified_at']
     
     def validate_timezone(self, value):
         """Validate timezone value."""

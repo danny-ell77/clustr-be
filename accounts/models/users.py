@@ -134,7 +134,7 @@ class AccountUser(UUIDPrimaryKey, ObjectHistoryTracker, AbstractUser):
         verbose_name=_("phone number"),
         max_length=16,
         validators=[MinLengthValidator(4), RegexValidator("^\+[1-9]\d{1,14}$")],
-        editable=False,
+        # editable=False,
         help_text=_(
             "The phone number for this subscription in E.164 format. "
             "See details: https://www.twilio.com/docs/glossary/what-e164"
@@ -152,7 +152,7 @@ class AccountUser(UUIDPrimaryKey, ObjectHistoryTracker, AbstractUser):
             "This is the external resident id used for verification and display purposes"
         ),
         default=generate_external_id,
-        editable=False,
+        # editable=False,
     )
     owner = models.ForeignKey(
         verbose_name=_("primary account"),
@@ -327,7 +327,7 @@ class PreviousPasswords(UUIDPrimaryKey):
         to="accounts.AccountUser",
         on_delete=models.CASCADE,
         related_name="previous_passwords",
-        editable=False,
+        # editable=False,
     )
     passwords = ArrayField(
         models.CharField(_("password"), max_length=128),
@@ -338,7 +338,7 @@ class PreviousPasswords(UUIDPrimaryKey):
     )
     last_modified_at = models.DateTimeField(
         verbose_name=_("last modified date"),
-        editable=False,
+        # editable=False,
         auto_now=True,
     )
 

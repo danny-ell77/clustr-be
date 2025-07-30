@@ -4,7 +4,7 @@ Payment serializers for ClustR application.
 
 from decimal import Decimal
 from rest_framework import serializers
-from core.common.models.wallet import (
+from core.common.models import (
     Wallet,
     Transaction,
     Bill,
@@ -43,7 +43,7 @@ class WalletSerializer(serializers.ModelSerializer):
             "is_pin_set",
             "last_transaction_at",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
         read_only_fields = [
             "id",
@@ -52,7 +52,7 @@ class WalletSerializer(serializers.ModelSerializer):
             "is_pin_set",
             "last_transaction_at",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
 
 
@@ -90,13 +90,13 @@ class PaymentErrorSerializer(serializers.ModelSerializer):
             "user_notified",
             "metadata",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
         read_only_fields = [
             "id",
             "transaction_id",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
 
 
@@ -155,7 +155,6 @@ class BillSerializer(serializers.ModelSerializer):
             "type",
             "amount",
             "currency",
-            "status",
             "acknowledged_at",
             "acknowledged_by",
             "dispute_reason",
@@ -166,7 +165,7 @@ class BillSerializer(serializers.ModelSerializer):
             "remaining_amount",
             "is_overdue",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
         read_only_fields = [
             "id",
@@ -179,7 +178,7 @@ class BillSerializer(serializers.ModelSerializer):
             "remaining_amount",
             "is_overdue",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
 
 
@@ -221,7 +220,7 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
             "spending_limit",
             "metadata",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
         read_only_fields = [
             "id",
@@ -234,7 +233,7 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
             "total_payments",
             "failed_attempts",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
 
 

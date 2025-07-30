@@ -40,7 +40,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Get tasks for the current cluster."""
-        return Task.objects.filter(cluster=self.request.cluster_context).select_related(
+        return Task.objects.filter(cluster=getattr(self.request, "cluster_context", None)).select_related(
             'assigned_to', 'created_by', 'escalated_to'
         ).prefetch_related(
             'attachments', 'comments', 'status_history', 'escalation_history'
@@ -66,12 +66,12 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                 assigned_to = get_object_or_404(
                     AccountUser, 
                     id=assigned_to_id, 
-                    clusters=self.request.cluster_context
+                    clusters=getattr(self.request, "cluster_context", None)
                 )
         
         task = TaskManager.create_task(
             created_by=self.request.user,
-            cluster=self.request.cluster_context,
+            cluster=getattr(self.request, "cluster_context", None),
             assigned_to=assigned_to,
             **serializer.validated_data
         )
@@ -86,7 +86,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                 assigned_to = get_object_or_404(
                     AccountUser, 
                     id=assigned_to_id, 
-                    clusters=self.request.cluster_context
+                    clusters=getattr(self.request, "cluster_context", None)
                 )
                 if serializer.instance.assigned_to != assigned_to:
                     TaskManager.assign_task(
@@ -373,7 +373,7 @@ class ManagementTaskCommentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Get comments for tasks in the current cluster."""
         return TaskComment.objects.filter(
-            task__cluster=self.request.cluster_context
+            task__cluster=getattr(self.request, "cluster_context", None)
         ).select_related('author', 'task', 'parent')
     
     def get_serializer_class(self):
@@ -391,13 +391,13 @@ class ManagementTaskCommentViewSet(viewsets.ModelViewSet):
         task = get_object_or_404(
             Task, 
             id=task_id, 
-            cluster=self.request.cluster_context
+            cluster=getattr(self.request, "cluster_context", None)
         )
         
         serializer.save(
             author=self.request.user,
             task=task,
-            cluster=self.request.cluster_context
+            cluster=getattr(self.request, "cluster_context", None)
         )
         
         # Send notification about new comment

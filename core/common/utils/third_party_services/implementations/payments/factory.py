@@ -1,5 +1,5 @@
 import logging
-from core.common.models.wallet import (
+from core.common.models import (
     PaymentProvider,
 )
 from core.common.utils.third_party_services.implementations.payments.paystack import PaystackProvider

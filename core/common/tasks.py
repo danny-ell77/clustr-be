@@ -36,7 +36,7 @@ def retry_failed_utility_payments():
     """
     Celery task to retry failed utility payments that can be retried.
     """
-    from core.common.models.wallet import PaymentError, TransactionStatus
+    from core.common.models import PaymentError, TransactionStatus
     from django.db import transaction
 
     logger.info("Starting retry of failed utility payments")
@@ -80,7 +80,7 @@ def retry_failed_utility_payments():
                 customer_id = transaction_data.metadata.get("customer_id")
 
                 if utility_provider_id and customer_id:
-                    from core.common.models.wallet import UtilityProvider
+                    from core.common.models import UtilityProvider
                     from core.common.services.utility_service import (
                         UtilityPaymentManager,
                     )

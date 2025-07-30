@@ -8,19 +8,18 @@ from decimal import Decimal
 from typing import Dict, List, Any, Optional
 from django.utils import timezone
 
-from core.common.models.wallet import (
+from core.common.models import (
     Transaction, 
     TransactionType, 
     TransactionStatus,
     PaymentProvider,
     PaymentError,
-    PaymentErrorType,
-    PaymentErrorSeverity,
     UtilityProvider,
     Bill,
     BillCategory,
     BillStatus
 )
+from core.common.models.payments.payment_error import PaymentErrorType, PaymentErrorSeverity
 
 logger = logging.getLogger("clustr")
 
@@ -323,7 +322,7 @@ class UtilityPaymentManager:
                 }
 
             # Create recurring payment
-            from core.common.models.wallet import RecurringPayment, RecurringPaymentStatus
+            from core.common.models import RecurringPayment, RecurringPaymentStatus
             
             recurring_payment = RecurringPayment.objects.create(
                 cluster=utility_provider.cluster,

@@ -353,7 +353,7 @@ class Estate:
     subscription_status: str  # active, inactive, trial
     subscription_expiry: datetime
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 #### User Model
@@ -370,7 +370,7 @@ class User:
     estates: List[Estate]  # Users can belong to multiple estates
     primary_estate_id: UUID  # Default estate for the user
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 #### Permission Model
@@ -444,7 +444,7 @@ class Announcement:
     author_id: UUID
     attachments: List[Attachment]
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
     comments_count: int
 ```
 
@@ -456,7 +456,7 @@ class Comment:
     author_id: UUID
     content: str
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 #### Chat Model
@@ -469,7 +469,7 @@ class Chat:
     last_message: Message
     unread_count: int
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 #### Message Model
@@ -536,7 +536,7 @@ class EmergencyContact:
     emergency_type: str  # theft, health_emergency, domestic_violence, fire, other
     is_active: bool
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 #### SOSRequest Model
@@ -675,7 +675,7 @@ class ServiceProvider:
     profile_picture: str
     is_recently_used: bool
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 ### Domestic Staff Models
@@ -690,7 +690,7 @@ class DomesticStaff:
     profile_picture: str
     user_id: UUID
     created_at: datetime
-    updated_at: datetime
+    last_modified_at: datetime
 ```
 
 ## Error Handling

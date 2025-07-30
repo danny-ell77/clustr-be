@@ -5,7 +5,7 @@ Serializers for utility bill automation features.
 from rest_framework import serializers
 from decimal import Decimal
 
-from core.common.models.wallet import (
+from core.common.models import (
     UtilityProvider,
     Bill,
     RecurringPayment,
@@ -33,9 +33,9 @@ class UtilityProviderSerializer(serializers.ModelSerializer):
             "maximum_amount",
             "metadata",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "last_modified_at"]
 
 
 class UtilityBillSerializer(serializers.ModelSerializer):
@@ -60,7 +60,6 @@ class UtilityBillSerializer(serializers.ModelSerializer):
             "category",
             "amount",
             "currency",
-            "status",
             "utility_provider",
             "utility_provider_name",
             "customer_id",
@@ -72,7 +71,7 @@ class UtilityBillSerializer(serializers.ModelSerializer):
             "is_overdue",
             "metadata",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
         read_only_fields = [
             "id",
@@ -82,7 +81,7 @@ class UtilityBillSerializer(serializers.ModelSerializer):
             "remaining_amount",
             "is_overdue",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
 
     def validate(self, data):
@@ -136,7 +135,7 @@ class RecurringUtilityPaymentSerializer(serializers.ModelSerializer):
             "can_be_resumed",
             "metadata",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
         read_only_fields = [
             "id",
@@ -147,7 +146,7 @@ class RecurringUtilityPaymentSerializer(serializers.ModelSerializer):
             "can_be_paused",
             "can_be_resumed",
             "created_at",
-            "updated_at",
+            "last_modified_at",
         ]
 
     def get_next_payment_in_days(self, obj):

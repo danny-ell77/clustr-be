@@ -14,24 +14,24 @@ class ObjectHistoryTracker(models.Model):
 
     created_at = models.DateTimeField(
         verbose_name=_("creation date"),
-        editable=False,
+        # # editable=False,
         auto_now_add=True,
     )
     created_by = models.UUIDField(
         verbose_name=_("created by"),
-        editable=False,
+        # # editable=False,
         null=True,
         help_text=_("the Id of the ClustR account user who added this object."),
     )
     last_modified_at = models.DateTimeField(
         verbose_name=_("last modified date"),
-        editable=False,
+        # # editable=False,
         auto_now=True,
     )
     last_modified_by = models.UUIDField(
         verbose_name=_("last modified by"),
         null=True,
-        editable=False,
+        # # editable=False,
         help_text=_("the Id of the ClustR account user who last modified this object."),
     )
 
@@ -44,7 +44,7 @@ class UUIDPrimaryKey(models.Model):
         verbose_name="id",
         primary_key=True,
         default=uuid.uuid4,
-        editable=False,
+        # # editable=False,
         help_text=_("UUID primary key"),
     )
 
@@ -56,7 +56,7 @@ class ObjectOwnerId(models.Model):
     owner_id = models.UUIDField(
         verbose_name=_("owner id"),
         help_text=_("the Id of the BigCommand account owner."),
-        editable=False,
+        # # editable=False,
     )
 
     class Meta:

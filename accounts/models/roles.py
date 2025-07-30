@@ -27,7 +27,7 @@ class Role(Group, ObjectHistoryTracker):
         },
         related_name="roles",
         related_query_name="role",
-        editable=False,
+        # # editable=False,
         help_text="The admin this role belongs to",
     )
     description = models.TextField(

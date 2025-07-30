@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from django.utils import timezone
 from django.db.models import Q, Sum
 
-from core.common.models.wallet import (
+from core.common.models import (
     Bill,
     BillStatus,
     BillType,
@@ -26,6 +26,94 @@ class BillManager:
     """
     Manager for handling bill operations.
     """
+    
+    @staticmethod
+    def create_cluster_wide_bill(cluster, title: str, amount: Decimal,
+                               bill_type: BillType, due_date, description: str = None,
+                               allow_payment_after_due: bool = True,
+                               created_by: str = None, metadata: Optional[dict] = None) -> Bill:
+        """
+        Create a new cluster-wide bill that applies to all cluster members.
+        This creates only ONE record regardless of the number of users in the cluster.
+        
+        Args:
+            cluster: Estate object
+            title: Bill title
+            amount: Bill amount
+            bill_type: Type of bill
+            due_date: Bill due date
+            description: Bill description
+            allow_payment_after_due: Whether payment is allowed after due date
+            created_by: ID of the user creating the bill
+            metadata: Additional bill metadata
+            
+        Returns:
+            Bill: Created bill object
+        """
+        bill = Bill.objects.create(
+            cluster=cluster,
+            user_id=None,  # Estate-wide bills have no specific user
+            title=title,
+            description=description,
+            type=bill_type,
+            amount=amount,
+            due_date=due_date,
+            allow_payment_after_due=allow_payment_after_due,
+            metadata=metadata or {},
+            created_by=created_by,
+            last_modified_by=created_by,
+        )
+        
+        logger.info(f"Estate-wide bill created: {bill.bill_number} for cluster {cluster.name}")
+        
+        # Send notification to all cluster members
+        BillNotificationManager.send_cluster_wide_bill_notification(bill)
+        
+        return bill
+    
+    @staticmethod
+    def create_user_specific_bill(cluster, user_id: str, title: str, amount: Decimal,
+                                 bill_type: BillType, due_date, description: str = None,
+                                 allow_payment_after_due: bool = True,
+                                 created_by: str = None, metadata: Optional[dict] = None) -> Bill:
+        """
+        Create a new user-specific bill that applies to only one user.
+        
+        Args:
+            cluster: Estate object
+            user_id: ID of the user the bill is for
+            title: Bill title
+            amount: Bill amount
+            bill_type: Type of bill
+            due_date: Bill due date
+            description: Bill description
+            allow_payment_after_due: Whether payment is allowed after due date
+            created_by: ID of the user creating the bill
+            metadata: Additional bill metadata
+            
+        Returns:
+            Bill: Created bill object
+        """
+        bill = Bill.objects.create(
+            cluster=cluster,
+            user_id=user_id,  # User-specific bills target a specific user
+            title=title,
+            description=description,
+            type=bill_type,
+            amount=amount,
+            due_date=due_date,
+            allow_payment_after_due=allow_payment_after_due,
+            metadata=metadata or {},
+            created_by=created_by,
+            last_modified_by=created_by,
+        )
+        
+        logger.info(f"User-specific bill created: {bill.bill_number} for user {user_id}")
+        
+        # Send notification to the specific user
+        BillNotificationManager.send_user_specific_bill_notification(bill)
+        
+        return bill
     
     @staticmethod
     def create_bill(cluster, user_id: str, title: str, amount: Decimal,
@@ -220,7 +308,7 @@ class BillManager:
         return summary
     
     @staticmethod
-    def process_bill_payment(bill: Bill, wallet: Wallet, amount: Decimal = None) -> Transaction:
+    def process_bill_payment(bill: Bill, wallet: Wallet, amount: Decimal = None, user=None) -> Transaction:
         """
         Process payment for a bill using wallet balance.
         
@@ -228,6 +316,7 @@ class BillManager:
             bill: Bill to pay
             wallet: Wallet to debit
             amount: Amount to pay (defaults to remaining amount)
+            user: User making the payment (for validation)
             
         Returns:
             Transaction: Payment transaction
@@ -243,6 +332,24 @@ class BillManager:
         
         if not wallet.has_sufficient_balance(amount):
             raise ValueError("Insufficient wallet balance")
+        
+        # New validation: Check if user can pay this bill
+        if user and not bill.can_be_paid_by(user):
+            if not bill.acknowledged_by.filter(id=user.id).exists():
+                raise ValueError("Bill must be acknowledged before payment")
+            elif bill.is_overdue and not bill.allow_payment_after_due:
+                raise ValueError("Payment not allowed after due date")
+            else:
+                raise ValueError("You are not authorized to pay this bill")
+        
+        # Validate transaction can pay this bill
+        if not bill.can_be_paid():
+            if bill.is_fully_paid:
+                raise ValueError("Bill is already fully paid")
+            elif bill.is_disputed:
+                raise ValueError("Cannot pay disputed bill")
+            else:
+                raise ValueError("Bill cannot be paid")
         
         # Create transaction
         transaction = Transaction.objects.create(
@@ -261,7 +368,7 @@ class BillManager:
         # Update wallet balance
         wallet.update_balance(amount, TransactionType.BILL_PAYMENT)
         
-        # Update bill
+        # Update bill with transaction linking
         bill.add_payment(amount, transaction)
         
         logger.info(f"Bill payment processed: {transaction.transaction_id} for bill {bill.bill_number}")
@@ -269,6 +376,7 @@ class BillManager:
         # Send payment confirmation
         BillNotificationManager.send_payment_confirmation(bill, transaction)
         
+        return transaction
         return transaction
     
     @staticmethod
@@ -374,6 +482,96 @@ class BillNotificationManager:
     """
     Manager for handling bill-related notifications.
     """
+    
+    @staticmethod
+    def send_cluster_wide_bill_notification(bill: Bill) -> bool:
+        """
+        Send notification to all cluster members when an cluster-wide bill is created.
+        
+        Args:
+            bill: Estate-wide bill object
+            
+        Returns:
+            bool: True if notifications were sent successfully
+        """
+        try:
+            from accounts.models import AccountUser
+            
+            # Get all users in the cluster
+            cluster_users = AccountUser.objects.filter(
+                cluster=bill.cluster,
+                is_active=True
+            ).iterator()
+            
+            if not cluster_users.exists():
+                logger.warning(f"No active users found for cluster {bill.cluster.name}")
+                return False
+
+
+            for batch in cluster_users.iterator(chunk_size=100):
+                NotificationManager.send(
+                    event=NotificationEvents.PAYMENT_DUE,
+                    recipients=list(batch),  # Pass the current batch of users
+                    cluster=bill.cluster,
+                    context={
+                        'bill_number': bill.bill_number,
+                        'bill_title': bill.title,
+                        'bill_amount': bill.amount,
+                        'currency': bill.currency,
+                        'due_date': bill.due_date.strftime('%Y-%m-%d'),
+                        'bill_type': bill.get_type_display(),
+                        'description': bill.description or '',
+                        'cluster_name': bill.cluster.name,
+                        'is_cluster_wide': True,
+                    }
+                )
+                logger.info(f"Estate-wide bill notification sent to {cluster_users.count()} users")
+            return True
+        
+        except Exception as e:
+            logger.error(f"Failed to send cluster-wide bill notification: {e}")
+            return False
+    
+    @staticmethod
+    def send_user_specific_bill_notification(bill: Bill) -> bool:
+        """
+        Send notification to a specific user when a user-specific bill is created.
+        
+        Args:
+            bill: User-specific bill object
+            
+        Returns:
+            bool: True if notification was sent successfully
+        """
+        try:
+            from accounts.models import AccountUser
+            user = AccountUser.objects.filter(id=bill.user_id).first()
+            
+            if not user:
+                logger.warning(f"No user found for bill {bill.bill_number}")
+                return False
+
+            NotificationManager.send(
+                event=NotificationEvents.PAYMENT_DUE,
+                recipients=[user],
+                cluster=bill.cluster,
+                context={
+                    'user_name': user.name,
+                    'bill_number': bill.bill_number,
+                    'bill_title': bill.title,
+                    'bill_amount': bill.amount,
+                    'currency': bill.currency,
+                    'due_date': bill.due_date.strftime('%Y-%m-%d'),
+                    'bill_type': bill.get_type_display(),
+                    'description': bill.description or '',
+                    'is_user_specific': True,
+                }
+            )
+            return True
+        
+        except Exception as e:
+            logger.error(f"Failed to send user-specific bill notification: {e}")
+            return False
     
     @staticmethod
     def send_new_bill_notification(bill: Bill) -> bool:
@@ -683,7 +881,7 @@ def create_monthly_service_charge(cluster, user_id: str, amount: Decimal,
         amount=amount,
         bill_type=BillType.SERVICE_CHARGE,
         due_date=due_date,
-        description="Monthly estate service charge",
+        description="Monthly cluster service charge",
         created_by=created_by,
     )
 

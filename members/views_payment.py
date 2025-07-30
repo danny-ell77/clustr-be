@@ -453,8 +453,14 @@ class BillViewSet(viewsets.ViewSet):
             bill_id = validated_data["bill_id"]
             amount = validated_data.get("amount")
 
+            # Get bill - now supports both estate-wide and user-specific bills
             try:
-                bill = Bill.objects.get(id=bill_id, cluster=cluster, user_id=user_id)
+                # For estate-wide bills (user_id=null) or user-specific bills for this user
+                from django.db.models import Q
+                bill_query = Q(id=bill_id, cluster=cluster) & (
+                    Q(user_id=user_id) | Q(user_id__isnull=True)
+                )
+                bill = Bill.objects.get(bill_query)
             except Bill.DoesNotExist:
                 return error_response(
                     message="Bill not found", status_code=status.HTTP_404_NOT_FOUND
@@ -468,7 +474,7 @@ class BillViewSet(viewsets.ViewSet):
                 )
 
             transaction = BillManager.process_bill_payment(
-                bill=bill, wallet=wallet, amount=amount
+                bill=bill, wallet=wallet, amount=amount, user=request.user
             )
 
             response_serializer = BillPaymentResponseSerializer(
@@ -521,18 +527,52 @@ class BillViewSet(viewsets.ViewSet):
             amount = validated_data.get("amount")
             callback_url = validated_data.get("callback_url")
 
+            # Get bill - now supports both estate-wide and user-specific bills
             try:
-                bill = Bill.objects.get(id=bill_id, cluster=cluster, user_id=user_id)
+                from django.db.models import Q
+                bill_query = Q(id=bill_id, cluster=cluster) & (
+                    Q(user_id=user_id) | Q(user_id__isnull=True)
+                )
+                bill = Bill.objects.get(bill_query)
             except Bill.DoesNotExist:
                 return error_response(
                     message="Bill not found", status_code=status.HTTP_404_NOT_FOUND
                 )
 
+            # Check if user can pay this bill (includes acknowledgment and due date checks)
+            if not bill.can_be_paid_by(request.user):
+                if not bill.acknowledged_by.filter(id=request.user.id).exists():
+                    return error_response(
+                        message="Bill must be acknowledged before payment",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+                elif bill.is_overdue and not bill.allow_payment_after_due:
+                    return error_response(
+                        message="Payment not allowed after due date",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+                else:
+                    return error_response(
+                        message="You are not authorized to pay this bill",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+
             if not bill.can_be_paid():
-                return error_response(
-                    message=f"Bill cannot be paid in current status: {bill.status}",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                )
+                if bill.is_fully_paid:
+                    return error_response(
+                        message="Bill is already fully paid",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+                elif bill.is_disputed:
+                    return error_response(
+                        message="Cannot pay disputed bill",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
+                else:
+                    return error_response(
+                        message="Bill cannot be paid",
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
 
             if amount is None:
                 amount = bill.remaining_amount

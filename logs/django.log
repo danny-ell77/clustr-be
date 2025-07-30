@@ -494,3 +494,1067 @@ INFO 2025-07-29 03:52:20,078 autoreload 164648 164456 Watching for file changes 
 INFO 2025-07-29 03:53:05,118 autoreload 57644 15412 Watching for file changes with StatReloader
 INFO 2025-07-29 03:54:18,460 autoreload 57644 15412 C:\Users\USER\clustr\accounts\models\user_settings.py changed, reloading.
 INFO 2025-07-29 03:54:26,670 autoreload 139660 60316 Watching for file changes with StatReloader
+INFO 2025-07-30 10:31:08,667 autoreload 84520 101788 Watching for file changes with StatReloader
+INFO 2025-07-30 10:32:44,110 autoreload 102344 99960 Watching for file changes with StatReloader
+INFO 2025-07-30 10:32:51,914 request_middleware 102344 102616 Request: GET /
+INFO 2025-07-30 10:32:52,029 request_middleware 102344 102616 Response: GET / 404
+WARNING 2025-07-30 10:32:52,033 basehttp 102344 102616 "GET / HTTP/1.1" 404 2501
+WARNING 2025-07-30 10:32:53,129 basehttp 102344 102616 "GET /favicon.ico HTTP/1.1" 404 2552
+INFO 2025-07-30 10:32:58,376 request_middleware 102344 102616 Request: GET /api/v1
+INFO 2025-07-30 10:32:58,409 request_middleware 102344 102616 Response: GET /api/v1 404
+WARNING 2025-07-30 10:32:58,412 basehttp 102344 102616 "GET /api/v1 HTTP/1.1" 404 2537
+INFO 2025-07-30 10:33:04,635 request_middleware 102344 102616 Request: GET /api/v1/
+INFO 2025-07-30 10:33:04,647 request_middleware 102344 102616 Response: GET /api/v1/ 404
+WARNING 2025-07-30 10:33:04,648 basehttp 102344 102616 "GET /api/v1/ HTTP/1.1" 404 3874
+INFO 2025-07-30 10:33:09,861 request_middleware 102344 102616 Request: GET /api/v1/members
+INFO 2025-07-30 10:33:09,869 request_middleware 102344 102616 Response: GET /api/v1/members 404
+INFO 2025-07-30 10:33:09,878 basehttp 102344 102616 "GET /api/v1/members HTTP/1.1" 301 0
+INFO 2025-07-30 10:33:09,886 request_middleware 102344 102556 Request: GET /api/v1/members/
+WARNING 2025-07-30 10:33:09,899 exception_handlers 102344 102556 AUTHENTICATION_ERROR in GET /api/v1/members/: Authentication credentials were not provided.
+INFO 2025-07-30 10:33:10,210 request_middleware 102344 102556 Response: GET /api/v1/members/ 403
+WARNING 2025-07-30 10:33:10,212 basehttp 102344 102556 "GET /api/v1/members/ HTTP/1.1" 403 4996
+INFO 2025-07-30 10:33:10,598 basehttp 102344 102748 "GET /static/rest_framework/css/prettify.css HTTP/1.1" 200 817
+INFO 2025-07-30 10:33:10,626 basehttp 102344 102520 "GET /static/rest_framework/css/bootstrap-tweaks.css HTTP/1.1" 200 3426
+INFO 2025-07-30 10:33:10,634 basehttp 102344 103080 "GET /static/rest_framework/css/default.css HTTP/1.1" 200 1152
+INFO 2025-07-30 10:33:10,694 basehttp 102344 98912 "GET /static/rest_framework/js/ajax-form.js HTTP/1.1" 200 3796
+INFO 2025-07-30 10:33:10,720 basehttp 102344 102748 "GET /static/rest_framework/js/csrf.js HTTP/1.1" 200 1793
+INFO 2025-07-30 10:33:10,733 basehttp 102344 102556 "GET /static/rest_framework/css/bootstrap.min.css HTTP/1.1" 200 121457
+INFO 2025-07-30 10:33:10,733 basehttp 102344 102520 "GET /static/rest_framework/js/bootstrap.min.js HTTP/1.1" 200 39680
+INFO 2025-07-30 10:33:10,775 basehttp 102344 103080 "GET /static/rest_framework/js/prettify-min.js HTTP/1.1" 200 13632
+INFO 2025-07-30 10:33:10,790 basehttp 102344 102668 "GET /static/rest_framework/js/jquery-3.7.1.min.js HTTP/1.1" 200 87533
+INFO 2025-07-30 10:33:10,813 basehttp 102344 98912 "GET /static/rest_framework/js/default.js HTTP/1.1" 200 1268
+INFO 2025-07-30 10:33:10,828 basehttp 102344 102748 "GET /static/rest_framework/js/load-ajax-form.js HTTP/1.1" 200 59
+INFO 2025-07-30 10:33:10,892 basehttp 102344 102556 "GET /static/rest_framework/img/grid.png HTTP/1.1" 200 1458
+INFO 2025-07-30 10:33:15,777 request_middleware 102344 102556 Request: GET /api/v1/
+INFO 2025-07-30 10:33:15,791 request_middleware 102344 102556 Response: GET /api/v1/ 404
+WARNING 2025-07-30 10:33:15,792 basehttp 102344 102556 "GET /api/v1/ HTTP/1.1" 404 3874
+INFO 2025-07-30 10:33:21,728 request_middleware 102344 102556 Request: GET /api/v1/doc
+INFO 2025-07-30 10:33:21,741 request_middleware 102344 102556 Response: GET /api/v1/doc 404
+WARNING 2025-07-30 10:33:21,743 basehttp 102344 102556 "GET /api/v1/doc HTTP/1.1" 404 3883
+INFO 2025-07-30 10:33:30,243 request_middleware 102344 102556 Request: GET /doc
+INFO 2025-07-30 10:33:30,258 request_middleware 102344 102556 Response: GET /doc 404
+INFO 2025-07-30 10:33:30,259 basehttp 102344 102556 "GET /doc HTTP/1.1" 301 0
+INFO 2025-07-30 10:33:30,281 request_middleware 102344 102748 Request: GET /doc/
+INFO 2025-07-30 10:33:30,333 request_middleware 102344 102748 Response: GET /doc/ 200
+INFO 2025-07-30 10:33:30,334 basehttp 102344 102748 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:33:30,401 basehttp 102344 102520 "GET /static/drf-yasg/insQ.min.js HTTP/1.1" 200 2093
+INFO 2025-07-30 10:33:30,402 basehttp 102344 102748 "GET /static/drf-yasg/style.css HTTP/1.1" 200 1047
+INFO 2025-07-30 10:33:30,407 basehttp 102344 103080 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-standalone-preset.js HTTP/1.1" 200 322863
+INFO 2025-07-30 10:33:30,410 basehttp 102344 102668 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui-bundle.js HTTP/1.1" 200 1046583
+INFO 2025-07-30 10:33:30,411 basehttp 102344 102520 "GET /static/drf-yasg/swagger-ui-init.js HTTP/1.1" 200 15480
+INFO 2025-07-30 10:33:30,432 basehttp 102344 98912 "GET /static/drf-yasg/swagger-ui-dist/swagger-ui.css HTTP/1.1" 200 145206
+INFO 2025-07-30 10:33:30,473 basehttp 102344 95320 "GET /static/drf-yasg/immutable.min.js HTTP/1.1" 200 56904
+INFO 2025-07-30 10:33:30,990 request_middleware 102344 95320 Request: GET /doc/
+INFO 2025-07-30 10:33:31,084 basehttp 102344 102668 "GET /static/drf-yasg/swagger-ui-dist/favicon-32x32.png HTTP/1.1" 200 628
+ERROR 2025-07-30 10:33:32,789 exception_handlers 102344 95320 Unhandled exception in GET /doc/: ImproperlyConfigured
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 45, in get_operation
+    responses = self.get_responses()
+                ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 180, in get_responses
+    response_serializers = self.get_response_serializers()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 235, in get_response_serializers
+    responses = self.get_default_responses()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 211, in get_default_responses
+    default_schema = self.serializer_to_schema(default_schema) or ''
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1105, in get_fields
+    field_class, field_kwargs = self.build_field(
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1251, in build_field
+    return self.build_unknown_field(field_name, model_class)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1369, in build_unknown_field
+    raise ImproperlyConfigured(
+django.core.exceptions.ImproperlyConfigured: Field name `status` is not valid for model `Bill` in `core.common.serializers.utility_serializers.UtilityBillSerializer`.
+INFO 2025-07-30 10:33:32,815 request_middleware 102344 95320 Response: GET /doc/ 500
+WARNING 2025-07-30 10:33:32,815 request_middleware 102344 95320 Slow request: GET /doc/ took 1.825s
+ERROR 2025-07-30 10:33:32,817 basehttp 102344 95320 "GET /doc/?format=openapi HTTP/1.1" 500 5503
+INFO 2025-07-30 10:34:08,652 autoreload 102344 99960 C:\Users\USER\clustr\core\common\serializers\payment_serializers.py changed, reloading.
+INFO 2025-07-30 10:34:14,990 autoreload 103044 102356 Watching for file changes with StatReloader
+INFO 2025-07-30 10:34:35,507 request_middleware 103044 103276 Request: GET /doc/
+INFO 2025-07-30 10:34:35,824 request_middleware 103044 103276 Response: GET /doc/ 200
+INFO 2025-07-30 10:34:35,828 basehttp 103044 103276 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:34:36,299 request_middleware 103044 103276 Request: GET /doc/
+ERROR 2025-07-30 10:34:38,077 exception_handlers 103044 103276 Unhandled exception in GET /doc/: ImproperlyConfigured
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 45, in get_operation
+    responses = self.get_responses()
+                ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 180, in get_responses
+    response_serializers = self.get_response_serializers()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 235, in get_response_serializers
+    responses = self.get_default_responses()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 211, in get_default_responses
+    default_schema = self.serializer_to_schema(default_schema) or ''
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1105, in get_fields
+    field_class, field_kwargs = self.build_field(
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1251, in build_field
+    return self.build_unknown_field(field_name, model_class)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1369, in build_unknown_field
+    raise ImproperlyConfigured(
+django.core.exceptions.ImproperlyConfigured: Field name `status` is not valid for model `Bill` in `core.common.serializers.utility_serializers.UtilityBillSerializer`.
+INFO 2025-07-30 10:34:38,104 request_middleware 103044 103276 Response: GET /doc/ 500
+WARNING 2025-07-30 10:34:38,104 request_middleware 103044 103276 Slow request: GET /doc/ took 1.806s
+ERROR 2025-07-30 10:34:38,124 basehttp 103044 103276 "GET /doc/?format=openapi HTTP/1.1" 500 5503
+INFO 2025-07-30 10:35:05,571 autoreload 103044 102356 C:\Users\USER\clustr\core\common\serializers\utility_serializers.py changed, reloading.
+INFO 2025-07-30 10:35:11,552 autoreload 92104 103376 Watching for file changes with StatReloader
+INFO 2025-07-30 10:35:16,270 request_middleware 92104 102284 Request: GET /doc/
+INFO 2025-07-30 10:35:16,397 request_middleware 92104 102284 Response: GET /doc/ 200
+INFO 2025-07-30 10:35:16,398 basehttp 92104 102284 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:35:16,809 request_middleware 92104 102284 Request: GET /doc/
+ERROR 2025-07-30 10:35:18,011 exception_handlers 92104 102284 Unhandled exception in GET /doc/: ImproperlyConfigured
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 45, in get_operation
+    responses = self.get_responses()
+                ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 180, in get_responses
+    response_serializers = self.get_response_serializers()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 235, in get_response_serializers
+    responses = self.get_default_responses()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 211, in get_default_responses
+    default_schema = self.serializer_to_schema(default_schema) or ''
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1105, in get_fields
+    field_class, field_kwargs = self.build_field(
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1251, in build_field
+    return self.build_unknown_field(field_name, model_class)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1369, in build_unknown_field
+    raise ImproperlyConfigured(
+django.core.exceptions.ImproperlyConfigured: Field name `last_modified_at` is not valid for model `Bill` in `core.common.serializers.utility_serializers.UtilityBillSerializer`.
+INFO 2025-07-30 10:35:18,036 request_middleware 92104 102284 Response: GET /doc/ 500
+WARNING 2025-07-30 10:35:18,037 request_middleware 92104 102284 Slow request: GET /doc/ took 1.227s
+ERROR 2025-07-30 10:35:18,039 basehttp 92104 102284 "GET /doc/?format=openapi HTTP/1.1" 500 5511
+INFO 2025-07-30 10:36:34,170 autoreload 92104 103376 C:\Users\USER\clustr\core\common\serializers\payment_serializers.py changed, reloading.
+INFO 2025-07-30 10:36:41,219 autoreload 103084 103096 Watching for file changes with StatReloader
+INFO 2025-07-30 10:36:46,776 request_middleware 103084 101684 Request: GET /doc/
+INFO 2025-07-30 10:36:47,148 request_middleware 103084 101684 Response: GET /doc/ 200
+INFO 2025-07-30 10:36:47,157 basehttp 103084 101684 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:36:47,667 request_middleware 103084 101684 Request: GET /doc/
+ERROR 2025-07-30 10:36:52,597 exception_handlers 103084 101684 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 10:36:52,637 request_middleware 103084 101684 Response: GET /doc/ 500
+WARNING 2025-07-30 10:36:52,637 request_middleware 103084 101684 Slow request: GET /doc/ took 4.971s
+ERROR 2025-07-30 10:36:52,639 basehttp 103084 101684 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 10:49:34,470 autoreload 103084 103096 C:\Users\USER\clustr\core\common\models\base.py changed, reloading.
+INFO 2025-07-30 10:49:38,991 autoreload 102444 102316 Watching for file changes with StatReloader
+INFO 2025-07-30 10:49:44,685 request_middleware 102444 103336 Request: GET /doc/
+INFO 2025-07-30 10:49:44,828 request_middleware 102444 103336 Response: GET /doc/ 200
+INFO 2025-07-30 10:49:44,829 basehttp 102444 103336 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:49:45,881 request_middleware 102444 103336 Request: GET /doc/
+ERROR 2025-07-30 10:49:47,189 exception_handlers 102444 103336 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 10:49:47,223 request_middleware 102444 103336 Response: GET /doc/ 500
+WARNING 2025-07-30 10:49:47,224 request_middleware 102444 103336 Slow request: GET /doc/ took 1.342s
+ERROR 2025-07-30 10:49:47,225 basehttp 102444 103336 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 10:50:59,560 autoreload 103404 102252 Watching for file changes with StatReloader
+INFO 2025-07-30 10:51:03,349 request_middleware 103404 104784 Request: GET /doc/
+INFO 2025-07-30 10:51:03,577 request_middleware 103404 104784 Response: GET /doc/ 200
+INFO 2025-07-30 10:51:03,578 basehttp 103404 104784 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:51:03,924 request_middleware 103404 104784 Request: GET /doc/
+ERROR 2025-07-30 10:51:05,413 exception_handlers 103404 104784 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 10:51:05,435 request_middleware 103404 104784 Response: GET /doc/ 500
+WARNING 2025-07-30 10:51:05,436 request_middleware 103404 104784 Slow request: GET /doc/ took 1.511s
+ERROR 2025-07-30 10:51:05,438 basehttp 103404 104784 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 10:52:12,148 request_middleware 103404 104784 Request: GET /redoc/
+INFO 2025-07-30 10:52:12,192 request_middleware 103404 104784 Response: GET /redoc/ 200
+INFO 2025-07-30 10:52:12,194 basehttp 103404 104784 "GET /redoc/ HTTP/1.1" 200 923
+INFO 2025-07-30 10:52:12,364 basehttp 103404 104784 "GET /static/drf-yasg/redoc-init.js HTTP/1.1" 200 2566
+INFO 2025-07-30 10:52:12,374 basehttp 103404 105016 "GET /static/drf-yasg/redoc/redoc.min.js HTTP/1.1" 200 1042511
+INFO 2025-07-30 10:52:12,528 request_middleware 103404 105016 Request: GET /redoc/
+ERROR 2025-07-30 10:52:13,898 exception_handlers 103404 105016 Unhandled exception in GET /redoc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 10:52:13,915 request_middleware 103404 105016 Response: GET /redoc/ 500
+WARNING 2025-07-30 10:52:13,915 request_middleware 103404 105016 Slow request: GET /redoc/ took 1.387s
+ERROR 2025-07-30 10:52:13,917 basehttp 103404 105016 "GET /redoc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 10:56:31,429 autoreload 101840 102412 Watching for file changes with StatReloader
+INFO 2025-07-30 10:56:51,310 request_middleware 101840 107036 Request: GET /doc/
+INFO 2025-07-30 10:56:51,556 request_middleware 101840 107036 Response: GET /doc/ 200
+INFO 2025-07-30 10:56:51,558 basehttp 101840 107036 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 10:56:52,382 request_middleware 101840 107036 Request: GET /doc/
+ERROR 2025-07-30 10:56:54,190 exception_handlers 101840 107036 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 10:56:54,215 request_middleware 101840 107036 Response: GET /doc/ 500
+WARNING 2025-07-30 10:56:54,216 request_middleware 101840 107036 Slow request: GET /doc/ took 1.834s
+ERROR 2025-07-30 10:56:54,218 basehttp 101840 107036 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:02:16,240 autoreload 107272 101500 Watching for file changes with StatReloader
+INFO 2025-07-30 11:02:28,752 request_middleware 107272 101532 Request: GET /doc/
+INFO 2025-07-30 11:02:28,938 request_middleware 107272 101532 Response: GET /doc/ 200
+INFO 2025-07-30 11:02:28,939 basehttp 107272 101532 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 11:02:30,086 request_middleware 107272 101532 Request: GET /doc/
+ERROR 2025-07-30 11:02:32,312 exception_handlers 107272 101532 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 11:02:32,352 request_middleware 107272 101532 Response: GET /doc/ 500
+WARNING 2025-07-30 11:02:32,353 request_middleware 107272 101532 Slow request: GET /doc/ took 2.265s
+ERROR 2025-07-30 11:02:32,355 basehttp 107272 101532 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:06:23,371 autoreload 107272 101500 C:\Users\USER\clustr\core\common\models\base.py changed, reloading.
+INFO 2025-07-30 11:06:29,229 autoreload 99804 106020 Watching for file changes with StatReloader
+INFO 2025-07-30 11:07:17,053 autoreload 106928 7296 Watching for file changes with StatReloader
+INFO 2025-07-30 11:07:24,770 request_middleware 106928 94824 Request: GET /doc/
+INFO 2025-07-30 11:07:24,958 request_middleware 106928 94824 Response: GET /doc/ 200
+INFO 2025-07-30 11:07:24,959 basehttp 106928 94824 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 11:07:25,837 request_middleware 106928 94824 Request: GET /doc/
+ERROR 2025-07-30 11:07:27,944 exception_handlers 106928 94824 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 11:07:27,971 request_middleware 106928 94824 Response: GET /doc/ 500
+WARNING 2025-07-30 11:07:27,971 request_middleware 106928 94824 Slow request: GET /doc/ took 2.134s
+ERROR 2025-07-30 11:07:27,973 basehttp 106928 94824 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:09:43,753 autoreload 106928 7296 C:\Users\USER\clustr\management\views_task.py changed, reloading.
+INFO 2025-07-30 11:09:49,884 autoreload 104252 105256 Watching for file changes with StatReloader
+INFO 2025-07-30 11:10:35,671 autoreload 104252 105256 C:\Users\USER\clustr\members\views_maintenance.py changed, reloading.
+INFO 2025-07-30 11:10:40,455 autoreload 106072 106472 Watching for file changes with StatReloader
+INFO 2025-07-30 11:10:44,710 request_middleware 106072 103612 Request: GET /doc/
+INFO 2025-07-30 11:10:44,929 request_middleware 106072 103612 Response: GET /doc/ 200
+INFO 2025-07-30 11:10:44,931 basehttp 106072 103612 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 11:10:45,338 request_middleware 106072 103612 Request: GET /doc/
+ERROR 2025-07-30 11:10:46,137 exception_handlers 106072 103612 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 11:10:46,166 request_middleware 106072 103612 Response: GET /doc/ 500
+ERROR 2025-07-30 11:10:46,167 basehttp 106072 103612 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:15:02,027 autoreload 15760 104952 Watching for file changes with StatReloader
+INFO 2025-07-30 11:15:10,403 request_middleware 15760 103740 Request: GET /doc/
+INFO 2025-07-30 11:15:10,557 request_middleware 15760 103740 Response: GET /doc/ 200
+INFO 2025-07-30 11:15:10,559 basehttp 15760 103740 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 11:15:11,350 request_middleware 15760 103740 Request: GET /doc/
+ERROR 2025-07-30 11:15:12,576 exception_handlers 15760 103740 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 11:15:12,604 request_middleware 15760 103740 Response: GET /doc/ 500
+WARNING 2025-07-30 11:15:12,605 request_middleware 15760 103740 Slow request: GET /doc/ took 1.255s
+ERROR 2025-07-30 11:15:12,619 basehttp 15760 103740 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:18:12,115 autoreload 102012 48980 Watching for file changes with StatReloader
+INFO 2025-07-30 11:18:20,965 request_middleware 102012 92104 Request: GET /doc/
+INFO 2025-07-30 11:18:21,340 request_middleware 102012 92104 Response: GET /doc/ 200
+INFO 2025-07-30 11:18:21,342 basehttp 102012 92104 "GET /doc/ HTTP/1.1" 200 2431
+INFO 2025-07-30 11:18:22,664 request_middleware 102012 92104 Request: GET /doc/
+ERROR 2025-07-30 11:18:23,976 exception_handlers 102012 92104 Unhandled exception in GET /doc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 11:18:24,000 request_middleware 102012 92104 Response: GET /doc/ 500
+WARNING 2025-07-30 11:18:24,001 request_middleware 102012 92104 Slow request: GET /doc/ took 1.335s
+ERROR 2025-07-30 11:18:24,014 basehttp 102012 92104 "GET /doc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:19:09,730 autoreload 104820 103640 Watching for file changes with StatReloader
+INFO 2025-07-30 11:19:19,165 request_middleware 104820 106956 Request: GET /redoc/
+INFO 2025-07-30 11:19:19,396 request_middleware 104820 106956 Response: GET /redoc/ 200
+INFO 2025-07-30 11:19:19,398 basehttp 104820 106956 "GET /redoc/ HTTP/1.1" 200 923
+INFO 2025-07-30 11:19:19,703 request_middleware 104820 106956 Request: GET /redoc/
+INFO 2025-07-30 11:19:21,187 basehttp 104820 103568 "GET /static/drf-yasg/redoc/redoc-logo.png HTTP/1.1" 200 4969
+ERROR 2025-07-30 11:19:21,545 exception_handlers 104820 106956 Unhandled exception in GET /redoc/: TypeError
+Traceback (most recent call last):
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\views.py", line 112, in get
+    schema = generator.get_schema(request, self.public)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 276, in get_schema
+    paths, prefix = self.get_paths(endpoints, components, request, public)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 482, in get_paths
+    operation = self.get_operation(view, path, prefix, method, components, request)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\generators.py", line 524, in get_operation
+    operation = view_inspector.get_operation(operation_keys)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 32, in get_operation
+    body = self.get_request_body_parameters(consumes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 85, in get_request_body_parameters
+    schema = self.get_request_body_schema(serializer)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\view.py", line 142, in get_request_body_schema
+    return self.serializer_to_schema(serializer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 438, in serializer_to_schema
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 49, in get_schema
+    return self.probe_field_inspectors(serializer, openapi.Schema, self.use_definitions)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 228, in probe_field_inspectors
+    return self.probe_inspectors(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\base.py", line 110, in probe_inspectors
+    result = method(obj, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 140, in field_to_swagger_object
+    actual_schema = definitions.setdefault(ref_name, make_schema_definition)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\openapi.py", line 685, in setdefault
+    ret = maker()
+          ^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\drf_yasg\inspectors\field.py", line 109, in make_schema_definition
+    for property_name, child in serializer.fields.items():
+                                ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\django\utils\functional.py", line 47, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+                                         ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 374, in fields
+    for key, value in self.get_fields().items():
+                      ^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\serializers.py", line 1115, in get_fields
+    fields[field_name] = field_class(**field_kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py", line 736, in __init__
+    super().__init__(**kwargs)
+TypeError: Field.__init__() got an unexpected keyword argument 'editable'
+INFO 2025-07-30 11:19:21,574 request_middleware 104820 106956 Response: GET /redoc/ 500
+WARNING 2025-07-30 11:19:21,575 request_middleware 104820 106956 Slow request: GET /redoc/ took 1.871s
+ERROR 2025-07-30 11:19:21,580 basehttp 104820 106956 "GET /redoc/?format=openapi HTTP/1.1" 500 4867
+INFO 2025-07-30 11:19:48,969 autoreload 104820 103640 C:\Users\USER\clustr\.venv\Lib\site-packages\rest_framework\fields.py changed, reloading.
+INFO 2025-07-30 11:19:57,306 autoreload 104612 105872 Watching for file changes with StatReloader
+INFO 2025-07-30 11:20:03,892 request_middleware 104612 102760 Request: GET /redoc/
+INFO 2025-07-30 11:20:04,389 request_middleware 104612 102760 Response: GET /redoc/ 200
+INFO 2025-07-30 11:20:04,390 basehttp 104612 102760 "GET /redoc/ HTTP/1.1" 200 923
+INFO 2025-07-30 11:20:04,746 request_middleware 104612 102760 Request: GET /redoc/
+INFO 2025-07-30 11:20:07,340 request_middleware 104612 102760 Response: GET /redoc/ 200
+WARNING 2025-07-30 11:20:07,341 request_middleware 104612 102760 Slow request: GET /redoc/ took 2.594s
+INFO 2025-07-30 11:20:07,342 basehttp 104612 102760 "GET /redoc/?format=openapi HTTP/1.1" 200 279366
