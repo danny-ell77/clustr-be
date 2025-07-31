@@ -29,11 +29,11 @@ class NotificationManagerTestCase(TestCase):
         )
         
         # Create test users
-        self.user1 = User.objects.create_user(
+        self.user1 = User.objects.create_owner(
             email_address="user1@test.com",
             password="testpass123"
         )
-        self.user2 = User.objects.create_user(
+        self.user2 = User.objects.create_owner(
             email_address="user2@test.com", 
             password="testpass123"
         )
@@ -272,7 +272,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.cluster = Cluster.objects.create(name="Test Estate")
-        self.user = User.objects.create_user(
+        self.user = User.objects.create_owner(
             email_address="test@test.com",
             password="testpass123"
         )
@@ -426,7 +426,7 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.cluster = Cluster.objects.create(name="Test Estate")
-        self.user = User.objects.create_user(
+        self.user = User.objects.create_owner(
             email_address="test@test.com",
             password="testpass123"
         )
@@ -619,7 +619,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.cluster = Cluster.objects.create(name="Test Estate")
-        self.user = User.objects.create_user(
+        self.user = User.objects.create_owner(
             email_address="test@test.com",
             password="testpass123"
         )
@@ -859,7 +859,7 @@ class NotificationManagerLoggingTestCase(TestCase):
     def setUp(self):
         """Set up test data."""
         self.cluster = Cluster.objects.create(name="Test Estate")
-        self.user = User.objects.create_user(
+        self.user = User.objects.create_owner(
             email_address="test@test.com",
             password="testpass123"
         )

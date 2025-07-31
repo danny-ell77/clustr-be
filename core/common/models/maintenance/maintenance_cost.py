@@ -89,6 +89,7 @@ class MaintenanceCost(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("maintenance cost")
         verbose_name_plural = _("maintenance costs")
         ordering = ["date_incurred"]

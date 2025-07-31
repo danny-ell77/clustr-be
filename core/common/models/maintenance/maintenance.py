@@ -237,6 +237,7 @@ class MaintenanceLog(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("maintenance log")
         verbose_name_plural = _("maintenance logs")
         ordering = ["-created_at"]

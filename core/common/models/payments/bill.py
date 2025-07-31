@@ -9,11 +9,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 from core.common.models.base import AbstractClusterModel
-
-# Related model imports (will be converted to string references)
-# from core.common.models.unknown import BillCategory
 
 logger = logging.getLogger('clustr')
 
@@ -55,6 +53,16 @@ class BillCategory(models.TextChoices):
 
     CLUSTER_MANAGED = "cluster_managed", _("Cluster-managed")
     USER_MANAGED = "user_managed", _("User-managed")
+
+
+class DisputeStatus(models.TextChoices):
+    """Dispute status choices"""
+
+    OPEN = "open", _("Open")
+    UNDER_REVIEW = "under_review", _("Under Review")
+    RESOLVED = "resolved", _("Resolved")
+    REJECTED = "rejected", _("Rejected")
+    WITHDRAWN = "withdrawn", _("Withdrawn")
 
 
 class Bill(AbstractClusterModel):
@@ -129,6 +137,11 @@ class Bill(AbstractClusterModel):
         help_text=_("Whether this bill has automated recurring payments"),
     )
 
+    created_by_user = models.BooleanField(
+        default=False,
+        help_text=_("Indicates if the bill was created by the user themselves, not an admin.")
+    )
+
     amount = models.DecimalField(
         verbose_name=_("amount"),
         max_digits=15,
@@ -158,20 +171,6 @@ class Bill(AbstractClusterModel):
         verbose_name=_("allow payment after due"),
         default=True,
         help_text=_("Whether payment is allowed after due date"),
-    )
-
-    dispute_reason = models.TextField(
-        verbose_name=_("dispute reason"),
-        blank=True,
-        null=True,
-        help_text=_("Reason for disputing the bill"),
-    )
-
-    disputed_at = models.DateTimeField(
-        verbose_name=_("disputed at"),
-        null=True,
-        blank=True,
-        help_text=_("Date and time when bill was disputed"),
     )
 
     due_date = models.DateTimeField(
@@ -212,6 +211,7 @@ class Bill(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Bill")
         verbose_name_plural = _("Bills")
         indexes = [
@@ -220,7 +220,6 @@ class Bill(AbstractClusterModel):
             models.Index(fields=["due_date"]),
             models.Index(fields=["type"]),
             models.Index(fields=["due_date", "allow_payment_after_due"]),
-            models.Index(fields=["disputed_at"]),
             models.Index(fields=["paid_at"]),
         ]
         ordering = ["-created_at"]
@@ -250,39 +249,41 @@ class Bill(AbstractClusterModel):
 
     def can_be_paid_by(self, user):
         """Check if a user can pay this bill."""
-        # First check if user can acknowledge the bill (same logic)
+        # First, check if the user is the intended recipient (or in the cluster)
         if not self.can_be_acknowledged_by(user):
             return False
-        
-        # Check if bill has been acknowledged by this user
-        if not self.acknowledged_by.filter(id=user.id).exists():
-            return False
-        
+
+        # For user-managed bills, they must be acknowledged first
+        if self.category == BillCategory.USER_MANAGED:
+            if not self.acknowledged_by.filter(id=user.id).exists():
+                return False
+
         # Check due date restrictions
-        if self.is_overdue and not self.allow_payment_after_due:
+        is_past_due = self.due_date < timezone.now()
+        if is_past_due and not self.allow_payment_after_due:
             return False
-        
+
         return True
 
     @property
     def is_overdue(self):
         """Check if bill is overdue."""
-        return self.due_date < timezone.now() and not self.is_fully_paid
+        return self.user_id and self.due_date < timezone.now() and not self.is_fully_paid
 
     @property
     def remaining_amount(self):
         """Calculate remaining amount to be paid."""
-        return self.amount - self.paid_amount
+        return self.user_id and self.amount - self.paid_amount
 
     @property
     def is_fully_paid(self):
         """Check if bill is fully paid."""
-        return self.paid_amount >= self.amount
+        return self.user_id and self.paid_amount >= self.amount
 
     @property
     def is_disputed(self):
-        """Check if bill is disputed."""
-        return self.disputed_at is not None
+        """Check if bill has any active disputes."""
+        return self.user_id and self.disputes.filter(status__in=[DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]).exists()
 
     @property
     def acknowledgment_count(self):
@@ -313,12 +314,23 @@ class Bill(AbstractClusterModel):
         return False
 
     def mark_as_paid(self, transaction=None):
-        """Mark bill as paid."""
+        """
+        Mark a USER_MANAGED bill as fully paid.
+        This method should NOT be used for CLUSTER_MANAGED bills.
+        """
+        if self.category == BillCategory.CLUSTER_MANAGED:
+            logger.warning(
+                f"Attempted to use mark_as_paid on a CLUSTER_MANAGED bill (ID: {self.id}). "
+                f"This method is only for USER_MANAGED bills."
+            )
+            return
+
         self.paid_amount = self.amount
         self.paid_at = timezone.now()
         if transaction:
             self.payment_transaction = transaction
             # Ensure transaction type is set correctly for bill payments
+            from .transaction import TransactionType
             if transaction.type != TransactionType.BILL_PAYMENT:
                 transaction.type = TransactionType.BILL_PAYMENT
                 transaction.save(update_fields=['type'])
@@ -336,73 +348,103 @@ class Bill(AbstractClusterModel):
         Returns:
             bool: True if acknowledgment was successful, False otherwise
         """
-        # Check if user can acknowledge this bill
         if not self.can_be_acknowledged_by(user):
             return False
             
-        # Check if user has already acknowledged
         if self.acknowledged_by.filter(id=user.id).exists():
             return False  # Already acknowledged
             
-        # Add user to acknowledged_by ManyToMany field
         self.acknowledged_by.add(user)
         return True
 
     def dispute(self, user, reason: str):
         """
-        Dispute the bill.
+        Create a dispute for this bill.
         
         Args:
             user: AccountUser instance disputing the bill
             reason: Reason for disputing the bill
             
         Returns:
-            bool: True if dispute was successful, False otherwise
+            BillDispute instance if successful, None otherwise
         """
-        # Check if user can dispute this bill (same logic as acknowledgment)
         if not self.can_be_acknowledged_by(user):
-            return False
+            return None
             
-        # Check if bill is not already fully paid
         if self.is_fully_paid:
-            return False
+            return None
+        
+        # Check if user already has an active dispute for this bill
+        existing_dispute = self.disputes.filter(
+            disputed_by=user,
+            status__in=[DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]
+        ).first()
+        
+        if existing_dispute:
+            return existing_dispute
             
-        self.disputed_at = timezone.now()
-        self.dispute_reason = reason
-        self.save(
-            update_fields=[
-                "disputed_at",
-                "dispute_reason",
-            ]
+        # Create new dispute
+        dispute = BillDispute.objects.create(
+            bill=self,
+            disputed_by=user,
+            reason=reason,
+            cluster=self.cluster
         )
-        return True
+        return dispute
 
     def can_be_paid(self):
-        """Check if bill can be paid."""
-        # Bill can be paid if it's not fully paid and not disputed
-        return not self.is_fully_paid and self.disputed_at is None
+        """
+        Check if the bill can be paid.
+        A bill can be paid if it is not fully paid and has no active disputes.
+        Uses the correct property based on the bill category.
+        """
+        if self.category == BillCategory.CLUSTER_MANAGED:
+            is_paid = self.is_fully_paid_cluster
+        else:
+            is_paid = self.is_fully_paid
 
-    def add_payment(self, amount, transaction=None):
-        """Add a partial payment to the bill."""
-        if not self.can_be_paid():
-            raise ValueError("Bill cannot be paid - either fully paid or disputed")
+        return not is_paid and not self.is_disputed
 
-        self.paid_amount += amount
-        if self.paid_amount >= self.amount:
-            self.paid_at = timezone.now()
+    def add_payment(self, amount, transaction):
+        """
+        Handles the logic for adding a payment to a bill.
 
-        if transaction:
+        For USER_MANAGED bills, it updates the bill's state directly.
+        For CLUSTER_MANAGED bills, it only handles post-payment actions like
+        crediting the cluster wallet. The transaction itself is the record of payment.
+        """
+        User = get_user_model()
+        user = User.objects.filter(pk=transaction.wallet.user_id).first()
+        if not user:
+            logger.error(f"Cannot find user associated with transaction {transaction.id}")
+            return
+
+        # Logic for user-managed bills (explicit, single-payer)
+        if self.category == BillCategory.USER_MANAGED:
+            if not self.can_be_paid_by(user):
+                raise ValueError("Bill cannot be paid by this user - check acknowledgment, due date, or dispute status.")
+
+            self.paid_amount += amount
+            if self.paid_amount >= self.amount:
+                self.paid_at = timezone.now()
+
             self.payment_transaction = transaction
-            # Ensure transaction type is set correctly for bill payments
+            from .transaction import TransactionType
             if transaction.type != TransactionType.BILL_PAYMENT:
                 transaction.type = TransactionType.BILL_PAYMENT
                 transaction.save(update_fields=['type'])
+            
+            self.save(update_fields=["paid_amount", "paid_at", "payment_transaction"])
 
-        self.save(
-            update_fields=["paid_amount", "paid_at", "payment_transaction"]
-        )
+        # Logic for cluster-managed bills (multi-payer)
+        elif self.category == BillCategory.CLUSTER_MANAGED:
+            # For cluster bills, we don't modify the bill's state upon payment.
+            # The transaction record is the source of truth.
+            # We just need to ensure the user was eligible to pay.
+            if not self.acknowledged_by.filter(id=user.id).exists():
+                raise ValueError("User must acknowledge a cluster bill before paying.")
 
-        # Credit the cluster's main wallet immediately after successful bill payment
+        # Credit the cluster's main wallet immediately after any successful bill payment
         self.credit_cluster_wallet(amount, transaction)
 
     def credit_cluster_wallet(self, amount, transaction=None):
@@ -439,56 +481,235 @@ class Bill(AbstractClusterModel):
             ),
         }
 
-    def can_be_paid_by_transaction(self, transaction):
-        """
-        Check if this bill can be paid by a specific transaction.
-        
-        Args:
-            transaction: Transaction instance
-            
-        Returns:
-            bool: True if transaction can pay this bill
-        """
-        # Basic validation
-        if not self.can_be_paid():
-            return False
-        
-        # Check if transaction amount is sufficient for remaining amount
-        if transaction.amount < self.remaining_amount:
-            return False
-        
-        # Check if transaction is from the correct user for user-specific bills
-        if not self.is_cluster_wide():
-            # For user-specific bills, transaction wallet must belong to the target user
-            if str(transaction.wallet.user_id) != str(self.user_id):
-                return False
-        else:
-            # For cluster-wide bills, transaction wallet user must be from the same cluster
-            # This would require checking the user's cluster, but we don't have direct access
-            # to the User model here. This validation should be done at the business logic level.
-            pass
-        
-        return True
+    def get_active_disputes(self):
+        """Get all active disputes for this bill."""
+        return self.disputes.filter(status__in=[DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW])
 
-    def link_transaction(self, transaction):
+    def get_user_dispute(self, user):
+        """Get active dispute by a specific user."""
+        return self.disputes.filter(
+            disputed_by=user,
+            status__in=[DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]
+        ).first()
+
+    def has_dispute_by_user(self, user):
+        """Check if a specific user has an active dispute for this bill."""
+        return self.get_user_dispute(user) is not None
+
+    @property
+    def dispute_count(self):
+        """Get the number of active disputes for this bill."""
+        return self.get_active_disputes().count()
+
+    # --- Properties and Methods for Cluster-Managed Bill Logic ---
+
+    @property
+    def total_paid_amount_cluster(self):
         """
-        Link a transaction to this bill as payment.
-        
-        Args:
-            transaction: Transaction instance to link
-            
-        Returns:
-            bool: True if linking was successful
+        Calculates the total amount paid towards a CLUSTER_MANAGED bill
+        by aggregating all related successful transactions.
+        Returns the Bill's paid_amount for USER_MANAGED bills.
         """
-        if not self.can_be_paid_by_transaction(transaction):
+        if self.category == BillCategory.USER_MANAGED:
+            return self.paid_amount
+
+        from .transaction import Transaction  # Local import to avoid circular dependency
+        # Assumes the related_name on Transaction.bill is 'transactions'
+        # and Transaction has a 'status' field.
+        aggregation = self.transactions.filter(
+            status=Transaction.Status.SUCCESSFUL
+        ).aggregate(
+            total=models.Sum('amount')
+        )
+        return aggregation['total'] or Decimal('0.00')
+
+    @property
+    def is_fully_paid_cluster(self):
+        """
+        Checks if a CLUSTER_MANAGED bill is fully paid by comparing the
+        aggregated transaction amounts to the total bill amount.
+        Returns the Bill's is_fully_paid status for USER_MANAGED bills.
+        """
+        if self.category == BillCategory.USER_MANAGED:
+            return self.is_fully_paid
+
+        # The bill is considered paid if the total payments meet or exceed the amount.
+        return self.total_paid_amount_cluster >= self.amount
+
+    def get_user_payment_amount(self, user):
+        """
+        Gets the total amount a specific user has paid towards this bill
+        by querying successful transactions linked to their wallet.
+        """
+        from .transaction import Transaction  # Local import
+        # This assumes the Transaction model has a ForeignKey to a Wallet model,
+        # which in turn has a ForeignKey to the User model.
+        aggregation = self.transactions.filter(
+            wallet__user=user,
+            status=Transaction.Status.SUCCESSFUL
+        ).aggregate(total=models.Sum('amount'))
+        return aggregation['total'] or Decimal('0.00')
+
+    def has_user_paid(self, user):
+        """
+        Checks if a specific user has paid their share of a bill.
+        For user-managed bills, checks if the bill is fully paid.
+        For cluster-managed bills, checks if the user has paid an amount
+        equal to or greater than the bill's total amount.
+        """
+        if self.category == BillCategory.USER_MANAGED:
+            return self.is_fully_paid and str(self.user_id) == str(user.id)
+
+        # For cluster bills, the expected amount for each user is the bill's amount.
+        return self.get_user_payment_amount(user) >= self.amount
+
+    def is_user_overdue(self, user):
+        """
+        Checks if a user is overdue on their portion of a bill.
+        A user is overdue if the due date has passed and they have not paid their share.
+        This applies even if they haven't acknowledged.
+        """
+        if self.due_date >= timezone.now():
             return False
-        
-        # Link the transaction
-        self.payment_transaction = transaction
-        
-        # Update payment details
-        payment_amount = min(transaction.amount, self.remaining_amount)
-        self.add_payment(payment_amount, transaction)
-        
-        return True
+
+        # If due date has passed, they are overdue if they haven't paid their share.
+        return not self.has_user_paid(user)
+
+
+class BillDispute(AbstractClusterModel):
+    """
+    Model for managing bill disputes.
+    
+    This model handles disputes for both cluster-wide and user-specific bills,
+    allowing multiple users to dispute the same bill with different reasons.
+    """
+
+    bill = models.ForeignKey(
+        Bill,
+        on_delete=models.CASCADE,
+        related_name="disputes",
+        verbose_name=_("bill"),
+        help_text=_("The bill being disputed"),
+    )
+
+    disputed_by = models.ForeignKey(
+        "accounts.AccountUser",
+        on_delete=models.CASCADE,
+        related_name="bill_disputes",
+        verbose_name=_("disputed by"),
+        help_text=_("User who raised the dispute"),
+    )
+
+    reason = models.TextField(
+        verbose_name=_("dispute reason"),
+        help_text=_("Detailed reason for disputing the bill"),
+    )
+
+    status = models.CharField(
+        verbose_name=_("status"),
+        max_length=20,
+        choices=DisputeStatus.choices,
+        default=DisputeStatus.OPEN,
+        help_text=_("Current status of the dispute"),
+    )
+
+    admin_notes = models.TextField(
+        verbose_name=_("admin notes"),
+        blank=True,
+        null=True,
+        help_text=_("Internal notes from administrators"),
+    )
+
+    resolved_by = models.ForeignKey(
+        "accounts.AccountUser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_disputes",
+        verbose_name=_("resolved by"),
+        help_text=_("Administrator who resolved the dispute"),
+    )
+
+    resolved_at = models.DateTimeField(
+        verbose_name=_("resolved at"),
+        null=True,
+        blank=True,
+        help_text=_("Date and time when dispute was resolved"),
+    )
+
+    resolution_notes = models.TextField(
+        verbose_name=_("resolution notes"),
+        blank=True,
+        null=True,
+        help_text=_("Notes about how the dispute was resolved"),
+    )
+
+    class Meta:
+        default_permissions = []
+        verbose_name = _("Bill Dispute")
+        verbose_name_plural = _("Bill Disputes")
+        indexes = [
+            models.Index(fields=["cluster", "bill"]),
+            models.Index(fields=["disputed_by"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["resolved_at"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bill", "disputed_by"],
+                name="unique_bill_dispute_per_user",
+                condition=models.Q(status__in=[DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW])
+            )
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Dispute for {self.bill.title} by {self.disputed_by.name}"
+
+    def can_be_disputed_by(self, user):
+        """Check if a user can dispute this bill."""
+        return self.bill.can_be_acknowledged_by(user)
+
+    def resolve(self, resolved_by, resolution_notes=""):
+        """Mark dispute as resolved."""
+        self.status = DisputeStatus.RESOLVED
+        self.resolved_by = resolved_by
+        self.resolved_at = timezone.now()
+        self.resolution_notes = resolution_notes
+        self.save(update_fields=["status", "resolved_by", "resolved_at", "resolution_notes"])
+
+    def reject(self, resolved_by, resolution_notes=""):
+        """Mark dispute as rejected."""
+        self.status = DisputeStatus.REJECTED
+        self.resolved_by = resolved_by
+        self.resolved_at = timezone.now()
+        self.resolution_notes = resolution_notes
+        self.save(update_fields=["status", "resolved_by", "resolved_at", "resolution_notes"])
+
+    def withdraw(self):
+        """Allow user to withdraw their dispute."""
+        if self.status in [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]:
+            self.status = DisputeStatus.WITHDRAWN
+            self.resolved_at = timezone.now()
+            self.save(update_fields=["status", "resolved_at"])
+            return True
+        return False
+
+    def set_under_review(self, admin_notes=""):
+        """Mark dispute as under review."""
+        self.status = DisputeStatus.UNDER_REVIEW
+        if admin_notes:
+            self.admin_notes = admin_notes
+        self.save(update_fields=["status", "admin_notes"])
+
+    @property
+    def is_active(self):
+        """Check if dispute is still active (not resolved/rejected/withdrawn)."""
+        return self.status in [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]
+
+    @property
+    def days_since_created(self):
+        """Get number of days since dispute was created."""
+        return (timezone.now() - self.created_at).days
 

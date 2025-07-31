@@ -190,6 +190,7 @@ class Task(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task")
         verbose_name_plural = _("tasks")
         ordering = ["-created_at"]
@@ -404,6 +405,7 @@ class TaskAssignment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task assignment")
         verbose_name_plural = _("task assignments")
         ordering = ["-assigned_at"]
@@ -448,6 +450,7 @@ class TaskAssignmentHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task assignment history")
         verbose_name_plural = _("task assignment histories")
         ordering = ["-created_at"]
@@ -512,6 +515,7 @@ class TaskAttachment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task attachment")
         verbose_name_plural = _("task attachments")
         ordering = ["created_at"]
@@ -562,6 +566,7 @@ class TaskStatusHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task status history")
         verbose_name_plural = _("task status histories")
         ordering = ["-created_at"]
@@ -601,6 +606,7 @@ class TaskEscalationHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task escalation history")
         verbose_name_plural = _("task escalation histories")
         ordering = ["-created_at"]
@@ -648,6 +654,7 @@ class TaskComment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task comment")
         verbose_name_plural = _("task comments")
         ordering = ["created_at"]

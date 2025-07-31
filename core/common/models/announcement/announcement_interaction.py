@@ -33,6 +33,7 @@ class AnnouncementView(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("announcement view")
         verbose_name_plural = _("announcement views")
         unique_together = ["announcement", "user_id"]
@@ -66,6 +67,7 @@ class AnnouncementLike(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("announcement like")
         verbose_name_plural = _("announcement likes")
         unique_together = ["announcement", "user_id"]
@@ -99,6 +101,7 @@ class AnnouncementComment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("announcement comment")
         verbose_name_plural = _("announcement comments")
         ordering = ["-created_at"]

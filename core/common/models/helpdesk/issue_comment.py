@@ -55,6 +55,7 @@ class IssueComment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("issue comment")
         verbose_name_plural = _("issue comments")
         ordering = ["created_at"]

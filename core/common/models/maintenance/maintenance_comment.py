@@ -50,6 +50,7 @@ class MaintenanceComment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("maintenance comment")
         verbose_name_plural = _("maintenance comments")
         ordering = ["created_at"]

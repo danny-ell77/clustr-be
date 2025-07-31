@@ -78,6 +78,7 @@ class UtilityBillViewSet(viewsets.ModelViewSet):
             user_id=self.request.user.id,
             cluster=self.request.user.cluster,
             category=BillCategory.USER_MANAGED,
+            created_by_user=True,
             created_by=self.request.user.id,
             last_modified_by=self.request.user.id,
         )

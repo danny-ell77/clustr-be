@@ -40,6 +40,7 @@ class NotificationTypes(models.TextChoices):
 
     # Access control
     SCHEDULED_VISIT_INVITATION = "SCHEDULED_VISIT_INVITATION"
+    EMERGENCY_ALERT = "EMERGENCY_ALERT"
 
 
 class BodyTypes(str, Enum):

@@ -131,6 +131,7 @@ class EntryExitLog(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Entry/Exit Log")
         verbose_name_plural = _("Entry/Exit Logs")
         ordering = ["-date", "-exit_time"]

@@ -153,6 +153,7 @@ class Transaction(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Transaction")
         verbose_name_plural = _("Transactions")
         indexes = [

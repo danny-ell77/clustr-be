@@ -142,6 +142,7 @@ class ExitRequest(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Exit Request")
         verbose_name_plural = _("Exit Requests")
         ordering = ["-created_at"]

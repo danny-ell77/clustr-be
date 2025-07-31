@@ -249,38 +249,15 @@ class PaymentManager:
             logger.error(f"Receipt generation failed: {e}")
             return None
     
-    def handle_failed_payment(self, transaction: Transaction, 
-                             retry_count: int = 0) -> dict[str, Any]:
-        """
-        Handle failed payment with recovery options.
-        
-        Args:
-            transaction: Failed transaction
-            retry_count: Number of retry attempts
-            
-        Returns:
-            Dict: Recovery options and information
-        """
-        recovery_options = {
-            'can_retry': retry_count < 3,
-            'alternative_providers': [],
-            'support_contact': 'support@clustr.app',
-            'error_message': transaction.failure_reason or 'Payment processing failed',
-        }
-        
-        # Suggest alternative payment providers
-        if transaction.provider == PaymentProvider.PAYSTACK:
-            recovery_options['alternative_providers'].append(PaymentProvider.FLUTTERWAVE)
-        elif transaction.provider == PaymentProvider.FLUTTERWAVE:
-            recovery_options['alternative_providers'].append(PaymentProvider.PAYSTACK)
-        
-        # Add bank transfer as fallback
-        recovery_options['alternative_providers'].append(PaymentProvider.BANK_TRANSFER)
-        
-        return recovery_options
-    
-    def create_payment_transaction(self, wallet, amount: Decimal, description: str,
-                                 provider: PaymentProvider, transaction_type: TransactionType = TransactionType.DEPOSIT) -> Transaction:
+    def create_payment_transaction(
+        self, 
+        wallet, 
+        amount: Decimal, 
+        description: str,
+        provider: PaymentProvider, 
+        transaction_type: TransactionType = TransactionType.DEPOSIT,
+        metadata: dict = {}
+    ) -> Transaction:
         """
         Create a new payment transaction.
         
@@ -303,6 +280,7 @@ class PaymentManager:
             description=description,
             provider=provider,
             status=TransactionStatus.PENDING,
+            metadata=metadata,
             created_by=wallet.created_by,
             last_modified_by=wallet.last_modified_by,
         )
@@ -372,49 +350,3 @@ def initialize_deposit(wallet, amount: Decimal, provider: PaymentProvider,
     
     return transaction, response
 
-
-def process_bill_payment(wallet, bill, provider: PaymentProvider, user=None) -> Transaction:
-    """
-    Process a bill payment transaction.
-    
-    Args:
-        wallet: Wallet object
-        bill: Bill object
-        provider: Payment provider
-        user: User making the payment (for validation)
-        
-    Returns:
-        Transaction: Created transaction object
-    """
-    # Validate user can pay this bill
-    if user and not bill.can_be_paid_by(user):
-        if not bill.acknowledged_by.filter(id=user.id).exists():
-            raise ValueError("Bill must be acknowledged before payment")
-        elif bill.is_overdue and not bill.allow_payment_after_due:
-            raise ValueError("Payment not allowed after due date")
-        else:
-            raise ValueError("You are not authorized to pay this bill")
-    
-    # Validate bill can be paid
-    if not bill.can_be_paid():
-        if bill.is_fully_paid:
-            raise ValueError("Bill is already fully paid")
-        else:
-            raise ValueError("Bill cannot be paid")
-    
-    manager = PaymentManager()
-    
-    transaction = manager.create_payment_transaction(
-        wallet=wallet,
-        amount=bill.remaining_amount,
-        description=f"Bill payment - {bill.title}",
-        provider=provider,
-        transaction_type=TransactionType.BILL_PAYMENT
-    )
-    
-    # For wallet payments, mark as completed immediately
-    if provider == PaymentProvider.CASH:  # Assuming cash means wallet balance
-        transaction.mark_as_completed()
-        bill.add_payment(transaction.amount, transaction)
-    
-    return transaction

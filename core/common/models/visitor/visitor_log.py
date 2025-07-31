@@ -77,6 +77,7 @@ class VisitorLog(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("visitor log")
         verbose_name_plural = _("visitor logs")
         ordering = ["-date", "-arrival_time"]

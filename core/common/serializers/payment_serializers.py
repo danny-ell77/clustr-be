@@ -8,6 +8,7 @@ from core.common.models import (
     Wallet,
     Transaction,
     Bill,
+    BillDispute,
     RecurringPayment,
     WalletStatus,
     PaymentProvider,
@@ -143,6 +144,9 @@ class BillSerializer(serializers.ModelSerializer):
         max_digits=15, decimal_places=2, read_only=True
     )
     is_overdue = serializers.BooleanField(read_only=True)
+    is_cluster_wide = serializers.BooleanField(read_only=True)
+    acknowledgment_count = serializers.IntegerField(read_only=True)
+    is_fully_paid = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Bill
@@ -153,32 +157,81 @@ class BillSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "type",
+            "category",
             "amount",
             "currency",
-            "acknowledged_at",
             "acknowledged_by",
-            "dispute_reason",
-            "disputed_at",
+            "acknowledgment_count",
+            "allow_payment_after_due",
+            "is_disputed",
+            "dispute_count",
             "due_date",
             "paid_amount",
             "paid_at",
             "remaining_amount",
             "is_overdue",
+            "is_cluster_wide",
+            "is_fully_paid",
             "created_at",
             "last_modified_at",
         ]
         read_only_fields = [
             "id",
             "bill_number",
-            "acknowledged_at",
             "acknowledged_by",
-            "disputed_at",
+            "acknowledgment_count",
+            "is_disputed",
+            "dispute_count",
             "paid_amount",
             "paid_at",
             "remaining_amount",
             "is_overdue",
+            "is_cluster_wide",
+            "is_fully_paid",
             "created_at",
             "last_modified_at",
+        ]
+
+
+class BillDisputeModelSerializer(serializers.ModelSerializer):
+    """Serializer for BillDispute model"""
+
+    disputed_by_name = serializers.CharField(source="disputed_by.name", read_only=True)
+    resolved_by_name = serializers.CharField(source="resolved_by.name", read_only=True)
+    bill_title = serializers.CharField(source="bill.title", read_only=True)
+    bill_amount = serializers.DecimalField(source="bill.amount", max_digits=15, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = BillDispute
+        fields = [
+            "id",
+            "bill",
+            "bill_title",
+            "bill_amount",
+            "disputed_by",
+            "disputed_by_name",
+            "reason",
+            "status",
+            "admin_notes",
+            "resolved_by",
+            "resolved_by_name",
+            "resolved_at",
+            "resolution_notes",
+            "created_at",
+            "last_modified_at",
+            "is_active",
+            "days_since_created",
+        ]
+        read_only_fields = [
+            "id",
+            "bill_title",
+            "bill_amount",
+            "disputed_by_name",
+            "resolved_by_name",
+            "created_at",
+            "last_modified_at",
+            "is_active",
+            "days_since_created",
         ]
 
 
@@ -256,11 +309,19 @@ class BillAcknowledgeSerializer(serializers.Serializer):
     bill_id = serializers.UUIDField()
 
 
-class BillDisputeSerializer(serializers.Serializer):
-    """Serializer for bill dispute requests"""
+class BillDisputeCreateSerializer(serializers.Serializer):
+    """Serializer for creating bill dispute requests"""
 
     bill_id = serializers.UUIDField()
     reason = serializers.CharField(max_length=1000)
+
+
+class BillDisputeUpdateSerializer(serializers.Serializer):
+    """Serializer for updating bill dispute status"""
+
+    status = serializers.CharField()
+    admin_notes = serializers.CharField(required=False, allow_blank=True)
+    resolution_notes = serializers.CharField(required=False, allow_blank=True)
 
 
 class BillPaymentSerializer(serializers.Serializer):
@@ -288,7 +349,7 @@ class DirectBillPaymentSerializer(serializers.Serializer):
 class CreateBillSerializer(serializers.Serializer):
     """Serializer for creating bills"""
 
-    user_id = serializers.UUIDField()
+    user_id = serializers.UUIDField(required=False, allow_null=True)
     title = serializers.CharField(max_length=200)
     description = serializers.CharField(
         max_length=1000, required=False, allow_blank=True
@@ -298,6 +359,7 @@ class CreateBillSerializer(serializers.Serializer):
         max_digits=15, decimal_places=2, min_value=Decimal("0.01")
     )
     due_date = serializers.DateTimeField()
+    allow_payment_after_due = serializers.BooleanField(default=True)
     metadata = serializers.JSONField(required=False)
 
 

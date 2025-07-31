@@ -86,6 +86,7 @@ class UtilityProvider(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Utility Provider")
         verbose_name_plural = _("Utility Providers")
         unique_together = [["provider_code", "api_provider", "cluster"]]

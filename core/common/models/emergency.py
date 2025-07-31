@@ -123,6 +123,7 @@ class EmergencyContact(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Emergency Contact")
         verbose_name_plural = _("Emergency Contacts")
         ordering = ["-is_primary", "name"]
@@ -290,6 +291,7 @@ class SOSAlert(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("SOS Alert")
         verbose_name_plural = _("SOS Alerts")
         ordering = ["-created_at"]
@@ -430,6 +432,7 @@ class EmergencyResponse(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Emergency Response")
         verbose_name_plural = _("Emergency Responses")
         ordering = ["-created_at"]

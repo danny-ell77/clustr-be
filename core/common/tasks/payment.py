@@ -32,7 +32,7 @@ def spawn_process_recurring_payments():
     """
     Spawns a task to process recurring payments for each cluster.
     """
-    for cluster in Cluster.objects.all().iterator():
+    for cluster in Cluster.objects.all().iterator(chunk_size=1000):
         process_recurring_payments_for_cluster.delay(cluster.id)
 
 

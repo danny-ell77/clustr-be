@@ -192,6 +192,7 @@ class Task(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task")
         verbose_name_plural = _("tasks")
         ordering = ["-created_at"]

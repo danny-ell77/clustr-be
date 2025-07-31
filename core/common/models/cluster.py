@@ -96,6 +96,7 @@ class Cluster(UUIDPrimaryKey, ObjectHistoryTracker):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("cluster")
         verbose_name_plural = _("clusters")
         ordering = ["name"]

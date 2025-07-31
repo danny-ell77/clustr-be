@@ -139,6 +139,7 @@ class MaintenanceSchedule(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("maintenance schedule")
         verbose_name_plural = _("maintenance schedules")
         ordering = ["next_due_date"]

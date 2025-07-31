@@ -158,6 +158,7 @@ class PaymentError(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Payment Error")
         verbose_name_plural = _("Payment Errors")
         indexes = [

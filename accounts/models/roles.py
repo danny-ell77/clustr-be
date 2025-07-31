@@ -38,6 +38,7 @@ class Role(Group, ObjectHistoryTracker):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("role")
         verbose_name_plural = _("roles")
         ordering = ["-created_at"]

@@ -73,6 +73,7 @@ class MaintenanceAttachment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("maintenance attachment")
         verbose_name_plural = _("maintenance attachments")
         ordering = ["created_at"]

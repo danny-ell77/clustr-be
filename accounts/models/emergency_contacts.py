@@ -62,6 +62,7 @@ class EmergencyContact(UUIDPrimaryKey, ObjectHistoryTracker):
     )
     
     class Meta:
+        default_permissions = []
         verbose_name = _("emergency contact")
         verbose_name_plural = _("emergency contacts")
         ordering = ["-is_primary", "name"]

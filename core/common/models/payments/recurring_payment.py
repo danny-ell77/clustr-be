@@ -188,6 +188,7 @@ class RecurringPayment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Recurring Payment")
         verbose_name_plural = _("Recurring Payments")
         indexes = [
@@ -313,6 +314,9 @@ class RecurringPayment(AbstractClusterModel):
             # Process utility payment via service
             from core.common.services.utility_service import UtilityPaymentManager
 
+            # Pass metadata from recurring payment to the payment processor
+            payment_kwargs = self.metadata or {}
+
             result = UtilityPaymentManager.process_utility_payment(
                 user_id=self.user_id,
                 utility_provider=self.utility_provider,
@@ -320,6 +324,7 @@ class RecurringPayment(AbstractClusterModel):
                 amount=self.amount,
                 wallet=self.wallet,
                 description=f"Automated utility payment: {self.title}",
+                **payment_kwargs,
             )
 
             if result.get("success"):

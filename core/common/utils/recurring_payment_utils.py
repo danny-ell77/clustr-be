@@ -109,25 +109,18 @@ class RecurringPaymentManager:
         """
         logger.info("Starting automated utility payment processing")
 
-        def _recurring_payment_generator():
-            due_payments = (
-                RecurringPayment.objects.filter(
-                    status=RecurringPaymentStatus.ACTIVE,
-                    next_payment_date__lte=timezone.now(),
-                )
-                .select_related("utility_provider", "wallet", "bill")
-                .iterator(batch_size=1000)
-            )
-
-            yield due_payments
-
         total_payments = 0
         successful_payments = 0
         failed_payments = 0
 
         logger.info(f"Found {total_payments} due  payments")
 
-        for payments in _recurring_payment_generator():
+        recurring_payments = RecurringPayment.objects.filter(
+            status=RecurringPaymentStatus.ACTIVE,
+            next_payment_date__lte=timezone.now(),
+        ).select_related("utility_provider", "wallet", "bill").iterator(chunk_size=1000)
+
+        for payments in recurring_payments:
             total_payments += len(payments)
             for payment in payments:
                 try:

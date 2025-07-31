@@ -174,7 +174,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def create_bill(self, request):
         """
-        Create a new bill for a user.
+        Create a new bill - supports both cluster-wide and user-specific bills.
         """
         try:
             cluster = request.cluster_context
@@ -182,18 +182,38 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
 
             data = serializer.validated_data
+            user_id = data.get("user_id")
 
-            bill = BillManager.create_bill(
-                cluster=cluster,
-                user_id=data["user_id"],
-                title=data["title"],
-                amount=data["amount"],
-                bill_type=data["type"],
-                due_date=data["due_date"],
-                description=data.get("description"),
-                created_by=str(request.user.id),
-                metadata=data.get("metadata", {}),
-            )
+            # Create cluster-wide or user-specific bill based on user_id
+            if user_id is None:
+                # Create cluster-wide bill
+                bill = BillManager.create_cluster_wide_bill(
+                    cluster=cluster,
+                    title=data["title"],
+                    amount=data["amount"],
+                    bill_type=data["type"],
+                    due_date=data["due_date"],
+                    description=data.get("description"),
+                    allow_payment_after_due=data.get("allow_payment_after_due", True),
+                    created_by=str(request.user.id),
+                    metadata=data.get("metadata", {}),
+                )
+                logger.info(f"Cluster-wide bill created: {bill.bill_number} by admin {request.user.id}")
+            else:
+                # Create user-specific bill
+                bill = BillManager.create_user_specific_bill(
+                    cluster=cluster,
+                    user_id=str(user_id),
+                    title=data["title"],
+                    amount=data["amount"],
+                    bill_type=data["type"],
+                    due_date=data["due_date"],
+                    description=data.get("description"),
+                    allow_payment_after_due=data.get("allow_payment_after_due", True),
+                    created_by=str(request.user.id),
+                    metadata=data.get("metadata", {}),
+                )
+                logger.info(f"User-specific bill created: {bill.bill_number} for user {user_id} by admin {request.user.id}")
 
             response_serializer = BillSerializer(bill)
 
@@ -213,7 +233,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def create_bulk_bills(self, request):
         """
-        Create multiple bills at once.
+        Create multiple bills at once - supports both cluster-wide and user-specific bills.
         """
         try:
             cluster = request.cluster_context
@@ -221,26 +241,44 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
 
             bills_data = serializer.validated_data["bills"]
+            created_bills = []
 
-            processed_bills = []
             for bill_data in bills_data:
-                processed_bills.append(
-                    {
-                        "user_id": bill_data["user_id"],
-                        "title": bill_data["title"],
-                        "amount": bill_data["amount"],
-                        "type": bill_data["type"],
-                        "due_date": bill_data["due_date"],
-                        "description": bill_data.get("description"),
-                        "metadata": bill_data.get("metadata", {}),
-                    }
-                )
-
-            created_bills = BillManager.create_bulk_bills(
-                cluster=cluster,
-                user_bills=processed_bills,
-                created_by=str(request.user.id),
-            )
+                try:
+                    user_id = bill_data.get("user_id")
+                    
+                    if user_id is None:
+                        # Create cluster-wide bill
+                        bill = BillManager.create_cluster_wide_bill(
+                            cluster=cluster,
+                            title=bill_data["title"],
+                            amount=bill_data["amount"],
+                            bill_type=bill_data["type"],
+                            due_date=bill_data["due_date"],
+                            description=bill_data.get("description"),
+                            allow_payment_after_due=bill_data.get("allow_payment_after_due", True),
+                            created_by=str(request.user.id),
+                            metadata=bill_data.get("metadata", {}),
+                        )
+                    else:
+                        # Create user-specific bill
+                        bill = BillManager.create_user_specific_bill(
+                            cluster=cluster,
+                            user_id=str(user_id),
+                            title=bill_data["title"],
+                            amount=bill_data["amount"],
+                            bill_type=bill_data["type"],
+                            due_date=bill_data["due_date"],
+                            description=bill_data.get("description"),
+                            allow_payment_after_due=bill_data.get("allow_payment_after_due", True),
+                            created_by=str(request.user.id),
+                            metadata=bill_data.get("metadata", {}),
+                        )
+                    
+                    created_bills.append(bill)
+                    
+                except Exception as e:
+                    logger.error(f"Failed to create bill: {bill_data.get('title', 'Unknown')} - {e}")
 
             response_data = {
                 "created_count": len(created_bills),
@@ -265,26 +303,38 @@ class PaymentManagementViewSet(viewsets.ViewSet):
     def bills(self, request):
         """
         Get bills with filtering and pagination.
+        Supports filtering by user_id, bill_type, and cluster_wide status.
         """
         try:
             cluster = request.cluster_context
 
             user_id = request.query_params.get("user_id")
-            status_filter = request.query_params.get("status")
             bill_type = request.query_params.get("type")
+            is_cluster_wide = request.query_params.get("cluster_wide")
 
             queryset = Bill.objects.filter(cluster=cluster)
 
+            # Filter by user_id (supports both specific user and cluster-wide)
             if user_id:
-                queryset = queryset.filter(user_id=user_id)
-
-            if status_filter:
-                queryset = queryset.filter(status=status_filter)
+                if user_id.lower() == "null" or user_id.lower() == "none":
+                    # Show only cluster-wide bills
+                    queryset = queryset.filter(user_id__isnull=True)
+                else:
+                    # Show bills for specific user
+                    queryset = queryset.filter(user_id=user_id)
+            
+            # Filter by cluster-wide status
+            if is_cluster_wide is not None:
+                if is_cluster_wide.lower() in ['true', '1', 'yes']:
+                    queryset = queryset.filter(user_id__isnull=True)
+                elif is_cluster_wide.lower() in ['false', '0', 'no']:
+                    queryset = queryset.filter(user_id__isnull=False)
 
             if bill_type:
                 queryset = queryset.filter(type=bill_type)
 
-            queryset = queryset.order_by("-created_at")
+            # Add prefetch for acknowledged_by to optimize queries
+            queryset = queryset.prefetch_related('acknowledged_by').order_by("-created_at")
 
             paginator = PageNumberPagination()
             paginated_bills = paginator.paginate_queryset(queryset, request)
@@ -419,7 +469,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=False, methods=["post"])
     def update_bill_status(self, request):
         """
         Update bill status.
@@ -444,7 +494,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             message="Bill status updated successfully",
         )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=False, methods=["post"])
     def pause_recurring_payment(self, request):
         """
         Pause a recurring payment.
@@ -535,7 +585,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["put"])
+    @action(detail=False, methods=["put"])
     def update_recurring_payment(self, request):
         """
         Update a recurring payment (admin).
@@ -607,7 +657,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=False, methods=["post"])
     def resume_recurring_payment(self, request):
         """
         Resume a paused recurring payment (admin).

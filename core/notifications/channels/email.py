@@ -171,6 +171,53 @@ class EmergencyEmailContext(BaseEmailContext):
             self.severity = str(self.severity).upper()
 
 
+@dataclass
+class MaintenanceEmailContext(BaseEmailContext):
+    """Context model for maintenance-related notifications."""
+
+    title: Optional[str] = None
+    message: Optional[str] = None
+
+
+@dataclass
+class BillingEmailContext(BaseEmailContext):
+    """Context model for billing-related notifications."""
+
+    title: Optional[str] = None
+    message: Optional[str] = None
+
+
+@dataclass
+class IssueEmailContext(BaseEmailContext):
+    """Context model for issue-related notifications."""
+
+    title: Optional[str] = None
+    message: Optional[str] = None
+
+
+@dataclass
+class TaskEmailContext(BaseEmailContext):
+    """Context model for task-related notifications."""
+
+    title: Optional[str] = None
+    message: Optional[str] = None
+
+
+@dataclass
+class NewsletterEmailContext(BaseEmailContext):
+    """Context model for newsletter-related notifications."""
+
+    content: Optional[str] = None
+
+
+@dataclass
+class SystemUpdateEmailContext(BaseEmailContext):
+    """Context model for system-update-related notifications."""
+
+    title: Optional[str] = None
+    message: Optional[str] = None
+
+
 class EmailChannel(BaseNotificationChannel):
     """
     Email notification channel implementation.
@@ -182,7 +229,7 @@ class EmailChannel(BaseNotificationChannel):
         NotificationEvents.SECURITY_BREACH.value: NotificationTypes.EMERGENCY_ALERT,
         NotificationEvents.VISITOR_ARRIVAL.value: NotificationTypes.VISITOR_ARRIVAL,
         NotificationEvents.VISITOR_OVERSTAY.value: NotificationTypes.VISITOR_OVERSTAY,
-        NotificationEvents.MAINTENANCE_URGENT.value: NotificationTypes.EMERGENCY_ALERT,
+        NotificationEvents.MAINTENANCE_URGENT.value: NotificationTypes.MAINTENANCE,
         NotificationEvents.CHILD_EXIT_ALERT.value: NotificationTypes.EMERGENCY_ALERT,
         NotificationEvents.CHILD_ENTRY_ALERT.value: NotificationTypes.EMERGENCY_ALERT,
         NotificationEvents.CHILD_OVERDUE_ALERT.value: NotificationTypes.EMERGENCY_ALERT,
@@ -190,26 +237,26 @@ class EmailChannel(BaseNotificationChannel):
         NotificationEvents.PAYMENT_OVERDUE.value: NotificationTypes.BILL_REMINDER,
         NotificationEvents.PAYMENT_CONFIRMED.value: NotificationTypes.PAYMENT_RECEIPT,
         NotificationEvents.ANNOUNCEMENT_POSTED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.ISSUE_ASSIGNED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.ISSUE_STATUS_CHANGED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.ISSUE_ESCALATED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.ISSUE_OVERDUE.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.ISSUE_AUTO_ESCALATED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.TASK_DUE.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.MAINTENANCE_SCHEDULED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.MAINTENANCE_COMPLETED.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.BILL_CANCELLED.value: NotificationTypes.BILL_REMINDER,
-        NotificationEvents.BILL_ACKNOWLEDGED.value: NotificationTypes.PAYMENT_RECEIPT,
-        NotificationEvents.BILL_DISPUTED.value: NotificationTypes.BILL_REMINDER,
-        NotificationEvents.PAYMENT_FAILED.value: NotificationTypes.BILL_REMINDER,
-        NotificationEvents.PAYMENT_PAUSED.value: NotificationTypes.PAYMENT_RECEIPT,
-        NotificationEvents.PAYMENT_RESUMED.value: NotificationTypes.PAYMENT_RECEIPT,
-        NotificationEvents.PAYMENT_CANCELLED.value: NotificationTypes.PAYMENT_RECEIPT,
-        NotificationEvents.PAYMENT_UPDATED.value: NotificationTypes.PAYMENT_RECEIPT,
-        NotificationEvents.PAYMENT_SETUP.value: NotificationTypes.PAYMENT_RECEIPT,
+        NotificationEvents.ISSUE_ASSIGNED.value: NotificationTypes.ISSUE,
+        NotificationEvents.ISSUE_STATUS_CHANGED.value: NotificationTypes.ISSUE,
+        NotificationEvents.ISSUE_ESCALATED.value: NotificationTypes.ISSUE,
+        NotificationEvents.ISSUE_OVERDUE.value: NotificationTypes.ISSUE,
+        NotificationEvents.ISSUE_AUTO_ESCALATED.value: NotificationTypes.ISSUE,
+        NotificationEvents.TASK_DUE.value: NotificationTypes.TASK,
+        NotificationEvents.MAINTENANCE_SCHEDULED.value: NotificationTypes.MAINTENANCE,
+        NotificationEvents.MAINTENANCE_COMPLETED.value: NotificationTypes.MAINTENANCE,
+        NotificationEvents.BILL_CANCELLED.value: NotificationTypes.BILLING,
+        NotificationEvents.BILL_ACKNOWLEDGED.value: NotificationTypes.BILLING,
+        NotificationEvents.BILL_DISPUTED.value: NotificationTypes.BILLING,
+        NotificationEvents.PAYMENT_FAILED.value: NotificationTypes.BILLING,
+        NotificationEvents.PAYMENT_PAUSED.value: NotificationTypes.BILLING,
+        NotificationEvents.PAYMENT_RESUMED.value: NotificationTypes.BILLING,
+        NotificationEvents.PAYMENT_CANCELLED.value: NotificationTypes.BILLING,
+        NotificationEvents.PAYMENT_UPDATED.value: NotificationTypes.BILLING,
+        NotificationEvents.PAYMENT_SETUP.value: NotificationTypes.BILLING,
         NotificationEvents.COMMENT_REPLY.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.NEWSLETTER.value: NotificationTypes.ANNOUNCEMENT,
-        NotificationEvents.SYSTEM_UPDATE.value: NotificationTypes.ANNOUNCEMENT,
+        NotificationEvents.NEWSLETTER.value: NotificationTypes.NEWSLETTER,
+        NotificationEvents.SYSTEM_UPDATE.value: NotificationTypes.SYSTEM_UPDATE,
     }
 
     CONTEXT_MODELS = {
@@ -225,6 +272,26 @@ class EmailChannel(BaseNotificationChannel):
         NotificationEvents.PAYMENT_UPDATED.value: RecurringPaymentEmailContext,
         NotificationEvents.PAYMENT_SETUP.value: RecurringPaymentEmailContext,
         NotificationEvents.EMERGENCY_ALERT.value: EmergencyEmailContext,
+        NotificationEvents.MAINTENANCE_URGENT.value: MaintenanceEmailContext,
+        NotificationEvents.MAINTENANCE_SCHEDULED.value: MaintenanceEmailContext,
+        NotificationEvents.MAINTENANCE_COMPLETED.value: MaintenanceEmailContext,
+        NotificationEvents.BILL_CANCELLED.value: BillingEmailContext,
+        NotificationEvents.BILL_ACKNOWLEDGED.value: BillingEmailContext,
+        NotificationEvents.BILL_DISPUTED.value: BillingEmailContext,
+        NotificationEvents.PAYMENT_FAILED.value: BillingEmailContext,
+        NotificationEvents.PAYMENT_PAUSED.value: BillingEmailContext,
+        NotificationEvents.PAYMENT_RESUMED.value: BillingEmailContext,
+        NotificationEvents.PAYMENT_CANCELLED.value: BillingEmailContext,
+        NotificationEvents.PAYMENT_UPDATED.value: BillingEmailContext,
+        NotificationEvents.PAYMENT_SETUP.value: BillingEmailContext,
+        NotificationEvents.ISSUE_ASSIGNED.value: IssueEmailContext,
+        NotificationEvents.ISSUE_STATUS_CHANGED.value: IssueEmailContext,
+        NotificationEvents.ISSUE_ESCALATED.value: IssueEmailContext,
+        NotificationEvents.ISSUE_OVERDUE.value: IssueEmailContext,
+        NotificationEvents.ISSUE_AUTO_ESCALATED.value: IssueEmailContext,
+        NotificationEvents.TASK_DUE.value: TaskEmailContext,
+        NotificationEvents.NEWSLETTER.value: NewsletterEmailContext,
+        NotificationEvents.SYSTEM_UPDATE.value: SystemUpdateEmailContext,
     }
 
     def send(

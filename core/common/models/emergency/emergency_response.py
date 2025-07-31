@@ -63,6 +63,7 @@ class EmergencyResponse(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Emergency Response")
         verbose_name_plural = _("Emergency Responses")
         ordering = ["-created_at"]

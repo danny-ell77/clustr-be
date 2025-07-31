@@ -33,6 +33,14 @@ class NotificationTypes(str, Enum):
     EMERGENCY_ALERT = "EMERGENCY_ALERT"
     PAYMENT_RECEIPT = "PAYMENT_RECEIPT"
     BILL_REMINDER = "BILL_REMINDER"
+
+    # Notification system email types (mapped from NotificationEvents)
+    MAINTENANCE = "MAINTENANCE"
+    BILLING = "BILLING"
+    ISSUE = "ISSUE"
+    TASK = "TASK"
+    NEWSLETTER = "NEWSLETTER"
+    SYSTEM_UPDATE = "SYSTEM_UPDATE"
     
     @classmethod
     def choices(cls):
@@ -197,6 +205,96 @@ EMAIL_TEMPLATES = {
         {% if author_name %}
         From: {{ author_name }}
         {% endif %}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
+    
+    # Generic templates for new notification types
+    NotificationTypes.MAINTENANCE: EmailTemplate(
+        subject_template="ClustR - Maintenance Notification",
+        body_template="""
+        Hello {{ user_name }},
+        
+        This is a notification regarding maintenance activities.
+        
+        Title: {{ title }}
+        Message: {{ message }}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
+
+    NotificationTypes.BILLING: EmailTemplate(
+        subject_template="ClustR - Billing Notification",
+        body_template="""
+        Hello {{ user_name }},
+        
+        This is a notification regarding your billing.
+        
+        Title: {{ title }}
+        Message: {{ message }}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
+
+    NotificationTypes.ISSUE: EmailTemplate(
+        subject_template="ClustR - Issue Notification",
+        body_template="""
+        Hello {{ user_name }},
+        
+        This is a notification regarding an issue.
+        
+        Title: {{ title }}
+        Message: {{ message }}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
+
+    NotificationTypes.TASK: EmailTemplate(
+        subject_template="ClustR - Task Notification",
+        body_template="""
+        Hello {{ user_name }},
+        
+        This is a notification regarding a task.
+
+        Title: {{ title }}
+        Message: {{ message }}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
+
+    NotificationTypes.NEWSLETTER: EmailTemplate(
+        subject_template="ClustR - Newsletter",
+        body_template="""
+        Hello {{ user_name }},
+        
+        Please find our latest newsletter below.
+        
+        {{ content }}
+        
+        Thank you,
+        The ClustR Team
+        """
+    ),
+
+    NotificationTypes.SYSTEM_UPDATE: EmailTemplate(
+        subject_template="ClustR - System Update",
+        body_template="""
+        Hello {{ user_name }},
+        
+        This is a notification regarding a system update.
+        
+        Title: {{ title }}
+        Message: {{ message }}
         
         Thank you,
         The ClustR Team

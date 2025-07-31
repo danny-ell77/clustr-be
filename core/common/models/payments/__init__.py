@@ -21,7 +21,9 @@ from core.common.models.payments.bill import (
     BillType,
     BillStatus,
     BillCategory,
+    DisputeStatus,
     Bill,
+    BillDispute,
 )
 from core.common.models.payments.recurring_payment import (
     RecurringPaymentStatus,
@@ -33,8 +35,10 @@ from core.common.models.payments.utility_provider import UtilityProvider
 
 __all__ = [
     "Bill",
+    "BillDispute",
     "BillStatus",
     "BillType",
+    "DisputeStatus",
     "PaymentError",
     "PaymentErrorSeverity",
     "PaymentErrorType",

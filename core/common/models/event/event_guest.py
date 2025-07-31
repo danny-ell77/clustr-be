@@ -86,6 +86,7 @@ class EventGuest(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("event guest")
         verbose_name_plural = _("event guests")
         ordering = ["name"]

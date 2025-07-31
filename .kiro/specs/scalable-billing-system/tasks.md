@@ -75,7 +75,7 @@
 3. Implement notification triggering on bill creation
 
 #### Acceptance Criteria:
-- [-] Estate-wide bills create single record regardless of user count
+- [x] Estate-wide bills create single record regardless of user count
 
 
 
@@ -83,9 +83,10 @@
 
 
 
-- [ ] User-specific bills target correct user
-- [ ] Notifications sent to appropriate recipients
-- [ ] Validation prevents invalid bill configurations
+
+- [x] User-specific bills target correct user
+- [x] Notifications sent to appropriate recipients
+- [x] Validation prevents invalid bill configurations
 
 ### Task 2.2: Acknowledgment System
 **Priority**: High  
@@ -99,10 +100,10 @@
 4. Add notification for acknowledgment events
 
 #### Acceptance Criteria:
-- [ ] Users can only acknowledge bills they're eligible for
-- [ ] Acknowledgment status tracked correctly
-- [ ] Fraud protection implemented
-- [ ] Notifications sent on acknowledgment
+- [x] Users can only acknowledge bills they're eligible for
+- [x] Acknowledgment status tracked correctly
+- [x] Fraud protection implemented
+- [x] Notifications sent on acknowledgment
 
 ### Task 2.3: Payment Validation Logic
 **Priority**: High  
@@ -116,10 +117,24 @@
 4. Update payment failure handling
 
 #### Acceptance Criteria:
-- [ ] Payments blocked without acknowledgment
-- [ ] Due date enforcement works correctly
-- [ ] Payment permissions validated
-- [ ] Failed payment retry mechanism maintained
+- [x] Payments blocked without acknowledgment
+
+
+
+
+
+
+
+
+- [x] Due date enforcement works correctly
+
+
+
+
+- [x] Payment permissions validated
+
+- [x] Failed payment retry mechanism maintained
+
 
 ## Phase 3: API Implementation
 
@@ -138,6 +153,9 @@
 
 #### Acceptance Criteria:
 - [ ] Admins can create both bill types
+
+
+
 - [ ] User list shows bill status for hover display
 - [ ] Permission checks prevent unauthorized access
 - [ ] API responses include all necessary bill information

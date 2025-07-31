@@ -5,6 +5,14 @@
 This document describes the payment flow for mobile apps in the Cluster platform. Payments are initiated via the backend (Paystack or Flutterwave), and completed via a WebView or Chrome Custom Tab in the Flutter mobile app. Upon completion, the user is redirected back to the app using deep linking.
 
 ---
+### 📝 Business Flow
+There are like four different ways to make payments on the platform. You can 
+1. pay estate bills directly from your wallet, 
+2. use your card for one-time payments, you can do both through the app interface. For recurring payments, 
+3. you can set up cluster (estate in this case) bills to be automated. The system runs a background job daily to process recurring payments that are due on that day.
+4. Additionally, you can set up recurring utility bill payments. After completing a utility payment in the app, you have the option to mark it as recurring and choose a schedule—monthly, every two months, etc.
+
+When the background job runs, it goes though each cluster in the platform then each recurring payment in the cluster and identifies the type of each recurring payment. If it’s a cluster payment, the system performs the accounting using credit and debit entries. If it’s a utility payment, it completes the utility transaction while also debiting the user’s wallet.
 
 ### 🔁 High-Level Flow
 

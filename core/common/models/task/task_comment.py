@@ -50,6 +50,7 @@ class TaskComment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task comment")
         verbose_name_plural = _("task comments")
         ordering = ["created_at"]

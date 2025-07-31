@@ -12,8 +12,10 @@ from core.common.models import (
     Bill,
     BillStatus,
     BillType,
+    BillCategory,
     Transaction,
     TransactionType,
+    TransactionStatus,
     Wallet,
 )
 from core.notifications.events import NotificationEvents
@@ -54,6 +56,7 @@ class BillManager:
             cluster=cluster,
             user_id=None,  # Estate-wide bills have no specific user
             title=title,
+            category=BillCategory.CLUSTER_MANAGED,
             description=description,
             type=bill_type,
             amount=amount,
@@ -100,6 +103,7 @@ class BillManager:
             title=title,
             description=description,
             type=bill_type,
+            category=BillCategory.USER_MANAGED,
             amount=amount,
             due_date=due_date,
             allow_payment_after_due=allow_payment_after_due,
@@ -250,188 +254,160 @@ class BillManager:
         
         return list(queryset)
     
-    @staticmethod
-    def get_overdue_bills(cluster, user_id: str = None) -> List[Bill]:
+    def get_overdue_bills_for_user(cluster, user) -> List[Bill]:
         """
-        Get overdue bills.
-        
+        Gets all bills that are currently overdue for a specific user.
+
+        For USER_MANAGED bills, it checks the bill's specific status.
+        For CLUSTER_MANAGED bills, it uses the `is_user_overdue` method.
+
         Args:
-            cluster: Cluster object
-            user_id: Optional user ID to filter by
-            
+            cluster: The cluster to search within.
+            user: The user for whom to check overdue bills.
+
         Returns:
-            List[Bill]: Overdue bills
+            A list of Bill objects that are overdue for the user.
         """
-        queryset = Bill.objects.filter(
-            cluster=cluster,
-            due_date__lt=timezone.now(),
-            status__in=[BillStatus.ACKNOWLEDGED, BillStatus.PENDING, BillStatus.PARTIALLY_PAID]
-        )
+        user_bills = Bill.objects.filter(cluster=cluster, user_id=user.id, due_date__lt=timezone.now()).exclude(status=BillStatus.PAID)
         
-        if user_id:
-            queryset = queryset.filter(user_id=user_id)
+        cluster_bills_query = Bill.objects.filter(cluster=cluster, category=BillCategory.CLUSTER_MANAGED, due_date__lt=timezone.now())
         
-        return list(queryset)
+        overdue_cluster_bills = []
+        for bill in cluster_bills_query:
+            if bill.is_user_overdue(user):
+                overdue_cluster_bills.append(bill)
+
+        return list(user_bills) + overdue_cluster_bills
     
-    @staticmethod
-    def get_bills_summary(cluster, user_id: str) -> dict[str, Any]:
+    def get_bills_summary(cluster, user) -> dict[str, Any]:
         """
-        Get bills summary for a user.
-        
+        Get a financial summary for a user, including their share of cluster bills.
+
         Args:
-            cluster: Cluster object
-            user_id: User ID
-            
+            cluster: The cluster to search within.
+            user: The user for whom to generate the summary.
+
         Returns:
-            Dict: Bills summary
+            A dictionary containing the user's bill summary.
         """
-        bills = Bill.objects.filter(cluster=cluster, user_id=user_id)
+        # User-specific bills are straightforward
+        user_bills = Bill.objects.filter(cluster=cluster, user_id=user.id)
         
+        # Cluster-wide bills require per-user calculation
+        cluster_bills = Bill.objects.filter(cluster=cluster, category=BillCategory.CLUSTER_MANAGED)
+
+        total_amount_due = user_bills.exclude(status=BillStatus.PAID).aggregate(
+            total=Sum('amount') - Sum('paid_amount')
+        )['total'] or Decimal('0.00')
+
+        overdue_count = user_bills.filter(due_date__lt=timezone.now()).exclude(status=BillStatus.PAID).count()
+
+        for bill in cluster_bills:
+            paid_amount = bill.get_user_payment_amount(user)
+            remaining = bill.amount - paid_amount
+            if remaining > 0:
+                total_amount_due += remaining
+                if bill.due_date < timezone.now():
+                    overdue_count += 1
+
         summary = {
-            'total_bills': bills.count(),
-            'pending_bills': bills.filter(status=BillStatus.PENDING).count(),
-            'overdue_bills': bills.filter(
-                status__in=[BillStatus.PENDING, BillStatus.PARTIALLY_PAID],
-                due_date__lt=timezone.now()
-            ).count(),
-            'paid_bills': bills.filter(status=BillStatus.PAID).count(),
-            'total_amount_due': bills.filter(
-                status__in=[BillStatus.PENDING, BillStatus.PARTIALLY_PAID, BillStatus.OVERDUE]
-            ).aggregate(
-                total=Sum('amount') - Sum('paid_amount')
-            )['total'] or Decimal('0.00'),
-            'total_paid': bills.filter(status=BillStatus.PAID).aggregate(
+            'total_bills': user_bills.count() + cluster_bills.filter(acknowledged_by=user).count(),
+            'pending_bills': user_bills.filter(status=BillStatus.PENDING).count(), # Note: Pending for cluster bills is per-user
+            'overdue_bills': overdue_count,
+            'paid_bills': user_bills.filter(status=BillStatus.PAID).count(), # Note: Paid for cluster bills is per-user
+            'total_amount_due': total_amount_due,
+            'total_paid': user_bills.filter(status=BillStatus.PAID).aggregate(
                 total=Sum('amount')
-            )['total'] or Decimal('0.00'),
+            )['total'] or Decimal('0.00'), # Note: Needs adjustment for cluster bills
         }
         
         return summary
     
-    @staticmethod
-    def process_bill_payment(bill: Bill, wallet: Wallet, amount: Decimal = None, user=None) -> Transaction:
+    def process_bill_payment(bill: Bill, wallet: Wallet, user, amount: Decimal = None) -> Transaction:
         """
-        Process payment for a bill using wallet balance.
-        
+        Process payment for a bill using wallet balance, deferring logic to the model.
+
         Args:
             bill: Bill to pay
             wallet: Wallet to debit
-            amount: Amount to pay (defaults to remaining amount)
-            user: User making the payment (for validation)
-            
+            user: User making the payment
+            amount: Amount to pay. If None, the user's full share is assumed.
+
         Returns:
-            Transaction: Payment transaction
+            Payment transaction object.
         """
-        if amount is None:
-            amount = bill.remaining_amount
-        
-        if amount <= 0:
-            raise ValueError("Payment amount must be greater than 0")
-        
-        if amount > bill.remaining_amount:
-            raise ValueError("Payment amount cannot exceed remaining bill amount")
-        
-        if not wallet.has_sufficient_balance(amount):
-            raise ValueError("Insufficient wallet balance")
-        
-        # New validation: Check if user can pay this bill
-        if user and not bill.can_be_paid_by(user):
-            if not bill.acknowledged_by.filter(id=user.id).exists():
-                raise ValueError("Bill must be acknowledged before payment")
-            elif bill.is_overdue and not bill.allow_payment_after_due:
-                raise ValueError("Payment not allowed after due date")
-            else:
-                raise ValueError("You are not authorized to pay this bill")
-        
-        # Validate transaction can pay this bill
-        if not bill.can_be_paid():
-            if bill.is_fully_paid:
-                raise ValueError("Bill is already fully paid")
-            elif bill.is_disputed:
-                raise ValueError("Cannot pay disputed bill")
-            else:
-                raise ValueError("Bill cannot be paid")
-        
+        if not bill.can_be_paid_by(user):
+            raise ValueError("User is not authorized to pay this bill at this time.")
+
+        if bill.category == BillCategory.CLUSTER_MANAGED:
+            paid_amount = bill.get_user_payment_amount(user)
+            remaining_share = bill.amount - paid_amount
+            payment_amount = amount or remaining_share
+            if payment_amount > remaining_share:
+                raise ValueError(f"Payment amount {payment_amount} exceeds remaining share {remaining_share}.")
+        else: # User-managed bill
+            remaining_amount = bill.amount - bill.paid_amount
+            payment_amount = amount or remaining_amount
+            if payment_amount > remaining_amount:
+                raise ValueError(f"Payment amount {payment_amount} exceeds remaining amount {remaining_amount}.")
+
+        if payment_amount <= 0:
+            raise ValueError("Payment amount must be greater than 0.")
+
+        if not wallet.has_sufficient_balance(payment_amount):
+            raise ValueError("Insufficient wallet balance.")
+
         # Create transaction
         transaction = Transaction.objects.create(
             cluster=wallet.cluster,
             wallet=wallet,
             type=TransactionType.BILL_PAYMENT,
-            amount=amount,
+            amount=payment_amount,
             currency=wallet.currency,
             description=f"Bill payment: {bill.title}",
             status=TransactionStatus.COMPLETED,
             processed_at=timezone.now(),
-            created_by=wallet.created_by,
-            last_modified_by=wallet.last_modified_by,
+            created_by=user.id,
+            last_modified_by=user.id,
+            metadata={'bill_id': str(bill.id)}
         )
-        
-        # Update wallet balance
-        wallet.update_balance(amount, TransactionType.BILL_PAYMENT)
-        
-        # Update bill with transaction linking
-        bill.add_payment(amount, transaction)
-        
+
+        # Defer state changes to the bill model's method
+        bill.add_payment(payment_amount, transaction)
+
         logger.info(f"Bill payment processed: {transaction.transaction_id} for bill {bill.bill_number}")
-        
+
         # Send payment confirmation
         BillNotificationManager.send_payment_confirmation(bill, transaction)
-        
-        return transaction
+
         return transaction
     
-    @staticmethod
-    def check_and_update_overdue_bills(cluster) -> int:
-        """
-        Check for overdue bills and update their status.
-        
-        Args:
-            cluster: Cluster object
-            
-        Returns:
-            int: Number of bills marked as overdue
-        """
-        overdue_bills = Bill.objects.filter(
-            cluster=cluster,
-            due_date__lt=timezone.now(),
-            status=BillStatus.PENDING
-        )
-        
-        count = 0
-        for bill in overdue_bills:
-            BillManager.update_bill_status(bill, BillStatus.OVERDUE)
-            count += 1
-        
-        logger.info(f"Marked {count} bills as overdue in cluster {cluster.id}")
-        
-        return count
     
-    @staticmethod
+    
     def send_bill_reminders(cluster, days_before_due: int = 3) -> int:
         """
-        Send reminders for bills approaching due date.
-        
-        Args:
-            cluster: Cluster object
-            days_before_due: Number of days before due date to send reminder
-            
-        Returns:
-            int: Number of reminders sent
+        Send reminders for bills approaching their due date.
+        For cluster bills, sends reminders to all acknowledged users who haven't paid.
         """
         reminder_date = timezone.now() + timezone.timedelta(days=days_before_due)
-        
         bills_to_remind = Bill.objects.filter(
             cluster=cluster,
             due_date__date=reminder_date.date(),
             status__in=[BillStatus.PENDING, BillStatus.PARTIALLY_PAID]
         )
-        
+
         count = 0
         for bill in bills_to_remind:
-            if BillNotificationManager.send_bill_reminder(bill):
-                count += 1
+            if bill.category == BillCategory.USER_MANAGED:
+                if BillNotificationManager.send_bill_reminder(bill, bill.user):
+                    count += 1
+            elif bill.category == BillCategory.CLUSTER_MANAGED:
+                for user in bill.acknowledged_by.all():
+                    if not bill.has_user_paid(user):
+                        if BillNotificationManager.send_bill_reminder(bill, user):
+                            count += 1
         
         logger.info(f"Sent {count} bill reminders in cluster {cluster.id}")
-        
         return count
     
     @staticmethod
@@ -448,9 +424,6 @@ class BillManager:
         """
         if bill.acknowledge(acknowledged_by):
             logger.info(f"Bill {bill.bill_number} acknowledged by user {acknowledged_by}")
-            
-            # Send acknowledgment confirmation
-            BillNotificationManager.send_bill_acknowledged_notification(bill)
             
             return True
         return False
@@ -501,13 +474,13 @@ class BillNotificationManager:
             cluster_users = AccountUser.objects.filter(
                 cluster=bill.cluster,
                 is_active=True
-            ).iterator()
+            )
             
             if not cluster_users.exists():
                 logger.warning(f"No active users found for cluster {bill.cluster.name}")
                 return False
 
-
+            # Send notifications in batches
             for batch in cluster_users.iterator(chunk_size=100):
                 NotificationManager.send(
                     event=NotificationEvents.PAYMENT_DUE,
@@ -654,26 +627,14 @@ class BillNotificationManager:
             logger.error(f"Failed to send bill reminder: {e}")
             return False
     
-    @staticmethod
-    def send_overdue_bill_notification(bill: Bill) -> bool:
+    def send_overdue_bill_notification(bill: Bill, user, expected_amount=None) -> bool:
         """
-        Send notification when a bill becomes overdue.
-        
-        Args:
-            bill: Overdue bill object
-            
-        Returns:
-            bool: True if notification was sent successfully
+        Send notification when a bill is overdue for a specific user.
         """
         try:
-            from accounts.models import AccountUser
-            user = AccountUser.objects.filter(id=bill.user_id).first()
-            
-            if not user:
-                return False
-            
             days_overdue = (timezone.now().date() - bill.due_date.date()).days
-            
+            remaining_amount = expected_amount - bill.get_user_payment_amount(user) if expected_amount else bill.amount - bill.paid_amount
+
             NotificationManager.send(
                 event=NotificationEvents.PAYMENT_OVERDUE,
                 recipients=[user],
@@ -682,7 +643,7 @@ class BillNotificationManager:
                     'user_name': user.name,
                     'bill_number': bill.bill_number,
                     'bill_title': bill.title,
-                    'bill_amount': bill.remaining_amount,
+                    'bill_amount': remaining_amount,
                     'currency': bill.currency,
                     'due_date': bill.due_date.strftime('%Y-%m-%d'),
                     'days_overdue': days_overdue,
@@ -690,9 +651,8 @@ class BillNotificationManager:
                 }
             )
             return True
-        
         except Exception as e:
-            logger.error(f"Failed to send overdue bill notification: {e}")
+            logger.error(f"Failed to send overdue bill notification for bill {bill.id} to user {user.id}: {e}")
             return False
     
     @staticmethod
@@ -774,46 +734,6 @@ class BillNotificationManager:
             return False
     
     @staticmethod
-    def send_bill_acknowledged_notification(bill: Bill) -> bool:
-        """
-        Send notification when a bill is acknowledged.
-        
-        Args:
-            bill: Acknowledged bill object
-            
-        Returns:
-            bool: True if notification was sent successfully
-        """
-        try:
-            from accounts.models import AccountUser
-            
-            # Notify cluster admins
-            cluster_admins = AccountUser.objects.filter(
-                clusters=bill.cluster,
-                is_cluster_admin=True
-            )
-            
-            if cluster_admins.exists():
-                NotificationManager.send(
-                    event=NotificationEvents.BILL_ACKNOWLEDGED,
-                    recipients=list(cluster_admins),
-                    cluster=bill.cluster,
-                    context={
-                        'bill_number': bill.bill_number,
-                        'bill_title': bill.title,
-                        'bill_amount': bill.amount,
-                        'currency': bill.currency,
-                        'acknowledged_at': bill.acknowledged_at.strftime('%Y-%m-%d %H:%M'),
-                        'user_id': str(bill.user_id),
-                    }
-                )
-            
-            return True
-        except Exception as e:
-            logger.error(f"Failed to send bill acknowledged notification: {e}")
-            return False
-    
-    @staticmethod
     def send_bill_disputed_notification(bill: Bill) -> bool:
         """
         Send notification when a bill is disputed.
@@ -843,8 +763,8 @@ class BillNotificationManager:
                         'bill_title': bill.title,
                         'bill_amount': bill.amount,
                         'currency': bill.currency,
-                        'dispute_reason': bill.dispute_reason,
-                        'disputed_at': bill.disputed_at.strftime('%Y-%m-%d %H:%M'),
+                        'is_disputed': bill.is_disputed,
+                        'dispute_count': bill.dispute_count,
                         'user_id': str(bill.user_id),
                     }
                 )
@@ -853,72 +773,3 @@ class BillNotificationManager:
         except Exception as e:
             logger.error(f"Failed to send bill disputed notification: {e}")
             return False
-
-
-# Convenience functions for common bill operations
-def create_monthly_service_charge(cluster, user_id: str, amount: Decimal, 
-                                 created_by: str = None) -> Bill:
-    """
-    Create a monthly service charge bill.
-    
-    Args:
-        cluster: Cluster object
-        user_id: User ID
-        amount: Service charge amount
-        created_by: ID of the user creating the bill
-        
-    Returns:
-        Bill: Created service charge bill
-    """
-    from dateutil.relativedelta import relativedelta
-    
-    due_date = timezone.now() + relativedelta(days=30)
-    
-    return BillManager.create_bill(
-        cluster=cluster,
-        user_id=user_id,
-        title=f"Monthly Service Charge - {timezone.now().strftime('%B %Y')}",
-        amount=amount,
-        bill_type=BillType.SERVICE_CHARGE,
-        due_date=due_date,
-        description="Monthly cluster service charge",
-        created_by=created_by,
-    )
-
-
-def create_utility_bill(cluster, user_id: str, bill_type: BillType, 
-                       amount: Decimal, meter_reading: str = None,
-                       created_by: str = None) -> Bill:
-    """
-    Create a utility bill (electricity, water, etc.).
-    
-    Args:
-        cluster: Cluster object
-        user_id: User ID
-        bill_type: Type of utility bill
-        amount: Bill amount
-        meter_reading: Meter reading (optional)
-        created_by: ID of the user creating the bill
-        
-    Returns:
-        Bill: Created utility bill
-    """
-    from dateutil.relativedelta import relativedelta
-    
-    due_date = timezone.now() + relativedelta(days=14)  # 2 weeks for utility bills
-    
-    metadata = {}
-    if meter_reading:
-        metadata['meter_reading'] = meter_reading
-    
-    return BillManager.create_bill(
-        cluster=cluster,
-        user_id=user_id,
-        title=f"{bill_type.title()} Bill - {timezone.now().strftime('%B %Y')}",
-        amount=amount,
-        bill_type=bill_type,
-        due_date=due_date,
-        description=f"Monthly {bill_type.lower()} charges",
-        created_by=created_by,
-        metadata=metadata,
-    )

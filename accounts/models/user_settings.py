@@ -120,6 +120,7 @@ class UserSettings(UUIDPrimaryKey, ObjectHistoryTracker):
     )
     
     class Meta:
+        default_permissions = []
         verbose_name = _("User Settings")
         verbose_name_plural = _("User Settings")
         default_permissions = []
@@ -339,6 +340,7 @@ class NotificationPreference(UUIDPrimaryKey, ObjectHistoryTracker):
     )
     
     class Meta:
+        default_permissions = []
         verbose_name = _("Notification Preference")
         verbose_name_plural = _("Notification Preferences")
         unique_together = [

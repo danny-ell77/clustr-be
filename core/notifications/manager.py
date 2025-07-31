@@ -7,6 +7,7 @@ with proper event validation, channel routing, and error handling.
 
 import typing
 import logging
+import concurrent.futures
 from typing import List, Any, Optional
 
 from django.contrib.auth import get_user_model
@@ -198,32 +199,45 @@ class NotificationManager:
             logger.warning(f"Event {event_name.value} has no supported channels configured")
             return True
 
-        # Send via all supported channels
+        # Send via all supported channels concurrently
         channel_results = {}
         channel_errors = {}
 
-        for channel in event.supported_channels:
+        def send_channel(channel):
+            """Helper function to send via a single channel."""
             channel_name = channel.value
             try:
                 logger.debug(f"Sending {event_name.value} via {channel_name} to {len(recipients)} recipients")
                 
                 success = NotificationManager._send_via_channel(channel, event, recipients, cluster, context)
-                channel_results[channel_name] = success
                 
                 log_level = logger.debug if success else logger.warning
                 status = "Successfully sent" if success else "Failed to send"
                 log_level(f"{status} {event_name.value} via {channel_name}")
+                
+                return channel_name, success, None
 
             except (ValueError, ImportError) as e:
                 error_msg = f"{type(e).__name__} in {channel_name} channel: {str(e)}"
                 logger.error(error_msg)
-                channel_results[channel_name] = False
-                channel_errors[channel_name] = error_msg
+                return channel_name, False, error_msg
             except Exception as e:
                 error_msg = f"Unexpected error in {channel_name} channel: {type(e).__name__}: {str(e)}"
                 logger.error(error_msg)
-                channel_results[channel_name] = False
-                channel_errors[channel_name] = error_msg
+                return channel_name, False, error_msg
+
+        # Execute channel sending concurrently
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(event.supported_channels)) as executor:
+            future_to_channel = {
+                executor.submit(send_channel, channel): channel 
+                for channel in event.supported_channels
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_channel):
+                channel_name, success, error = future.result()
+                channel_results[channel_name] = success
+                if error:
+                    channel_errors[channel_name] = error
 
         return NotificationManager._log_results_and_return_status(
             event_name, recipients, channel_results, channel_errors

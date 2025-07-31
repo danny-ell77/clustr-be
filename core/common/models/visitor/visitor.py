@@ -101,6 +101,7 @@ class Visitor(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("visitor")
         verbose_name_plural = _("visitors")
         ordering = ["-estimated_arrival"]

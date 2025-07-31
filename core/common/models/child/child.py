@@ -85,6 +85,7 @@ class Child(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Child")
         verbose_name_plural = _("Children")
         ordering = ["name"]

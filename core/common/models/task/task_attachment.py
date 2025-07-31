@@ -65,6 +65,7 @@ class TaskAttachment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task attachment")
         verbose_name_plural = _("task attachments")
         ordering = ["created_at"]

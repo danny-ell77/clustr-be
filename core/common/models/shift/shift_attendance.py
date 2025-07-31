@@ -83,6 +83,7 @@ class ShiftAttendance(AbstractClusterModel):
     )
     
     class Meta:
+        default_permissions = []
         verbose_name = _("shift attendance")
         verbose_name_plural = _("shift attendances")
     

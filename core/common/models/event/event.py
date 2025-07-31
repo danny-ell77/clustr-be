@@ -91,6 +91,7 @@ class Event(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("event")
         verbose_name_plural = _("events")
         ordering = ["-event_date", "-event_time"]

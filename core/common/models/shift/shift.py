@@ -122,6 +122,7 @@ class Shift(AbstractClusterModel):
     )
     
     class Meta:
+        default_permissions = []
         verbose_name = _("shift")
         verbose_name_plural = _("shifts")
         ordering = ["-start_time"]

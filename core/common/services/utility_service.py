@@ -1,3 +1,4 @@
+                    # Create utility bill record
 """
 Utility service interfaces and implementations for bill payments.
 """
@@ -64,7 +65,7 @@ class UtilityServiceInterface(ABC):
             customer_id: Customer ID or meter number
             amount: Payment amount
             provider_code: Utility provider code
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters (e.g., meter_type, bundle_code)
             
         Returns:
             Dict containing transaction result
@@ -134,15 +135,28 @@ class PaystackUtilityService(UtilityServiceInterface):
         """Purchase utility via Paystack Bills API."""
         try:
             # TODO: Implement actual Paystack API call
-            return {
+            # Mock response now includes a token for electricity purchases
+            reference = kwargs.get("reference", "")
+            response_data = {
                 "success": True,
                 "transaction_id": f"PSK_{timezone.now().strftime('%Y%m%d%H%M%S')}",
-                "reference": kwargs.get("reference", ""),
+                "reference": reference,
                 "amount": str(amount),
                 "customer_id": customer_id,
                 "provider_code": provider_code,
-                "status": "success"
+                "status": "success",
+                "metadata": kwargs, # Store sent params
             }
+
+            # Example of handling different utility types based on provider code or kwargs
+            if "electric" in provider_code or kwargs.get("service_type") == "electricity":
+                response_data["token"] = "0123-4567-8901-2345-6789"
+                response_data["units"] = f"{amount / Decimal('50.0')}" # Mock calculation
+            
+            if "data" in provider_code or kwargs.get("service_type") == "internet":
+                response_data["bundle"] = kwargs.get("bundle_code", "Default Bundle")
+
+            return response_data
         except Exception as e:
             logger.error(f"Paystack utility purchase failed: {str(e)}")
             return {
@@ -217,15 +231,26 @@ class FlutterwaveUtilityService(UtilityServiceInterface):
         """Purchase utility via Flutterwave Bills API."""
         try:
             # TODO: Implement actual Flutterwave API call
-            return {
+            reference = kwargs.get("reference", "")
+            response_data = {
                 "success": True,
                 "transaction_id": f"FLW_{timezone.now().strftime('%Y%m%d%H%M%S')}",
-                "reference": kwargs.get("reference", ""),
+                "reference": reference,
                 "amount": str(amount),
                 "customer_id": customer_id,
                 "provider_code": provider_code,
-                "status": "success"
+                "status": "success",
+                "metadata": kwargs,
             }
+
+            if "electric" in provider_code or kwargs.get("service_type") == "electricity":
+                response_data["token"] = "9876-5432-1098-7654-3210"
+                response_data["units"] = f"{amount / Decimal('52.5')}"
+            
+            if "data" in provider_code or kwargs.get("service_type") == "internet":
+                response_data["bundle"] = kwargs.get("bundle_code", "Default Data Plan")
+
+            return response_data
         except Exception as e:
             logger.error(f"Flutterwave utility purchase failed: {str(e)}")
             return {
@@ -297,7 +322,8 @@ class UtilityPaymentManager:
             amount: Payment amount
             frequency: Payment frequency
             wallet: User wallet
-            **kwargs: Additional parameters
+            **kwargs: Additional parameters for the recurring payment and utility purchase.
+                      (e.g., title, description, start_date, meter_type, bundle_code)
             
         Returns:
             Dict containing setup result
@@ -321,6 +347,19 @@ class UtilityPaymentManager:
                     "error": f"Amount must be between {utility_provider.minimum_amount} and {utility_provider.maximum_amount}"
                 }
 
+            # Separate kwargs for model fields from metadata
+            model_kwargs = {
+                "title": kwargs.pop("title", f"{utility_provider.name} - {customer_id}"),
+                "description": kwargs.pop("description", f"Automated {utility_provider.name} payment"),
+                "payment_source": kwargs.pop("payment_source", "wallet"),
+                "spending_limit": kwargs.pop("spending_limit", None),
+                "start_date": kwargs.pop("start_date", timezone.now()),
+            }
+            model_kwargs["next_payment_date"] = kwargs.pop("next_payment_date", model_kwargs["start_date"])
+
+            # The rest of kwargs are considered metadata for the utility payment
+            payment_metadata = kwargs
+
             # Create recurring payment
             from core.common.models import RecurringPayment, RecurringPaymentStatus
             
@@ -328,19 +367,15 @@ class UtilityPaymentManager:
                 cluster=utility_provider.cluster,
                 user_id=user_id,
                 wallet=wallet,
-                title=kwargs.get("title", f"{utility_provider.name} - {customer_id}"),
-                description=kwargs.get("description", f"Automated {utility_provider.name} payment"),
                 amount=amount,
                 frequency=frequency,
                 utility_provider=utility_provider,
                 customer_id=customer_id,
-                payment_source=kwargs.get("payment_source", "wallet"),
-                spending_limit=kwargs.get("spending_limit"),
-                start_date=kwargs.get("start_date", timezone.now()),
-                next_payment_date=kwargs.get("next_payment_date", timezone.now()),
                 status=RecurringPaymentStatus.ACTIVE,
                 created_by=user_id,
                 last_modified_by=user_id,
+                metadata=payment_metadata,
+                **model_kwargs
             )
 
             return {
@@ -364,7 +399,8 @@ class UtilityPaymentManager:
         customer_id: str,
         amount: Decimal,
         wallet,
-        description: str = None
+        description: str = None,
+        **kwargs
     ) -> Dict[str, Any]:
         """
         Process one-time utility payment.
@@ -376,6 +412,7 @@ class UtilityPaymentManager:
             amount: Payment amount
             wallet: User wallet
             description: Payment description
+            **kwargs: Additional parameters for the utility purchase (e.g., meter_type, bundle_code)
             
         Returns:
             Dict containing payment result
@@ -402,6 +439,14 @@ class UtilityPaymentManager:
                     "error": "Failed to freeze amount in wallet"
                 }
 
+            # Prepare metadata for the transaction, including additional parameters
+            transaction_metadata = {
+                "utility_provider_id": utility_provider.id,
+                "customer_id": customer_id,
+                "provider_code": utility_provider.provider_code,
+                **kwargs
+            }
+
             # Create pending transaction
             transaction = Transaction.objects.create(
                 cluster=utility_provider.cluster,
@@ -412,11 +457,7 @@ class UtilityPaymentManager:
                 description=description or f"Utility payment to {utility_provider.name}",
                 status=TransactionStatus.PENDING,
                 provider=utility_provider.api_provider,
-                metadata={
-                    "utility_provider_id": utility_provider.id,
-                    "customer_id": customer_id,
-                    "provider_code": utility_provider.provider_code,
-                },
+                metadata=transaction_metadata,
                 created_by=user_id,
                 last_modified_by=user_id,
             )
@@ -428,7 +469,8 @@ class UtilityPaymentManager:
                     customer_id=customer_id,
                     amount=amount,
                     provider_code=utility_provider.provider_code,
-                    reference=transaction.transaction_id
+                    reference=transaction.transaction_id,
+                    **kwargs # Pass additional params to provider
                 )
 
                 if result.get("success"):
@@ -449,13 +491,13 @@ class UtilityPaymentManager:
                         description=f"Utility payment for customer {customer_id}",
                         type=utility_provider.provider_type,
                         category=BillCategory.USER_MANAGED,
+                        created_by_user=True,
                         amount=amount,
                         currency=wallet.currency,
                         status=BillStatus.PAID,
                         utility_provider=utility_provider,
                         customer_id=customer_id,
                         due_date=timezone.now(),
-                        paid_amount=amount,
                         paid_at=timezone.now(),
                         payment_transaction=transaction,
                         created_by=user_id,
@@ -467,6 +509,7 @@ class UtilityPaymentManager:
                         "transaction_id": transaction.transaction_id,
                         "bill_id": bill.id,
                         "provider_transaction_id": result.get("transaction_id"),
+                        "token": result.get("token"), # Return token if available
                         "message": "Utility payment processed successfully"
                     }
                 else:
@@ -509,6 +552,56 @@ class UtilityPaymentManager:
                 "error": "Payment setup failed",
                 "details": str(e)
             }
+
+    @staticmethod
+    def validate_utility_customer(utility_provider: UtilityProvider, customer_id: str) -> Dict[str, Any]:
+        """
+        Validate utility customer.
+        
+        Args:
+            utility_provider: UtilityProvider instance
+            customer_id: Customer ID or meter number
+            
+        Returns:
+            Dict containing validation result
+        """
+        try:
+            service = UtilityServiceFactory.get_service(utility_provider.api_provider)
+            return service.validate_customer(customer_id, utility_provider.provider_code)
+        except Exception as e:
+            logger.error(f"Customer validation failed: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def get_user_utility_bills(user_id: str, cluster, bill_type: str = None, status: str = None) -> List[Bill]:
+        """
+        Get user's utility bills.
+        
+        Args:
+            user_id: User ID
+            cluster: User's cluster
+            bill_type: Filter by bill type (optional)
+            status: Filter by status (optional)
+            
+        Returns:
+            List of Bill objects
+        """
+        queryset = Bill.objects.filter(
+            user_id=user_id,
+            cluster=cluster,
+            category=BillCategory.USER_MANAGED
+        )
+
+        if bill_type:
+            queryset = queryset.filter(type=bill_type)
+        
+        if status:
+            queryset = queryset.filter(status=status)
+
+        return queryset.order_by("-created_at")
 
     @staticmethod
     def validate_utility_customer(utility_provider: UtilityProvider, customer_id: str) -> Dict[str, Any]:

@@ -180,6 +180,7 @@ class SOSAlert(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("SOS Alert")
         verbose_name_plural = _("SOS Alerts")
         ordering = ["-created_at"]

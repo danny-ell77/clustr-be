@@ -88,6 +88,7 @@ class ShiftSwapRequest(AbstractClusterModel):
     )
     
     class Meta:
+        default_permissions = []
         verbose_name = _("shift swap request")
         verbose_name_plural = _("shift swap requests")
         ordering = ["-created_at"]

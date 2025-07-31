@@ -254,6 +254,7 @@ class AccountUser(UUIDPrimaryKey, ObjectHistoryTracker, AbstractUser):
     objects = UserManager()
 
     class Meta:
+        default_permissions = []
         verbose_name = _("user")
         verbose_name_plural = _("users")
         ordering = ("-date_joined",)
@@ -343,6 +344,7 @@ class PreviousPasswords(UUIDPrimaryKey):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("previous passwords")
         verbose_name_plural = _("previous passwords")
         default_permissions = []

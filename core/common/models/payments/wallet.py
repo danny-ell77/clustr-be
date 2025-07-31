@@ -95,6 +95,7 @@ class Wallet(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Wallet")
         verbose_name_plural = _("Wallets")
         unique_together = [["user_id", "cluster"]]

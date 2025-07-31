@@ -90,6 +90,7 @@ class IssueStatusHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("issue status history")
         verbose_name_plural = _("issue status histories")
         ordering = ["-created_at"]
@@ -205,6 +206,7 @@ class IssueTicket(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("issue ticket")
         verbose_name_plural = _("issue tickets")
         ordering = ["-created_at"]

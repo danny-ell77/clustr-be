@@ -51,27 +51,20 @@ def send_notification_task(
             logger.error(f"Cluster not found: {cluster_id}")
             return False
 
-        # Get user instances
-        recipients = []
-        for user_id in recipient_ids:
-            try:
-                user = User.objects.get(id=user_id)
-                recipients.append(user)
-            except User.DoesNotExist:
-                logger.warning(f"User not found: {user_id}")
-                continue
+        recipients = User.objects.filter(cluster_id=cluster_id, pk__in=recipient_ids)
 
         if not recipients:
             logger.warning(f"No valid recipients found for event: {event_name}")
             return True  # Not an error if no recipients
 
         # Call the internal sending method
-        result = NotificationManager._send_notification_internal(
-            event_name=event_enum,
-            recipients=recipients,
-            cluster=cluster,
-            context=context,
-        )
+        for batch in recipients.iterator(chunk_size=100):
+            NotificationManager._send_notification_internal(
+                event_name=event_enum,
+                recipients=list(batch),
+                cluster=cluster,
+                context=context,
+            )
 
         logger.info(
             f"Notification task completed for event {event_name}: "

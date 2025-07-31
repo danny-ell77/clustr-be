@@ -57,6 +57,7 @@ class TaskStatusHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task status history")
         verbose_name_plural = _("task status histories")
         ordering = ["-created_at"]
@@ -96,6 +97,7 @@ class TaskEscalationHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task escalation history")
         verbose_name_plural = _("task escalation histories")
         ordering = ["-created_at"]

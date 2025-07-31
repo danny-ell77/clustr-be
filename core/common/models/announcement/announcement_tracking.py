@@ -39,6 +39,7 @@ class AnnouncementReadStatus(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("announcement read status")
         verbose_name_plural = _("announcement read statuses")
         unique_together = ["announcement", "user_id"]

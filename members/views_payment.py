@@ -23,7 +23,7 @@ from core.common.permissions import PaymentsPermissions
 from core.common.responses import error_response, success_response
 from core.common.serializers.payment_serializers import (
     BillAcknowledgeSerializer,
-    BillDisputeSerializer,
+    BillDisputeModelSerializer,
     BillListResponseSerializer,
     BillPaymentResponseSerializer,
     BillPaymentSerializer,
@@ -254,7 +254,7 @@ class WalletViewSet(viewsets.ViewSet):
 
 
 @audit_viewset(resource_type="bill")
-class BillViewSet(viewsets.ViewSet):
+class BillViewSet(viewsets.ModelViewSet):
     """
     ViewSet for bill operations (residents).
     """
@@ -347,6 +347,7 @@ class BillViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
+            bill = self.get_object()
 
             serializer = BillAcknowledgeSerializer(data=request.data)
             if not serializer.is_valid():
@@ -357,10 +358,6 @@ class BillViewSet(viewsets.ViewSet):
                 )
 
             bill_id = serializer.validated_data["bill_id"]
-
-            bill = get_object_or_404(
-                self.queryset, id=bill_id, cluster=cluster, user_id=user_id
-            )
 
             success = BillManager.acknowledge_bill(bill, user_id)
 
@@ -383,7 +380,7 @@ class BillViewSet(viewsets.ViewSet):
             )
 
     @action(
-        detail=False, methods=["post"], url_path="dispute-bill", url_name="dispute_bill"
+        detail=True, methods=["post"], url_path="dispute-bill", url_name="dispute_bill"
     )
     def dispute_bill(self, request):
         """
@@ -393,7 +390,9 @@ class BillViewSet(viewsets.ViewSet):
             cluster = request.cluster_context
             user_id = str(request.user.id)
 
-            serializer = BillDisputeSerializer(data=request.data)
+            bill = self.get_object()
+
+            serializer = BillDisputeModelSerializer(data=request.data)
             if not serializer.is_valid():
                 return error_response(
                     message="Invalid input data",
@@ -404,13 +403,6 @@ class BillViewSet(viewsets.ViewSet):
             validated_data = serializer.validated_data
             bill_id = validated_data["bill_id"]
             reason = validated_data["reason"]
-
-            try:
-                bill = Bill.objects.get(id=bill_id, cluster=cluster, user_id=user_id)
-            except Bill.DoesNotExist:
-                return error_response(
-                    message="Bill not found", status_code=status.HTTP_404_NOT_FOUND
-                )
 
             success = BillManager.dispute_bill(bill, user_id, reason)
 
@@ -432,7 +424,7 @@ class BillViewSet(viewsets.ViewSet):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @action(detail=False, methods=["post"], url_path="pay-bill", url_name="pay_bill")
+    @action(detail=True, methods=["post"], url_path="pay-bill", url_name="pay_bill")
     def pay_bill(self, request):
         """
         Pay a bill using wallet balance.
@@ -440,6 +432,7 @@ class BillViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
+            bill = self.get_object()
 
             serializer = BillPaymentSerializer(data=request.data)
             if not serializer.is_valid():
@@ -453,26 +446,7 @@ class BillViewSet(viewsets.ViewSet):
             bill_id = validated_data["bill_id"]
             amount = validated_data.get("amount")
 
-            # Get bill - now supports both estate-wide and user-specific bills
-            try:
-                # For estate-wide bills (user_id=null) or user-specific bills for this user
-                from django.db.models import Q
-                bill_query = Q(id=bill_id, cluster=cluster) & (
-                    Q(user_id=user_id) | Q(user_id__isnull=True)
-                )
-                bill = Bill.objects.get(bill_query)
-            except Bill.DoesNotExist:
-                return error_response(
-                    message="Bill not found", status_code=status.HTTP_404_NOT_FOUND
-                )
-
-            try:
-                wallet = Wallet.objects.get(cluster=cluster, user_id=user_id)
-            except Wallet.DoesNotExist:
-                return error_response(
-                    message="Wallet not found", status_code=status.HTTP_404_NOT_FOUND
-                )
-
+            wallet = get_object_or_404(Wallet, cluster=cluster, user_id=user_id)
             transaction = BillManager.process_bill_payment(
                 bill=bill, wallet=wallet, amount=amount, user=request.user
             )
@@ -513,10 +487,13 @@ class BillViewSet(viewsets.ViewSet):
     def pay_bill_direct(self, request):
         """
         Pay a bill directly via payment provider (Paystack/Flutterwave).
+        This is used when the cluster (estate) member does not have funds in their 
+        wallet and wants to pay the bill directly.
         """
         try:
             cluster = request.cluster_context
             user_id = str(request.user.id)
+            bill = self.get_object()
 
             serializer = DirectBillPaymentSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -526,18 +503,6 @@ class BillViewSet(viewsets.ViewSet):
             provider = validated_data["provider"]
             amount = validated_data.get("amount")
             callback_url = validated_data.get("callback_url")
-
-            # Get bill - now supports both estate-wide and user-specific bills
-            try:
-                from django.db.models import Q
-                bill_query = Q(id=bill_id, cluster=cluster) & (
-                    Q(user_id=user_id) | Q(user_id__isnull=True)
-                )
-                bill = Bill.objects.get(bill_query)
-            except Bill.DoesNotExist:
-                return error_response(
-                    message="Bill not found", status_code=status.HTTP_404_NOT_FOUND
-                )
 
             # Check if user can pay this bill (includes acknowledgment and due date checks)
             if not bill.can_be_paid_by(request.user):
@@ -602,19 +567,13 @@ class BillViewSet(viewsets.ViewSet):
                 description=f"Direct bill payment - {bill.title}",
                 provider=provider,
                 transaction_type=TransactionType.BILL_PAYMENT,
-            )
-
-            if not transaction.metadata:
-                transaction.metadata = {}
-            transaction.metadata.update(
-                {
+                metadata={
                     "bill_id": str(bill.id),
                     "bill_number": bill.bill_number,
                     "bill_type": bill.type,
                     "payment_method": "direct",
                 }
             )
-            transaction.save()
 
             payment_response = manager.initialize_payment(
                 transaction=transaction,

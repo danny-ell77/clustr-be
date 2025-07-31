@@ -47,6 +47,7 @@ class AnnouncementAttachment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("announcement attachment")
         verbose_name_plural = _("announcement attachments")
         ordering = ["created_at"]

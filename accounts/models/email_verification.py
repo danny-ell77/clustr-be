@@ -205,6 +205,7 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
         return self.requested_by.email_address
 
     class Meta:
+        default_permissions = []
         verbose_name = "user verification"
         ordering = ["-requested_at"]
         indexes = [

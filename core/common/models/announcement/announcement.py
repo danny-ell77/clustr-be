@@ -83,6 +83,7 @@ class Announcement(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("announcement")
         verbose_name_plural = _("announcements")
         ordering = ["-published_at", "-created_at"]

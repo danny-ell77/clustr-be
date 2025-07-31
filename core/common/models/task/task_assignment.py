@@ -46,6 +46,7 @@ class TaskAssignment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task assignment")
         verbose_name_plural = _("task assignments")
         ordering = ["-assigned_at"]
@@ -90,6 +91,7 @@ class TaskAssignmentHistory(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("task assignment history")
         verbose_name_plural = _("task assignment histories")
         ordering = ["-created_at"]

@@ -101,6 +101,7 @@ class EmergencyContact(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("Emergency Contact")
         verbose_name_plural = _("Emergency Contacts")
         ordering = ["-is_primary", "name"]

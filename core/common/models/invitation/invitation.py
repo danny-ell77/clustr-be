@@ -106,6 +106,7 @@ class Invitation(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("invitation")
         verbose_name_plural = _("invitations")
         ordering = ["-start_date", "status"]

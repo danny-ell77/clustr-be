@@ -68,6 +68,7 @@ class IssueAttachment(AbstractClusterModel):
     )
 
     class Meta:
+        default_permissions = []
         verbose_name = _("issue attachment")
         verbose_name_plural = _("issue attachments")
         ordering = ["created_at"]
