@@ -120,7 +120,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
             # Check if user has access to this cluster
             if user.clusters.filter(id=cluster_id).exists():
                 # Set cluster context in request
-                request.cluster_context = user.clusters.get(id=cluster_id)
+                request.cluster = user.clusters.get(id=cluster_id)
             else:
                 raise exceptions.AuthenticationFailed(
                     _("Invalid cluster context in token.")

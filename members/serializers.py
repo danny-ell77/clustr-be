@@ -41,7 +41,7 @@ class MemberRegistrationSerializer(serializers.ModelSerializer):
             "cluster_id",
         ]
         extra_kwargs = {
-            "phone_number": {"required": True, "allow_blank": False, "editable": True},
+            "phone_number": {"required": True, "allow_blank": False},
             "unit_address": {"required": True},
         }
 

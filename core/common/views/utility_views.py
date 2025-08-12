@@ -39,7 +39,7 @@ class UtilityProviderViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         """Get utility providers for user's cluster."""
         return UtilityProvider.objects.filter(
-            cluster=self.request.user.cluster,
+            cluster=self.request.cluster.id,
             is_active=True
         ).order_by("name")
 
@@ -68,7 +68,7 @@ class UtilityBillViewSet(viewsets.ModelViewSet):
         """Get utility bills for the current user."""
         return Bill.objects.filter(
             user_id=self.request.user.id,
-            cluster=self.request.user.cluster,
+            cluster=self.request.cluster.id,
             category=BillCategory.USER_MANAGED
         ).select_related("utility_provider").order_by("-created_at")
 
@@ -76,7 +76,7 @@ class UtilityBillViewSet(viewsets.ModelViewSet):
         """Create utility bill with user context."""
         serializer.save(
             user_id=self.request.user.id,
-            cluster=self.request.user.cluster,
+            cluster=self.request.cluster.id,
             category=BillCategory.USER_MANAGED,
             created_by_user=True,
             created_by=self.request.user.id,
@@ -114,7 +114,7 @@ class RecurringUtilityPaymentViewSet(viewsets.ModelViewSet):
         """Get recurring utility payments for the current user."""
         return RecurringPayment.objects.filter(
             user_id=self.request.user.id,
-            cluster=self.request.user.cluster,
+            cluster=self.request.cluster.id,
             utility_provider__isnull=False
         ).select_related("utility_provider", "wallet").order_by("-created_at")
 
@@ -124,7 +124,7 @@ class RecurringUtilityPaymentViewSet(viewsets.ModelViewSet):
         try:
             wallet = Wallet.objects.get(
                 user_id=self.request.user.id,
-                cluster=self.request.user.cluster
+                cluster=self.request.cluster.id
             )
         except Wallet.DoesNotExist:
             return Response(
@@ -134,7 +134,7 @@ class RecurringUtilityPaymentViewSet(viewsets.ModelViewSet):
 
         serializer.save(
             user_id=self.request.user.id,
-            cluster=self.request.user.cluster,
+            cluster=self.request.cluster.id,
             wallet=wallet,
             created_by=self.request.user.id,
             last_modified_by=self.request.user.id,

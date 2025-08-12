@@ -61,7 +61,7 @@ class GenericModelImporter:
         self.import_serializer_class = import_serializer_class
         self._import_data_serializer_class = import_data_serializer_class
         self.serializer_context = serializer_context or {} | {
-            "cluster_id": self.request.user.cluster_id,
+            "cluster_id": self.request.cluster.id_id,
             "owner_id": self.request.user.get_owner().id,
             "cluster_staff_id": self.request.user.id,
         }

@@ -571,3 +571,33 @@ class ClusterWalletResponseSerializer(serializers.Serializer):
 
     analytics = ClusterWalletAnalyticsSerializer()
     recent_transactions = TransactionSerializer(many=True)
+
+
+class BillSummarySerializer(serializers.Serializer):
+    """Serializer for bill summary response"""
+
+    total_bills = serializers.IntegerField()
+    pending_bills = serializers.IntegerField()
+    paid_bills = serializers.IntegerField()
+    overdue_bills = serializers.IntegerField()
+    disputed_bills = serializers.IntegerField()
+    total_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    pending_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    paid_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    overdue_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    disputed_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    currency = serializers.CharField()
+
+
+class RecurringPaymentSummarySerializer(serializers.Serializer):
+    """Serializer for recurring payment summary response"""
+
+    total_payments = serializers.IntegerField()
+    active_payments = serializers.IntegerField()
+    paused_payments = serializers.IntegerField()
+    cancelled_payments = serializers.IntegerField()
+    total_monthly_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    active_monthly_amount = serializers.DecimalField(max_digits=15, decimal_places=2)
+    next_payment_date = serializers.DateTimeField(allow_null=True)
+    next_payment_amount = serializers.DecimalField(max_digits=15, decimal_places=2, allow_null=True)
+    currency = serializers.CharField()

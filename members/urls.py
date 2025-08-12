@@ -14,6 +14,12 @@ app_name = "members"
 # Create a router for ViewSets
 router = DefaultRouter()
 router.register(r'maintenance-requests', views_maintenance.MemberMaintenanceLogViewSet, basename='member-maintenance-request')
+router.register(r'visitors', views_visitor.MemberVisitorViewSet, basename='member-visitor')
+router.register(r'visitor-logs', views_visitor.MemberVisitorLogViewSet, basename='member-visitor-log')
+router.register(r'children', views_child.MemberChildViewSet, basename='member-child')
+router.register(r'exit-requests', views_child.MemberExitRequestViewSet, basename='member-exit-request')
+router.register(r'entry-exit-logs', views_child.MemberEntryExitLogViewSet, basename='member-entry-exit-log')
+router.register(r'invitations', views_invitation.MemberInvitationViewSet, basename='member-invitation')
 
 urlpatterns = [
     # Authentication endpoints

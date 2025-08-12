@@ -29,12 +29,14 @@ from core.common.serializers.payment_serializers import (
     BillPaymentResponseSerializer,
     BillPaymentSerializer,
     BillSerializer,
+    BillSummarySerializer,
     CreateRecurringPaymentSerializer,
     DepositResponseSerializer,
     DirectBillPaymentSerializer,
     PauseRecurringPaymentSerializer,
     RecurringPaymentListResponseSerializer,
     RecurringPaymentSerializer,
+    RecurringPaymentSummarySerializer,
     TransactionListResponseSerializer,
     TransactionSerializer,
     UpdateRecurringPaymentSerializer,
@@ -270,6 +272,7 @@ class BillViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = BillFilter
     queryset = Bill.objects.all()
+    serializer_class = BillSerializer
 
     @action(detail=False, methods=["get"], url_path="my_bills", url_name="my-bills")
     def my_bills(self, request):
@@ -325,9 +328,11 @@ class BillViewSet(viewsets.ModelViewSet):
             user_id = str(request.user.id)
 
             summary = bills.get_summary(cluster, user_id)
+            
+            serializer = BillSummarySerializer(summary)
 
             return success_response(
-                data=summary, message="Bills summary retrieved successfully"
+                data=serializer.data, message="Bills summary retrieved successfully"
             )
 
         except Exception as e:
@@ -700,9 +705,11 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             summary = recurring_payments.get_summary(
                 cluster, user_id
             )
+            
+            serializer = RecurringPaymentSummarySerializer(summary)
 
             return success_response(
-                data=summary,
+                data=serializer.data,
                 message="Recurring payments summary retrieved successfully",
             )
 
