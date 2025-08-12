@@ -46,6 +46,7 @@ class NotificationEvents(Enum):
     PAYMENT_OVERDUE = "payment_overdue"
     PAYMENT_CONFIRMED = "payment_confirmed"
     ANNOUNCEMENT_POSTED = "announcement_posted"
+    EXIT_REQUEST_REMINDER = "exit_request_reminder"
     ISSUE_ASSIGNED = "issue_assigned"
     ISSUE_STATUS_CHANGED = "issue_status_changed"
     ISSUE_ESCALATED = "issue_escalated"
@@ -54,6 +55,10 @@ class NotificationEvents(Enum):
     TASK_DUE = "task_due"
     MAINTENANCE_SCHEDULED = "maintenance_scheduled"
     MAINTENANCE_COMPLETED = "maintenance_completed"
+    BILL_CREATED = "bill_created"
+    BILL_OVERDUE = "bill_overdue"
+    BILL_REMINDER = "bill_reminder"
+    BILL_STATUS_CHANGED = "bill_status_changed"
     BILL_CANCELLED = "bill_cancelled"
     BILL_ACKNOWLEDGED = "bill_acknowledged"
     BILL_DISPUTED = "bill_disputed"
@@ -63,8 +68,18 @@ class NotificationEvents(Enum):
     PAYMENT_CANCELLED = "payment_cancelled"
     PAYMENT_UPDATED = "payment_updated"
     PAYMENT_SETUP = "payment_setup"
+    PAYMENT_SUCCESSFUL = "payment_successful"
+    RECURRING_PAYMENT_REMINDER = "recurring_payment_reminder"
+    SHIFT_ASSIGNED = "shift_assigned"
+    SHIFT_REMINDER = "shift_reminder"
+    SHIFT_MISSED = "shift_missed"
+    SHIFT_SWAP_REQUEST = "shift_swap_request"
+    SHIFT_SWAP_RESPONSE = "shift_swap_response"
+    MAINTENANCE_DUE = "maintenance_due"
+    MAINTENANCE_REQUESTED = "maintenance_requested"
     
     # Low priority events
+    COMMENT_ADDED = "comment_added"
     COMMENT_REPLY = "comment_reply"
     NEWSLETTER = "newsletter"
     SYSTEM_UPDATE = "system_update"
@@ -261,6 +276,16 @@ NOTIFICATION_EVENTS = {
         ]
     ),
     
+    NotificationEvents.EXIT_REQUEST_REMINDER: NotificationEvent(
+        name=NotificationEvents.EXIT_REQUEST_REMINDER.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.SMS,
+            NotificationChannel.WEBSOCKET
+        ]
+    ),
+    
     NotificationEvents.ISSUE_ASSIGNED: NotificationEvent(
         name=NotificationEvents.ISSUE_ASSIGNED.value,
         priority=NotificationPriority.MEDIUM,
@@ -314,6 +339,36 @@ NOTIFICATION_EVENTS = {
     
     NotificationEvents.MAINTENANCE_COMPLETED: NotificationEvent(
         name=NotificationEvents.MAINTENANCE_COMPLETED.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[NotificationChannel.EMAIL]
+    ),
+    
+    NotificationEvents.BILL_CREATED: NotificationEvent(
+        name=NotificationEvents.BILL_CREATED.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.WEBSOCKET
+        ]
+    ),
+    
+    NotificationEvents.BILL_OVERDUE: NotificationEvent(
+        name=NotificationEvents.BILL_OVERDUE.value,
+        priority=NotificationPriority.HIGH,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.SMS
+        ]
+    ),
+    
+    NotificationEvents.BILL_REMINDER: NotificationEvent(
+        name=NotificationEvents.BILL_REMINDER.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[NotificationChannel.EMAIL]
+    ),
+    
+    NotificationEvents.BILL_STATUS_CHANGED: NotificationEvent(
+        name=NotificationEvents.BILL_STATUS_CHANGED.value,
         priority=NotificationPriority.MEDIUM,
         supported_channels=[NotificationChannel.EMAIL]
     ),
@@ -378,7 +433,88 @@ NOTIFICATION_EVENTS = {
         supported_channels=[NotificationChannel.EMAIL]
     ),
     
+    NotificationEvents.PAYMENT_SUCCESSFUL: NotificationEvent(
+        name=NotificationEvents.PAYMENT_SUCCESSFUL.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.WEBSOCKET
+        ]
+    ),
+    
+    NotificationEvents.RECURRING_PAYMENT_REMINDER: NotificationEvent(
+        name=NotificationEvents.RECURRING_PAYMENT_REMINDER.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[NotificationChannel.EMAIL]
+    ),
+    
+    NotificationEvents.SHIFT_ASSIGNED: NotificationEvent(
+        name=NotificationEvents.SHIFT_ASSIGNED.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.WEBSOCKET
+        ]
+    ),
+    
+    NotificationEvents.SHIFT_REMINDER: NotificationEvent(
+        name=NotificationEvents.SHIFT_REMINDER.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.SMS
+        ]
+    ),
+    
+    NotificationEvents.SHIFT_MISSED: NotificationEvent(
+        name=NotificationEvents.SHIFT_MISSED.value,
+        priority=NotificationPriority.HIGH,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.SMS
+        ]
+    ),
+    
+    NotificationEvents.SHIFT_SWAP_REQUEST: NotificationEvent(
+        name=NotificationEvents.SHIFT_SWAP_REQUEST.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.WEBSOCKET
+        ]
+    ),
+    
+    NotificationEvents.SHIFT_SWAP_RESPONSE: NotificationEvent(
+        name=NotificationEvents.SHIFT_SWAP_RESPONSE.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[NotificationChannel.EMAIL]
+    ),
+    
+    NotificationEvents.MAINTENANCE_DUE: NotificationEvent(
+        name=NotificationEvents.MAINTENANCE_DUE.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.SMS
+        ]
+    ),
+    
+    NotificationEvents.MAINTENANCE_REQUESTED: NotificationEvent(
+        name=NotificationEvents.MAINTENANCE_REQUESTED.value,
+        priority=NotificationPriority.MEDIUM,
+        supported_channels=[
+            NotificationChannel.EMAIL,
+            NotificationChannel.WEBSOCKET
+        ]
+    ),
+    
     # Low priority events
+    NotificationEvents.COMMENT_ADDED: NotificationEvent(
+        name=NotificationEvents.COMMENT_ADDED.value,
+        priority=NotificationPriority.LOW,
+        supported_channels=[NotificationChannel.EMAIL]
+    ),
+    
     NotificationEvents.COMMENT_REPLY: NotificationEvent(
         name=NotificationEvents.COMMENT_REPLY.value,
         priority=NotificationPriority.LOW,

@@ -18,7 +18,7 @@ from core.common.models import (
     TransactionType,
     TransactionStatus,
 )
-from core.common.utils.bill_utils import BillManager
+from core.common.includes import bills
 
 
 class BillPaymentAcknowledgmentTestCase(TestCase):
@@ -82,7 +82,7 @@ class BillPaymentAcknowledgmentTestCase(TestCase):
         
         # Attempt to process payment
         with self.assertRaises(ValueError) as context:
-            BillManager.process_bill_payment(
+            bills.process_payment(
                 bill=self.bill,
                 wallet=self.wallet,
                 amount=Decimal("100.00"),
@@ -113,7 +113,7 @@ class BillPaymentAcknowledgmentTestCase(TestCase):
         # Mock Transaction creation and other dependencies
         with self.patch_transaction_creation():
             try:
-                transaction = BillManager.process_bill_payment(
+                transaction = bills.process_payment(
                     bill=self.bill,
                     wallet=self.wallet,
                     amount=Decimal("100.00"),

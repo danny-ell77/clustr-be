@@ -22,7 +22,7 @@ from core.common.serializers.task_serializers import (
     TaskCommentCreateSerializer, TaskCommentSerializer,
     TaskStatisticsSerializer, TaskFileUploadSerializer
 )
-from core.common.utils import TaskManager, TaskNotificationManager, TaskFileManager
+from core.common.includes import notifications, tasks
 from accounts.models import AccountUser
 from accounts.permissions import IsClusterStaffOrAdmin
 
@@ -69,7 +69,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                     clusters=getattr(self.request, "cluster_context", None)
                 )
         
-        task = TaskManager.create_task(
+        task = tasks.create(
             created_by=self.request.user,
             cluster=getattr(self.request, "cluster_context", None),
             assigned_to=assigned_to,
@@ -89,7 +89,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                     clusters=getattr(self.request, "cluster_context", None)
                 )
                 if serializer.instance.assigned_to != assigned_to:
-                    TaskManager.assign_task(
+                    tasks.assign(
                         serializer.instance, 
                         assigned_to, 
                         self.request.user
@@ -110,7 +110,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                 clusters=request.cluster_context
             )
             
-            success = TaskManager.assign_task(task, assigned_to, request.user)
+            success = tasks.assign(task, assigned_to, request.user)
             
             if success:
                 return Response({
@@ -141,11 +141,11 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
             
             try:
                 if new_status == TaskStatus.IN_PROGRESS:
-                    TaskManager.start_task(task, request.user)
+                    tasks.start(task, request.user)
                 elif new_status == TaskStatus.COMPLETED:
                     if actual_hours:
                         task.actual_hours = actual_hours
-                    TaskManager.complete_task(task, completion_notes, request.user)
+                    tasks.complete(task, completion_notes, request.user)
                 elif new_status == TaskStatus.CANCELLED:
                     task.cancel_task(notes, request.user)
                 else:
@@ -179,7 +179,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                 clusters=request.cluster_context
             )
             
-            success = TaskManager.escalate_task(
+            success = tasks.escalate(
                 task, 
                 escalated_to, 
                 serializer.validated_data['reason'], 
@@ -202,7 +202,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def overdue(self, request):
         """Get overdue tasks."""
-        overdue_tasks = TaskManager.get_overdue_tasks(request.cluster_context)
+        overdue_tasks = tasks.get_overdue(request.cluster_context)
         serializer = TaskListSerializer(overdue_tasks, many=True)
         return Response(serializer.data)
     
@@ -212,14 +212,14 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
         # This action can be handled by the filterset if a 'due_soon' method is added to TaskFilter
         # For now, keeping the existing logic as it uses TaskManager
         hours = int(request.query_params.get('hours', 24))
-        due_soon_tasks = TaskManager.get_due_soon_tasks(request.cluster_context, hours)
+        due_soon_tasks = tasks.get_due_soon(request.cluster_context, hours)
         serializer = TaskListSerializer(due_soon_tasks, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):
         """Get task statistics."""
-        stats = TaskManager.get_task_statistics(request.cluster_context)
+        stats = tasks.get_statistics(request.cluster_context)
         serializer = TaskStatisticsSerializer(stats)
         return Response(serializer.data)
     
@@ -233,7 +233,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
         
         if serializer.is_valid():
             try:
-                file_url = TaskFileManager.upload_task_attachment(
+                file_url = tasks.upload_attachment(
                     task,
                     serializer.validated_data['file'],
                     request.user,
@@ -271,7 +271,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
         
         # Validate evidence files if provided
         if evidence_files:
-            validation_result = TaskFileManager.validate_evidence_files(evidence_files)
+            validation_result = tasks.validate_evidence_files(evidence_files)
             if not validation_result['valid']:
                 return Response(
                     {'error': 'Invalid evidence files', 'details': validation_result['errors']}, 
@@ -285,7 +285,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                 task.save()
             
             # Complete the task with evidence
-            success = TaskManager.complete_task(
+            success = tasks.complete(
                 task=task,
                 completion_notes=completion_notes,
                 completed_by=request.user,
@@ -294,7 +294,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
             
             if success:
                 # Get completion evidence for response
-                evidence_attachments = TaskFileManager.get_completion_evidence(task)
+                evidence_attachments = tasks.get_completion_evidence(task)
                 
                 return Response({
                     'message': 'Task completed successfully',
@@ -350,7 +350,7 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        analytics = TaskManager.get_task_performance_analytics(
+        analytics = tasks.get_performance_analytics(
             cluster=request.cluster_context,
             start_date=parsed_start_date,
             end_date=parsed_end_date
@@ -401,7 +401,7 @@ class ManagementTaskCommentViewSet(viewsets.ModelViewSet):
         )
         
         # Send notification about new comment
-        TaskNotificationManager.send_task_comment_notification(
+        tasks.send_comment_notification(
             serializer.instance, task
         )
     

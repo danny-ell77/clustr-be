@@ -1,7 +1,7 @@
 """
-Unit tests for NotificationManager.
+Unit tests for notifications.
 
-This module tests the core functionality of the NotificationManager including
+This module tests the core functionality of the notifications including
 event validation, channel routing, error handling, and utility methods.
 """
 
@@ -10,15 +10,15 @@ from unittest.mock import Mock, patch, MagicMock
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 from core.notifications.events import NotificationEvents, NotificationChannel, NotificationPriority
 from core.common.models.cluster import Cluster
 
 User = get_user_model()
 
 
-class NotificationManagerTestCase(TestCase):
-    """Test cases for NotificationManager functionality."""
+class notificationsTestCase(TestCase):
+    """Test cases for notifications functionality."""
     
     def setUp(self):
         """Set up test data."""
@@ -51,10 +51,10 @@ class NotificationManagerTestCase(TestCase):
     
     def test_send_valid_notification(self):
         """Test sending a valid notification with proper parameters."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.return_value = True
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -68,7 +68,7 @@ class NotificationManagerTestCase(TestCase):
     def test_send_invalid_event_name_type(self):
         """Test that invalid event_name type raises ValueError."""
         with self.assertRaises(ValueError) as cm:
-            NotificationManager.send(
+            notifications.send(
                 event_name="invalid_event",  # String instead of enum
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -80,7 +80,7 @@ class NotificationManagerTestCase(TestCase):
     def test_send_invalid_recipients_type(self):
         """Test that invalid recipients type raises TypeError."""
         with self.assertRaises(TypeError) as cm:
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients="invalid",  # String instead of list
                 cluster=self.cluster,
@@ -92,7 +92,7 @@ class NotificationManagerTestCase(TestCase):
     def test_send_invalid_cluster_type(self):
         """Test that invalid cluster type raises TypeError."""
         with self.assertRaises(TypeError) as cm:
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster="invalid",  # String instead of Cluster
@@ -104,7 +104,7 @@ class NotificationManagerTestCase(TestCase):
     def test_send_invalid_context_type(self):
         """Test that invalid context type raises TypeError."""
         with self.assertRaises(TypeError) as cm:
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -115,7 +115,7 @@ class NotificationManagerTestCase(TestCase):
     
     def test_send_empty_recipients_list(self):
         """Test that empty recipients list returns True without error."""
-        result = NotificationManager.send(
+        result = notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=[],
             cluster=self.cluster,
@@ -130,7 +130,7 @@ class NotificationManagerTestCase(TestCase):
         with patch('core.notifications.manager.NOTIFICATION_EVENTS') as mock_events:
             mock_events.get.return_value = None
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -145,7 +145,7 @@ class NotificationManagerTestCase(TestCase):
         invalid_cluster = Mock()
         invalid_cluster.id = None
         
-        result = NotificationManager.send(
+        result = notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=self.recipients,
             cluster=invalid_cluster,
@@ -156,11 +156,11 @@ class NotificationManagerTestCase(TestCase):
     
     def test_send_multiple_channels_success(self):
         """Test sending notification with multiple channels all succeeding."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.return_value = True
             
             # Use emergency alert which supports multiple channels
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.EMERGENCY_ALERT,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -177,10 +177,10 @@ class NotificationManagerTestCase(TestCase):
             # Fail SMS channel, succeed others
             return channel != NotificationChannel.SMS
         
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.side_effect = mock_send_side_effect
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.EMERGENCY_ALERT,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -191,10 +191,10 @@ class NotificationManagerTestCase(TestCase):
     
     def test_send_channel_exception_handling(self):
         """Test that exceptions in channel sending are handled gracefully."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.side_effect = Exception("Channel error")
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -205,7 +205,7 @@ class NotificationManagerTestCase(TestCase):
     
     def test_get_event_info_valid_event(self):
         """Test getting event info for a valid event."""
-        event_info = NotificationManager.get_event_info(NotificationEvents.VISITOR_ARRIVAL)
+        event_info = notifications.get_event_info(NotificationEvents.VISITOR_ARRIVAL)
         
         self.assertIsNotNone(event_info)
         self.assertEqual(event_info.name, NotificationEvents.VISITOR_ARRIVAL.value)
@@ -216,12 +216,12 @@ class NotificationManagerTestCase(TestCase):
         with patch('core.notifications.manager.NOTIFICATION_EVENTS') as mock_events:
             mock_events.get.return_value = None
             
-            event_info = NotificationManager.get_event_info(NotificationEvents.VISITOR_ARRIVAL)
+            event_info = notifications.get_event_info(NotificationEvents.VISITOR_ARRIVAL)
             self.assertIsNone(event_info)
     
     def test_validate_event_exists_valid(self):
         """Test validating that a valid event exists."""
-        result = NotificationManager.validate_event_exists(NotificationEvents.VISITOR_ARRIVAL)
+        result = notifications.validate_event_exists(NotificationEvents.VISITOR_ARRIVAL)
         self.assertTrue(result)
     
     def test_validate_event_exists_invalid(self):
@@ -229,12 +229,12 @@ class NotificationManagerTestCase(TestCase):
         with patch('core.notifications.manager.NOTIFICATION_EVENTS') as mock_events:
             mock_events.__contains__ = Mock(return_value=False)
             
-            result = NotificationManager.validate_event_exists(NotificationEvents.VISITOR_ARRIVAL)
+            result = notifications.validate_event_exists(NotificationEvents.VISITOR_ARRIVAL)
             self.assertFalse(result)
     
     def test_get_supported_channels_valid_event(self):
         """Test getting supported channels for a valid event."""
-        channels = NotificationManager.get_supported_channels(NotificationEvents.VISITOR_ARRIVAL)
+        channels = notifications.get_supported_channels(NotificationEvents.VISITOR_ARRIVAL)
         
         self.assertIsInstance(channels, list)
         self.assertIn(NotificationChannel.EMAIL, channels)
@@ -244,17 +244,17 @@ class NotificationManagerTestCase(TestCase):
         with patch('core.notifications.manager.NOTIFICATION_EVENTS') as mock_events:
             mock_events.get.return_value = None
             
-            channels = NotificationManager.get_supported_channels(NotificationEvents.VISITOR_ARRIVAL)
+            channels = notifications.get_supported_channels(NotificationEvents.VISITOR_ARRIVAL)
             self.assertEqual(channels, [])
     
     def test_is_critical_event_true(self):
         """Test checking if a critical event is critical."""
-        result = NotificationManager.is_critical_event(NotificationEvents.EMERGENCY_ALERT)
+        result = notifications.is_critical_event(NotificationEvents.EMERGENCY_ALERT)
         self.assertTrue(result)
     
     def test_is_critical_event_false(self):
         """Test checking if a non-critical event is not critical."""
-        result = NotificationManager.is_critical_event(NotificationEvents.VISITOR_ARRIVAL)
+        result = notifications.is_critical_event(NotificationEvents.VISITOR_ARRIVAL)
         self.assertFalse(result)
     
     def test_is_critical_event_invalid(self):
@@ -262,12 +262,12 @@ class NotificationManagerTestCase(TestCase):
         with patch('core.notifications.manager.NOTIFICATION_EVENTS') as mock_events:
             mock_events.get.return_value = None
             
-            result = NotificationManager.is_critical_event(NotificationEvents.VISITOR_ARRIVAL)
+            result = notifications.is_critical_event(NotificationEvents.VISITOR_ARRIVAL)
             self.assertFalse(result)
 
 
-class NotificationManagerChannelRoutingTestCase(TestCase):
-    """Test cases for NotificationManager channel routing functionality."""
+class notificationsChannelRoutingTestCase(TestCase):
+    """Test cases for notifications channel routing functionality."""
     
     def setUp(self):
         """Set up test data."""
@@ -290,7 +290,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
             mock_email_instance.send.return_value = True
             mock_email_class.return_value = mock_email_instance
             
-            result = NotificationManager._send_via_channel(
+            result = notifications._send_via_channel(
                 channel=NotificationChannel.EMAIL,
                 event=mock_event,
                 recipients=self.recipients,
@@ -314,7 +314,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
             mock_email_instance.send.return_value = False
             mock_email_class.return_value = mock_email_instance
             
-            result = NotificationManager._send_via_channel(
+            result = notifications._send_via_channel(
                 channel=NotificationChannel.EMAIL,
                 event=mock_event,
                 recipients=self.recipients,
@@ -331,7 +331,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
         mock_event.name = "test_event"
         
         with patch('builtins.__import__', side_effect=ImportError("Module not found")):
-            result = NotificationManager._send_via_channel(
+            result = notifications._send_via_channel(
                 channel=NotificationChannel.EMAIL,
                 event=mock_event,
                 recipients=self.recipients,
@@ -349,7 +349,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
         mock_event.name = "test_event"
         
         # Test SMS channel
-        result = NotificationManager._send_via_channel(
+        result = notifications._send_via_channel(
             channel=NotificationChannel.SMS,
             event=mock_event,
             recipients=self.recipients,
@@ -359,7 +359,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
         self.assertTrue(result)  # Should return True for unimplemented channels
         
         # Test WebSocket channel
-        result = NotificationManager._send_via_channel(
+        result = notifications._send_via_channel(
             channel=NotificationChannel.WEBSOCKET,
             event=mock_event,
             recipients=self.recipients,
@@ -369,7 +369,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
         self.assertTrue(result)
         
         # Test App channel
-        result = NotificationManager._send_via_channel(
+        result = notifications._send_via_channel(
             channel=NotificationChannel.APP,
             event=mock_event,
             recipients=self.recipients,
@@ -388,7 +388,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
         unknown_channel = Mock()
         unknown_channel.value = "unknown"
         
-        result = NotificationManager._send_via_channel(
+        result = notifications._send_via_channel(
             channel=unknown_channel,
             event=mock_event,
             recipients=self.recipients,
@@ -408,7 +408,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
         with patch('core.notifications.channels.email.EmailChannel') as mock_email_class:
             mock_email_class.side_effect = Exception("Unexpected error")
             
-            result = NotificationManager._send_via_channel(
+            result = notifications._send_via_channel(
                 channel=NotificationChannel.EMAIL,
                 event=mock_event,
                 recipients=self.recipients,
@@ -420,7 +420,7 @@ class NotificationManagerChannelRoutingTestCase(TestCase):
             mock_logger.error.assert_called()
 
 
-class NotificationManagerChannelOrchestrationTestCase(TestCase):
+class notificationsChannelOrchestrationTestCase(TestCase):
     """Test cases for enhanced channel routing and orchestration logic."""
     
     def setUp(self):
@@ -435,7 +435,7 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
     
     def test_channel_results_aggregation(self):
         """Test that channel results are properly aggregated."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             # Mock different results for different channels
             def mock_send_side_effect(channel, event, recipients, cluster, context):
                 if channel == NotificationChannel.EMAIL:
@@ -447,7 +447,7 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
             
             mock_send.side_effect = mock_send_side_effect
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.EMERGENCY_ALERT,  # Supports multiple channels
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -459,14 +459,14 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
     
     def test_send_with_channel_results_detailed_feedback(self):
         """Test detailed channel results method."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             # Mock different results for different channels
             def mock_send_side_effect(channel, event, recipients, cluster, context):
                 return channel == NotificationChannel.EMAIL
             
             mock_send.side_effect = mock_send_side_effect
             
-            results = NotificationManager.send_with_channel_results(
+            results = notifications.send_with_channel_results(
                 event_name=NotificationEvents.EMERGENCY_ALERT,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -489,20 +489,20 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
             mock_instance = Mock()
             mock_email_class.return_value = mock_instance
             
-            instance = NotificationManager._get_channel_instance(NotificationChannel.EMAIL)
+            instance = notifications._get_channel_instance(NotificationChannel.EMAIL)
             
             self.assertEqual(instance, mock_instance)
             mock_email_class.assert_called_once()
     
     def test_get_channel_instance_unimplemented(self):
         """Test getting unimplemented channel instance."""
-        instance = NotificationManager._get_channel_instance(NotificationChannel.SMS)
+        instance = notifications._get_channel_instance(NotificationChannel.SMS)
         self.assertIsNone(instance)
         
-        instance = NotificationManager._get_channel_instance(NotificationChannel.WEBSOCKET)
+        instance = notifications._get_channel_instance(NotificationChannel.WEBSOCKET)
         self.assertIsNone(instance)
         
-        instance = NotificationManager._get_channel_instance(NotificationChannel.APP)
+        instance = notifications._get_channel_instance(NotificationChannel.APP)
         self.assertIsNone(instance)
     
     def test_get_channel_instance_unknown(self):
@@ -511,21 +511,21 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
         unknown_channel.value = "unknown"
         
         with patch('core.notifications.manager.logger') as mock_logger:
-            instance = NotificationManager._get_channel_instance(unknown_channel)
+            instance = notifications._get_channel_instance(unknown_channel)
             
             self.assertIsNone(instance)
             mock_logger.error.assert_called()
     
     def test_get_available_channels(self):
         """Test getting list of available channels."""
-        with patch('core.notifications.manager.NotificationManager._get_channel_instance') as mock_get:
+        with patch('core.notifications.manager.notifications._get_channel_instance') as mock_get:
             # Mock EMAIL as available, others as None
             def mock_get_side_effect(channel):
                 return Mock() if channel == NotificationChannel.EMAIL else None
             
             mock_get.side_effect = mock_get_side_effect
             
-            available = NotificationManager.get_available_channels()
+            available = notifications.get_available_channels()
             
             self.assertIn(NotificationChannel.EMAIL, available)
             self.assertNotIn(NotificationChannel.SMS, available)
@@ -538,12 +538,12 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
         mock_event = Mock()
         mock_event.name = "test_event"
         
-        with patch('core.notifications.manager.NotificationManager._get_channel_instance') as mock_get:
+        with patch('core.notifications.manager.notifications._get_channel_instance') as mock_get:
             mock_channel = Mock()
             mock_channel.supports_event.return_value = False  # Channel doesn't support event
             mock_get.return_value = mock_channel
             
-            result = NotificationManager._send_via_channel(
+            result = notifications._send_via_channel(
                 channel=NotificationChannel.EMAIL,
                 event=mock_event,
                 recipients=self.recipients,
@@ -558,10 +558,10 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_enhanced_logging_for_channels(self, mock_logger):
         """Test enhanced logging for channel operations."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.return_value = True
             
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -575,14 +575,14 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
     def test_partial_success_logging(self):
         """Test logging for partial success scenarios."""
         with patch('core.notifications.manager.logger') as mock_logger:
-            with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+            with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
                 # Mock partial success - some channels succeed, others fail
                 def mock_send_side_effect(channel, event, recipients, cluster, context):
                     return channel == NotificationChannel.EMAIL
                 
                 mock_send.side_effect = mock_send_side_effect
                 
-                result = NotificationManager.send(
+                result = notifications.send(
                     event_name=NotificationEvents.EMERGENCY_ALERT,  # Multiple channels
                     recipients=self.recipients,
                     cluster=self.cluster,
@@ -597,10 +597,10 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
     def test_all_channels_failure_logging(self):
         """Test logging when all channels fail."""
         with patch('core.notifications.manager.logger') as mock_logger:
-            with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+            with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
                 mock_send.return_value = False  # All channels fail
                 
-                result = NotificationManager.send(
+                result = notifications.send(
                     event_name=NotificationEvents.VISITOR_ARRIVAL,
                     recipients=self.recipients,
                     cluster=self.cluster,
@@ -613,7 +613,7 @@ class NotificationManagerChannelOrchestrationTestCase(TestCase):
                 mock_logger.error.assert_called()
 
 
-class NotificationManagerErrorHandlingTestCase(TestCase):
+class notificationsErrorHandlingTestCase(TestCase):
     """Test cases for comprehensive error handling and logging."""
     
     def setUp(self):
@@ -631,7 +631,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
         """Test enhanced parameter validation with detailed logging."""
         # Test invalid event_name
         with self.assertRaises(ValueError):
-            NotificationManager.send(
+            notifications.send(
                 event_name="invalid",
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -641,7 +641,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
         
         # Test invalid recipients
         with self.assertRaises(TypeError):
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients="invalid",
                 cluster=self.cluster,
@@ -656,7 +656,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
         invalid_recipient = Mock()
         del invalid_recipient.email_address  # Remove required attribute
         
-        result = NotificationManager.send(
+        result = notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=[invalid_recipient],
             cluster=self.cluster,
@@ -673,7 +673,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
         invalid_cluster = Mock()
         invalid_cluster.id = None
         
-        result = NotificationManager.send(
+        result = notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=self.recipients,
             cluster=invalid_cluster,
@@ -686,11 +686,11 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_channel_specific_error_handling(self, mock_logger):
         """Test handling of different types of channel errors."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             # Test ValueError in channel
             mock_send.side_effect = ValueError("Channel validation error")
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -703,10 +703,10 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_import_error_handling(self, mock_logger):
         """Test handling of ImportError for channel implementations."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.side_effect = ImportError("Channel module not found")
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -724,7 +724,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
             mock_event.supported_channels = []  # No channels
             mock_events.get.return_value = mock_event
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -739,7 +739,7 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
         test_error = ValueError("Test critical error")
         
         with patch('core.notifications.manager.logger') as mock_logger:
-            NotificationManager._handle_critical_error(
+            notifications._handle_critical_error(
                 error=test_error,
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
@@ -750,73 +750,13 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
             mock_logger.critical.assert_called()
             mock_logger.debug.assert_called()
     
-    def test_validate_notification_context_valid(self):
-        """Test context validation with valid context."""
-        valid_context = {
-            'visitor_name': 'John Doe',
-            'unit': 'A101',
-            'message': 'Test message'
-        }
-        
-        result = NotificationManager._validate_notification_context(
-            valid_context, 
-            NotificationEvents.VISITOR_ARRIVAL
-        )
-        
-        self.assertTrue(result)
-    
-    @patch('core.notifications.manager.logger')
-    def test_validate_notification_context_invalid(self, mock_logger):
-        """Test context validation with invalid context."""
-        # Test non-dict context
-        result = NotificationManager._validate_notification_context(
-            "invalid_context", 
-            NotificationEvents.VISITOR_ARRIVAL
-        )
-        
-        self.assertFalse(result)
-        mock_logger.error.assert_called()
-    
-    @patch('core.notifications.manager.logger')
-    def test_validate_notification_context_warnings(self, mock_logger):
-        """Test context validation warnings for problematic values."""
-        problematic_context = {
-            'visitor_name': None,  # None value
-            'unit': '',  # Empty string
-            'message': 'Valid message'
-        }
-        
-        result = NotificationManager._validate_notification_context(
-            problematic_context, 
-            NotificationEvents.VISITOR_ARRIVAL
-        )
-        
-        self.assertTrue(result)  # Should still be valid but with warnings
-        mock_logger.warning.assert_called()
-    
-    @patch('core.notifications.manager.logger')
-    def test_validate_notification_context_visitor_specific(self, mock_logger):
-        """Test visitor-specific context validation."""
-        context_without_visitor_name = {
-            'unit': 'A101',
-            'message': 'Test message'
-        }
-        
-        result = NotificationManager._validate_notification_context(
-            context_without_visitor_name, 
-            NotificationEvents.VISITOR_ARRIVAL
-        )
-        
-        self.assertTrue(result)  # Should be valid but with warning
-        mock_logger.warning.assert_called()
-    
     @patch('core.notifications.manager.logger')
     def test_detailed_error_logging_in_final_results(self, mock_logger):
         """Test detailed error logging in final results."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.side_effect = ValueError("Test channel error")
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -833,13 +773,13 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_context_validation_integration(self, mock_logger):
         """Test that context validation is integrated into main send method."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.return_value = True
             
             # Use context that will trigger warnings
             problematic_context = {'visitor_name': None}
             
-            result = NotificationManager.send(
+            result = notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -853,8 +793,8 @@ class NotificationManagerErrorHandlingTestCase(TestCase):
             self.assertTrue(len(warning_calls) > 0)
 
 
-class NotificationManagerLoggingTestCase(TestCase):
-    """Test cases for NotificationManager logging functionality."""
+class notificationsLoggingTestCase(TestCase):
+    """Test cases for notifications logging functionality."""
     
     def setUp(self):
         """Set up test data."""
@@ -869,10 +809,10 @@ class NotificationManagerLoggingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_logging_successful_notification(self, mock_logger):
         """Test logging for successful notification."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.return_value = True
             
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -885,10 +825,10 @@ class NotificationManagerLoggingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_logging_failed_notification(self, mock_logger):
         """Test logging for failed notification."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.return_value = False
             
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -901,10 +841,10 @@ class NotificationManagerLoggingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_logging_exception_in_channel(self, mock_logger):
         """Test logging when exception occurs in channel."""
-        with patch('core.notifications.manager.NotificationManager._send_via_channel') as mock_send:
+        with patch('core.notifications.manager.notifications._send_via_channel') as mock_send:
             mock_send.side_effect = Exception("Test exception")
             
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -917,7 +857,7 @@ class NotificationManagerLoggingTestCase(TestCase):
     @patch('core.notifications.manager.logger')
     def test_logging_empty_recipients(self, mock_logger):
         """Test logging for empty recipients list."""
-        NotificationManager.send(
+        notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=[],
             cluster=self.cluster,
@@ -933,7 +873,7 @@ class NotificationManagerLoggingTestCase(TestCase):
         with patch('core.notifications.manager.NOTIFICATION_EVENTS') as mock_events:
             mock_events.get.return_value = None
             
-            NotificationManager.send(
+            notifications.send(
                 event_name=NotificationEvents.VISITOR_ARRIVAL,
                 recipients=self.recipients,
                 cluster=self.cluster,
@@ -949,7 +889,7 @@ class NotificationManagerLoggingTestCase(TestCase):
         invalid_cluster = Mock()
         invalid_cluster.id = None
         
-        NotificationManager.send(
+        notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=self.recipients,
             cluster=invalid_cluster,

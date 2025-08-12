@@ -13,7 +13,7 @@ from django.utils import timezone
 from accounts.models import AccountUser
 from core.common.models import Visitor, VisitorLog, Cluster
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ class Command(BaseCommand):
             recipients = [inviting_user] + list(management_users)
 
             # Send notification
-            success = NotificationManager.send(
+            success = notifications.send(
                 event_name=NotificationEvents.VISITOR_OVERSTAY,
                 recipients=recipients,
                 cluster=visitor.cluster,

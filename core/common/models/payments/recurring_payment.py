@@ -244,7 +244,7 @@ class RecurringPayment(AbstractClusterModel):
             self.save(update_fields=["failed_attempts", "status"])
 
             # Handle recurring payment failure with error handling
-            from core.common.utils.payment_error_utils import PaymentErrorHandler
+            from core.common.includes.payment_error_utils import PaymentErrorHandler
 
             PaymentErrorHandler.handle_recurring_payment_failure(
                 self, "Insufficient wallet balance"
@@ -312,12 +312,12 @@ class RecurringPayment(AbstractClusterModel):
 
         try:
             # Process utility payment via service
-            from core.common.services.utility_service import UtilityPaymentManager
+            from core.common.includes import utilities
 
             # Pass metadata from recurring payment to the payment processor
             payment_kwargs = self.metadata or {}
 
-            result = UtilityPaymentManager.process_utility_payment(
+            result = utilities.process_utility_payment(
                 user_id=self.user_id,
                 utility_provider=self.utility_provider,
                 customer_id=self.customer_id,

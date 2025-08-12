@@ -10,7 +10,7 @@ from celery import shared_task
 from django.contrib.auth import get_user_model
 
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 from core.common.models.cluster import Cluster
 
 User = get_user_model()
@@ -59,7 +59,7 @@ def send_notification_task(
 
         # Call the internal sending method
         for batch in recipients.iterator(chunk_size=100):
-            NotificationManager._send_notification_internal(
+            notifications._send_notification_internal(
                 event_name=event_enum,
                 recipients=list(batch),
                 cluster=cluster,

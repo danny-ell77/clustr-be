@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 import requests
-from core.common.utils.third_party_services.interfaces.payments import PaymentProviderInterface, PaymentProviderError
+from core.common.includes.third_party_services.interfaces.payments import PaymentProviderInterface, PaymentProviderError
 
 class PaystackProvider(PaymentProviderInterface):
     """Paystack payment provider implementation."""

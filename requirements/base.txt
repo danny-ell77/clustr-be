@@ -20,5 +20,8 @@ djangorestframework-simplejwt==5.3.1 #  https://github.com/jazzband/djangorestfr
 drf-yasg==1.21.7 # https://github.com/axnsan12/drf-yasg
 # Django Filter for API filtering
 django-filter==23.5 # https://github.com/carltongibson/django-filter
+# Django Channels for WebSocket support
+channels==4.0.0 # https://github.com/django/channels
+channels-redis==4.1.0 # https://github.com/django/channels_redis
 numpy==2.2.5
 pandas==2.2.3

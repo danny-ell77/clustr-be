@@ -2,9 +2,9 @@ import logging
 from core.common.models import (
     PaymentProvider,
 )
-from core.common.utils.third_party_services.implementations.payments.paystack import PaystackProvider
-from core.common.utils.third_party_services.implementations.payments.flutterwave import FlutterwaveProvider
-from core.common.utils.third_party_services.interfaces import PaymentProviderInterface
+from core.common.includes.third_party_services.implementations.payments.paystack import PaystackProvider
+from core.common.includes.third_party_services.implementations.payments.flutterwave import FlutterwaveProvider
+from core.common.includes.third_party_services.interfaces import PaymentProviderInterface
 
 
 logger = logging.getLogger("clustr")

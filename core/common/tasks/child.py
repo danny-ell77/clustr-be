@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from core.common.models import EntryExitLog
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def check_overdue_children():
                     if log.child.parent:
                         recipients.append(log.child.parent)
                     
-                    NotificationManager.send(
+                    notifications.send(
                         event=NotificationEvents.CHILD_OVERDUE_ALERT,
                         recipients=recipients,
                         cluster=log.cluster,

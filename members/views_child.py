@@ -22,7 +22,7 @@ from core.common.serializers.child_serializers import (
     ExitRequestUpdateSerializer,
     EntryExitLogSerializer,
 )
-from core.common.utils.file_storage import FileStorage
+from core.common.includes.file_storage import FileStorage
 
 
 class MemberChildViewSet(ModelViewSet):

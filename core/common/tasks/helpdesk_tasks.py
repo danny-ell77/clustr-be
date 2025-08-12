@@ -5,7 +5,8 @@ Scheduled tasks for helpdesk system.
 import logging
 from celery import shared_task
 
-from core.common.utils.helpdesk_utils import HelpdeskManager
+from core.common.includes.helpdesk_utils import HelpdeskManager
+from core.common.includes import helpdesk
 
 logger = logging.getLogger('clustr')
 
@@ -17,7 +18,7 @@ def escalate_overdue_issues():
     Should be run daily.
     """
     try:
-        escalated_count = HelpdeskManager.escalate_overdue_issues(days_threshold=3)
+        escalated_count = helpdesk.escalate_overdue_issues(days_threshold=3)
         logger.info(f"Escalated {escalated_count} overdue issues")
         return f"Escalated {escalated_count} issues"
     except Exception as e:
@@ -32,7 +33,7 @@ def send_due_date_reminders():
     Should be run daily.
     """
     try:
-        reminders_sent = HelpdeskManager.send_due_date_reminders()
+        reminders_sent = helpdesk.send_due_date_reminders()
         logger.info(f"Sent {reminders_sent} due date reminders")
         return f"Sent {reminders_sent} reminders"
     except Exception as e:
@@ -47,7 +48,7 @@ def auto_close_resolved_issues():
     Should be run daily.
     """
     try:
-        closed_count = HelpdeskManager.auto_close_resolved_issues(days_threshold=7)
+        closed_count = helpdesk.auto_close_resolved_issues(days_threshold=7)
         logger.info(f"Auto-closed {closed_count} resolved issues")
         return f"Auto-closed {closed_count} issues"
     except Exception as e:
@@ -64,13 +65,13 @@ def generate_helpdesk_metrics():
     try:
         from core.common.models import Cluster
         
-        total_metrics = HelpdeskManager.get_issue_metrics()
+        total_metrics = helpdesk.get_issue_metrics()
         logger.info(f"Generated global helpdesk metrics: {total_metrics}")
         
         # Generate metrics for each cluster
         clusters = Cluster.objects.all()
         for cluster in clusters:
-            cluster_metrics = HelpdeskManager.get_issue_metrics(cluster=cluster)
+            cluster_metrics = helpdesk.get_issue_metrics(cluster=cluster)
             logger.info(f"Generated metrics for cluster {cluster.name}: {cluster_metrics}")
         
         return "Generated helpdesk metrics successfully"

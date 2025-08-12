@@ -24,7 +24,7 @@ from core.common.serializers.maintenance import (
     MaintenanceHistorySerializer,
     MaintenanceLogUpdateSerializer,
 )
-from core.common.utils.maintenance_utils import MaintenanceManager
+from core.common.includes import maintenance
 from core.common.responses import success_response, error_response
 from core.common.decorators import audit_viewset
 from members.filters import MemberMaintenanceLogFilter, MemberMaintenanceHistoryFilter
@@ -67,7 +67,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         cluster= getattr(self.request, "cluster_context", None)
-        maintenance_log = MaintenanceManager.create_maintenance_log(
+        maintenance_log = maintenance.create_log(
             cluster=cluster, requested_by=self.request.user, **serializer.validated_data
         )
         serializer.instance = maintenance_log
@@ -110,7 +110,7 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
         description = request.data.get("description", "")
 
         try:
-            attachment = MaintenanceManager.upload_maintenance_attachment(
+            attachment = maintenance.upload_attachment(
                 maintenance_log=maintenance_log,
                 file_obj=file_obj,
                 attachment_type=attachment_type,

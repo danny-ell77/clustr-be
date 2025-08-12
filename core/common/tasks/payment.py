@@ -2,7 +2,7 @@ import logging
 from celery import shared_task
 
 from core.common.models import Cluster
-from core.common.utils.recurring_payment_utils import RecurringPaymentManager
+from core.common.includes import recurring_payments
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def process_recurring_payments_for_cluster(cluster_id):
     """
     try:
         cluster = Cluster.objects.get(id=cluster_id)
-        results = RecurringPaymentManager.process_due_payments(cluster)
+        results = recurring_payments.process_due_payments(cluster)
         if results["processed"] > 0 or results["failed"] > 0:
             logger.info(
                 f"Cluster {cluster.name}: Processed {results['processed']}, Failed {results['failed']}, Paused {results['paused']}"
@@ -43,7 +43,7 @@ def send_recurring_payment_reminders_for_cluster(cluster_id):
     """
     try:
         cluster = Cluster.objects.get(id=cluster_id)
-        reminders_sent = RecurringPaymentManager.send_payment_reminders(
+        reminders_sent = recurring_payments.send_payment_reminders(
             cluster, days_before=1
         )
         if reminders_sent > 0:

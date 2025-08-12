@@ -28,7 +28,7 @@ from core.common.serializers.emergency_serializers import (
     EmergencyContactTypeChoicesSerializer,
     IncidentReportSerializer,
 )
-from core.common.utils.emergency_utils import EmergencyManager
+from core.common.includes import emergencies
 from core.common.permissions import CommunicationsPermissions
 
 
@@ -126,7 +126,7 @@ class SOSAlertViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         """Create SOS alert"""
-        alert = EmergencyManager.create_sos_alert(
+        alert = emergencies.create_alert(
             user=self.request.user,
             emergency_type=serializer.validated_data["emergency_type"],
             description=serializer.validated_data.get("description", ""),
@@ -160,7 +160,7 @@ class SOSAlertViewSet(ModelViewSet):
 
         reason = request.data.get("reason", "Cancelled by user")
 
-        if EmergencyManager.cancel_alert(alert, request.user, reason):
+        if emergencies.cancel_alert(alert, request.user, reason):
             return Response({"message": _("Alert cancelled successfully")})
         else:
             return Response(
@@ -171,7 +171,7 @@ class SOSAlertViewSet(ModelViewSet):
     @action(detail=False, methods=["get"], url_path="active", url_name="active")
     def active(self, request):
         """Get active alerts for the current user"""
-        active_alerts = EmergencyManager.get_user_alerts(
+        active_alerts = emergencies.get_user_alerts(
             request.user, status__in=["active", "acknowledged", "responding"]
         )
         serializer = self.get_serializer(active_alerts, many=True)
@@ -220,7 +220,7 @@ class SOSAlertViewSet(ModelViewSet):
             )
 
         # Generate incident report
-        report = EmergencyManager.generate_alert_incident_report(alert)
+        report = emergencies.generate_incident_report(alert)
 
         serializer = IncidentReportSerializer(report)
         return Response(serializer.data)

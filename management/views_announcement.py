@@ -32,7 +32,7 @@ from core.common.serializers.announcement_serializers import (
     AnnouncementAttachmentSerializer,
 )
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 
 class ManagementAnnouncementFilter(django_filters.FilterSet):
@@ -96,7 +96,7 @@ class ManagementAnnouncementViewSet(ModelViewSet):
             # Send notifications to all cluster users if published
             if announcement.is_published:
                 try:
-                    NotificationManager.send(
+                    notifications.send(
                         event=NotificationEvents.ANNOUNCEMENT_POSTED,
                         recipients=announcement.cluster.get_all_users(), # Assuming a method to get all users in a cluster
                         cluster=announcement.cluster,
@@ -121,7 +121,7 @@ class ManagementAnnouncementViewSet(ModelViewSet):
         # If announcement was just published, send notifications
         if not old_published and announcement.is_published:
             try:
-                NotificationManager.send(
+                notifications.send(
                     event=NotificationEvents.ANNOUNCEMENT_POSTED,
                     recipients=announcement.cluster.get_all_users(),
                     cluster=announcement.cluster,
@@ -175,7 +175,7 @@ class ManagementAnnouncementViewSet(ModelViewSet):
                 # Send notification to announcement author if different user
                 if announcement.author_id != request.user.id:
                     try:
-                        NotificationManager.send(
+                        notifications.send(
                             event=NotificationEvents.COMMENT_REPLY,
                             recipients=[announcement.author],
                             cluster=announcement.cluster,
@@ -237,7 +237,7 @@ class ManagementAnnouncementViewSet(ModelViewSet):
         
         # Send notifications
         try:
-            NotificationManager.send(
+            notifications.send(
                 event=NotificationEvents.ANNOUNCEMENT_POSTED,
                 recipients=announcement.cluster.get_all_users(),
                 cluster=announcement.cluster,
@@ -361,7 +361,7 @@ class ManagementAnnouncementViewSet(ModelViewSet):
         # Delete the attachment and its file
         try:
             # Extract file path from URL (this might need adjustment based on storage backend)
-            from core.common.utils.file_storage import FileStorage
+            from core.common.includes.file_storage import FileStorage
             file_path = attachment.file_url.split('/')[-4:]  # Adjust based on URL structure
             file_path = '/'.join(file_path)
             FileStorage.delete_file(file_path)

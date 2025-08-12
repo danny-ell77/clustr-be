@@ -16,7 +16,7 @@ from core.common.models.helpdesk import (
 )
 from accounts.serializers.users import UserSummarySerializer
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 
 class IssueAttachmentSerializer(serializers.ModelSerializer):
@@ -229,7 +229,7 @@ class IssueTicketUpdateSerializer(serializers.ModelSerializer):
             if instance.reported_by:
                 recipients.append(instance.reported_by)
 
-            NotificationManager.send(
+            notifications.send(
                 event=NotificationEvents.ISSUE_STATUS_CHANGED,
                 recipients=recipients,
                 cluster=request.cluster_context,
@@ -275,7 +275,7 @@ class IssueCommentCreateSerializer(serializers.ModelSerializer):
             recipients.append(comment.issue.assigned_to)
 
         if recipients:
-            NotificationManager.send(
+            notifications.send(
                 event=NotificationEvents.COMMENT_REPLY,
                 recipients=recipients,
                 cluster=request.cluster_context,

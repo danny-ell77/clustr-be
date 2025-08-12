@@ -27,9 +27,9 @@ from core.common.serializers.child_serializers import (
     EntryExitLogUpdateSerializer,
     EntryExitActionSerializer,
 )
-from core.common.utils.file_storage import FileStorage
+from core.common.includes.file_storage import FileStorage
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 
 @audit_viewset(resource_type='child')
@@ -185,7 +185,7 @@ class ManagementExitRequestViewSet(ModelViewSet):
                     
                     # Send notification to parent
                     try:
-                        NotificationManager.send(
+                        notifications.send(
                             event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for EXIT_REQUEST_APPROVED
                             recipients=[exit_request.requested_by],
                             cluster=exit_request.cluster,
@@ -212,7 +212,7 @@ class ManagementExitRequestViewSet(ModelViewSet):
                 if success:
                     # Send notification to parent
                     try:
-                        NotificationManager.send(
+                        notifications.send(
                             event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for EXIT_REQUEST_DENIED
                             recipients=[exit_request.requested_by],
                             cluster=exit_request.cluster,
@@ -308,7 +308,7 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 
                 # Send notification to parent
                 try:
-                    NotificationManager.send(
+                    notifications.send(
                         event=NotificationEvents.CHILD_EXIT_ALERT,
                         recipients=[log.child.parent],
                         cluster=log.cluster,
@@ -353,7 +353,7 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 
                 # Send notification to parent
                 try:
-                    NotificationManager.send(
+                    notifications.send(
                         event=NotificationEvents.CHILD_ENTRY_ALERT,
                         recipients=[log.child.parent],
                         cluster=log.cluster,
@@ -401,7 +401,7 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 )
                 recipients.extend(list(cluster_admins))
 
-                NotificationManager.send(
+                notifications.send(
                     event=NotificationEvents.CHILD_OVERDUE_ALERT,
                     recipients=recipients,
                     cluster=log.cluster,
@@ -471,12 +471,12 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
                 
                 # Send overdue notification
                 try:
-                    from core.notifications.manager import NotificationManager
+                    from core.common.includes import notifications
                     from core.notifications.events import NotificationEvents
                     
                     recipients = [log.child.parent] if log.child.parent else []
                     if recipients:
-                        NotificationManager.send(
+                        notifications.send(
                             event=NotificationEvents.CHILD_OVERDUE_ALERT,
                             recipients=recipients,
                             cluster=log.cluster,

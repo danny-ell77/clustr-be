@@ -42,7 +42,7 @@ class AnnouncementAttachmentSerializer(serializers.ModelSerializer):
     
     def get_preview_type(self, obj):
         """Get the preview type for the attachment."""
-        from core.common.utils.file_storage import FileStorage
+        from core.common.includes.file_storage import FileStorage
         
         if obj.is_image:
             return 'image'

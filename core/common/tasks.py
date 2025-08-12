@@ -81,16 +81,15 @@ def retry_failed_utility_payments():
 
                 if utility_provider_id and customer_id:
                     from core.common.models import UtilityProvider
-                    from core.common.services.utility_service import (
-                        UtilityPaymentManager,
-                    )
+                    from core.common.includes import payments
 
                     try:
                         utility_provider = UtilityProvider.objects.get(
                             id=utility_provider_id
                         )
 
-                        result = UtilityPaymentManager.process_utility_payment(
+                        from core.common.includes import utilities
+                        result = utilities.process_utility_payment(
                             user_id=transaction_data.wallet.user_id,
                             utility_provider=utility_provider,
                             customer_id=customer_id,

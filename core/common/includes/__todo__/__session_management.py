@@ -11,7 +11,6 @@ from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 from typing import Dict, List, Optional, Any
 
-from core.notifications.manager import NotificationManager
 
 
 class SessionManager:
@@ -251,7 +250,7 @@ class SessionManager:
         is_new_device = not security_settings.is_trusted_device(session.device_fingerprint)
         
         if is_new_device:
-            NotificationManager.send(
+            notifications.send(
                 event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for a more specific login notification event
                 recipients=[user],
                 cluster=user.cluster, # Assuming user has a cluster attribute

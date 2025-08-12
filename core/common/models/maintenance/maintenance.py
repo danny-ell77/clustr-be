@@ -367,8 +367,8 @@ class MaintenanceLog(AbstractClusterModel):
         
         # Send completion notification
         if completed_by:
-            from core.common.utils.maintenance_utils import MaintenanceManager
-            MaintenanceManager.send_completion_notification(self, completed_by)
+            from core.common.includes import maintenance
+            maintenance.send_completion_notification(self, completed_by)
 
     def cancel_maintenance(self, reason="", cancelled_by=None):
         """Cancel the maintenance."""
@@ -399,4 +399,3 @@ class MaintenanceLog(AbstractClusterModel):
             self.last_modified_by = postponed_by.id
 
         self.save()
-

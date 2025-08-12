@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from core.common.models import Cluster
-from core.common.utils.maintenance_utils import MaintenanceManager
+from core.common.includes import maintenance
 
 logger = logging.getLogger('clustr')
 
@@ -66,7 +66,7 @@ class Command(BaseCommand):
                 
                 # Process due maintenance schedules
                 if not dry_run:
-                    created_logs = MaintenanceManager.process_due_maintenance_schedules(cluster)
+                    created_logs = maintenance.process_due_schedules(cluster)
                     logs_created = len(created_logs)
                     total_logs_created += logs_created
                     
@@ -105,7 +105,7 @@ class Command(BaseCommand):
                 
                 # Send maintenance due alerts
                 if not dry_run:
-                    alerts_sent = MaintenanceManager.send_maintenance_due_alerts(cluster)
+                    alerts_sent = maintenance.send_due_alerts(cluster)
                     total_alerts_sent += alerts_sent
                     
                     if alerts_sent > 0:
@@ -170,7 +170,7 @@ class Command(BaseCommand):
     def log_maintenance_analytics(self, cluster):
         """Log maintenance analytics for the cluster."""
         try:
-            analytics = MaintenanceManager.get_maintenance_analytics(cluster)
+            analytics = maintenance.get_analytics(cluster)
             
             self.stdout.write(f"\n  Maintenance Analytics for {cluster.name}:")
             self.stdout.write(f"    Total maintenance: {analytics.get('total_maintenance', 0)}")

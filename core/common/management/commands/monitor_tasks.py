@@ -4,7 +4,7 @@ Django management command to monitor task deadlines and send reminders.
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from core.common.utils.scheduled_tasks import ScheduledTaskManager
+from core.common.includes import tasks
 
 
 class Command(BaseCommand):
@@ -26,7 +26,7 @@ class Command(BaseCommand):
 
         try:
             # Run task deadline checks
-            ScheduledTaskManager.check_task_deadlines()
+            tasks.check_deadlines()
             
             self.stdout.write(
                 self.style.SUCCESS(

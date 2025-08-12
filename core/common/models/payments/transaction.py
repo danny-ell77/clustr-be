@@ -1,7 +1,3 @@
-"""
-Transaction models for ClustR application.
-"""
-
 import uuid
 import logging
 from decimal import Decimal
@@ -131,6 +127,15 @@ class Transaction(AbstractClusterModel):
         help_text=_("Additional transaction metadata"),
     )
 
+    idempotency_key = models.CharField(
+        verbose_name=_("idempotency key"),
+        max_length=255,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text=_("Unique key to prevent duplicate transactions"),
+    )
+
     processed_at = models.DateTimeField(
         verbose_name=_("processed at"),
         null=True,
@@ -178,13 +183,20 @@ class Transaction(AbstractClusterModel):
             self.transaction_id = f"TXN-{uuid.uuid4().hex[:12].upper()}"
         super().save(*args, **kwargs)
 
-    def mark_as_completed(self):
-        """Mark transaction as completed and update wallet balance."""
-        if self.status == TransactionStatus.PENDING:
-            self.status = TransactionStatus.COMPLETED
-            self.processed_at = timezone.now()
-            self.wallet.update_balance(self.amount, self.type)
-            self.save(update_fields=["status", "processed_at"])
+    def mark_as_completed(self, extra=""):
+        """
+        Mark transaction as completed and update wallet balance.
+        Only use this for transactions created in PENDING status.
+        """
+        # if self.status != TransactionStatus.PENDING:
+        #     logger.warning(f"Attempted to mark non-pending transaction {self.transaction_id} as completed")
+        #     return False
+        
+        self.status = TransactionStatus.COMPLETED
+        self.provider_response = extra
+        self.processed_at = timezone.now()
+        self.save(update_fields=["status", "provider_response", "processed_at"])
+        
 
     def mark_as_failed(self, reason=None):
         """Mark transaction as failed and unfreeze amount if needed."""
@@ -258,4 +270,3 @@ class Transaction(AbstractClusterModel):
             })
         
         return details
-

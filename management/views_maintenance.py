@@ -29,7 +29,7 @@ from core.common.serializers.maintenance import (
     MaintenanceLogCreateSerializer,
     MaintenanceScheduleCreateSerializer,
 )
-from core.common.utils.maintenance_utils import MaintenanceManager
+from core.common.includes import maintenance
 from core.common.responses import success_response, error_response
 from core.common.decorators import audit_viewset
 from accounts.models import AccountUser
@@ -73,7 +73,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         cluster= getattr(self.request, "cluster_context", None)
-        maintenance_log = MaintenanceManager.create_maintenance_log(
+        maintenance_log = maintenance.create_log(
             cluster=cluster, requested_by=self.request.user, **serializer.validated_data
         )
         serializer.instance = maintenance_log
@@ -105,7 +105,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
                     status_code=status.HTTP_404_NOT_FOUND,
                 )
 
-            MaintenanceManager.assign_maintenance(
+            maintenance.assign_log(
                 maintenance_log=maintenance_log,
                 assigned_to=assigned_to,
                 assigned_by=request.user,
@@ -140,7 +140,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
             attachment_type = request.data.get("attachment_type", "OTHER")
             description = request.data.get("description", "")
 
-            attachment = MaintenanceManager.upload_maintenance_attachment(
+            attachment = maintenance.upload_attachment(
                 maintenance_log=maintenance_log,
                 file_obj=file_obj,
                 attachment_type=attachment_type,
@@ -181,7 +181,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
                 except ValueError:
                     limit = None
 
-            history = MaintenanceManager.get_maintenance_history(
+            history = maintenance.get_history(
                 cluster=cluster,
                 property_location=property_location,
                 equipment_name=equipment_name,
@@ -228,7 +228,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
                 except ValueError:
                     pass
 
-            analytics = MaintenanceManager.get_maintenance_analytics(
+            analytics = maintenance.get_analytics(
                 cluster=cluster, start_date=start_date_parsed, end_date=end_date_parsed
             )
 
@@ -253,7 +253,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         cluster = request.cluster_context
 
         try:
-            suggestions = MaintenanceManager.suggest_maintenance_optimizations(cluster)
+            suggestions = maintenance.suggest_optimizations(cluster)
 
             serializer = MaintenanceOptimizationSerializer(suggestions, many=True)
             return success_response(
@@ -293,7 +293,7 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         cluster= getattr(self.request, "cluster_context", None)
-        schedule = MaintenanceManager.create_preventive_maintenance_schedule(
+        schedule = maintenance.create_schedule(
             cluster=cluster, created_by=self.request.user, **serializer.validated_data
         )
         serializer.instance = schedule
@@ -309,7 +309,7 @@ def maintenance_categories(request):
         property_type = request.GET.get("property_type")
         maintenance_type = request.GET.get("maintenance_type")
 
-        categories = MaintenanceManager.get_maintenance_by_category(
+        categories = maintenance.get_by_category(
             cluster=cluster,
             property_type=property_type,
             maintenance_type=maintenance_type,

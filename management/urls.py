@@ -52,6 +52,9 @@ urlpatterns = [
     
     # Include payment management URLs
     path('', include('management.urls_payment')),
+    
+    # Include chat URLs
+    # path('', include('management.urls_chat')),
 
     # Maintenance specific function-based views that are not part of viewsets
     path('maintenance/categories/', views_maintenance.maintenance_categories, name='maintenance-categories'),

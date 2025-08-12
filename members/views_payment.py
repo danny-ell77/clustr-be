@@ -18,6 +18,7 @@ from core.common.models import (
     WalletStatus,
     UtilityProvider,
     TransactionType,
+    TransactionStatus,
 )
 from core.common.permissions import PaymentsPermissions
 from core.common.responses import error_response, success_response
@@ -40,12 +41,7 @@ from core.common.serializers.payment_serializers import (
     WalletBalanceResponseSerializer,
     WalletDepositSerializer,
 )
-from core.common.utils import (
-    BillManager,
-    PaymentManager,
-    RecurringPaymentManager,
-    initialize_deposit,
-)
+from core.common.includes import bills, payments, recurring_payments
 from members.filters import BillFilter, RecurringPaymentFilter, TransactionFilter
 
 logger = logging.getLogger("clustr")
@@ -153,10 +149,17 @@ class WalletViewSet(viewsets.ViewSet):
                 },
             )
 
-            transaction, payment_response = initialize_deposit(
+            transaction = payments.create_transaction(
                 wallet=wallet,
                 amount=amount,
                 provider=provider,
+                user_email=request.user.email_address,
+                transaction_type=TransactionType.DEPOSIT,
+                transaction_status=TransactionStatus.PENDING,
+                callback_url=callback_url,
+            )
+            payment_response = payments.initialize(
+                transaction=transaction,
                 user_email=request.user.email_address,
                 callback_url=callback_url,
             )
@@ -321,7 +324,7 @@ class BillViewSet(viewsets.ModelViewSet):
             cluster = request.cluster_context
             user_id = str(request.user.id)
 
-            summary = BillManager.get_bills_summary(cluster, user_id)
+            summary = bills.get_summary(cluster, user_id)
 
             return success_response(
                 data=summary, message="Bills summary retrieved successfully"
@@ -359,7 +362,7 @@ class BillViewSet(viewsets.ModelViewSet):
 
             bill_id = serializer.validated_data["bill_id"]
 
-            success = BillManager.acknowledge_bill(bill, user_id)
+            success = bills.acknowledge(bill, user_id)
 
             if success:
                 bill_serializer = BillSerializer(bill)
@@ -404,7 +407,7 @@ class BillViewSet(viewsets.ModelViewSet):
             bill_id = validated_data["bill_id"]
             reason = validated_data["reason"]
 
-            success = BillManager.dispute_bill(bill, user_id, reason)
+            success = bills.dispute(bill, user_id, reason)
 
             if success:
                 bill_serializer = BillSerializer(bill)
@@ -445,10 +448,16 @@ class BillViewSet(viewsets.ModelViewSet):
             validated_data = serializer.validated_data
             bill_id = validated_data["bill_id"]
             amount = validated_data.get("amount")
+            
+            # Generate idempotency key from request headers or create one
+            idempotency_key = request.headers.get('Idempotency-Key')
+            if not idempotency_key:
+                import uuid
+                idempotency_key = f"bill_payment_{bill.id}_{user_id}_{uuid.uuid4().hex[:8]}"
 
             wallet = get_object_or_404(Wallet, cluster=cluster, user_id=user_id)
-            transaction = BillManager.process_bill_payment(
-                bill=bill, wallet=wallet, amount=amount, user=request.user
+            transaction = bills.process_payment(
+                bill=bill, wallet=wallet, amount=amount, user=request.user, idempotency_key=idempotency_key
             )
 
             response_serializer = BillPaymentResponseSerializer(
@@ -560,13 +569,18 @@ class BillViewSet(viewsets.ModelViewSet):
                 },
             )
 
-            manager = PaymentManager()
-            transaction = manager.create_payment_transaction(
+            # Create pending transaction for direct payment
+            transaction = Transaction.objects.create(
+                cluster=cluster,
                 wallet=wallet,
+                type=TransactionType.BILL_PAYMENT,
                 amount=amount,
+                currency=wallet.currency,
                 description=f"Direct bill payment - {bill.title}",
+                status=TransactionStatus.PENDING,
                 provider=provider,
-                transaction_type=TransactionType.BILL_PAYMENT,
+                created_by=user_id,
+                last_modified_by=user_id,
                 metadata={
                     "bill_id": str(bill.id),
                     "bill_number": bill.bill_number,
@@ -575,7 +589,8 @@ class BillViewSet(viewsets.ModelViewSet):
                 }
             )
 
-            payment_response = manager.initialize_payment(
+            # Initialize payment with provider
+            payment_response = payments.initialize(
                 transaction=transaction,
                 user_email=request.user.email_address,
                 callback_url=callback_url,
@@ -682,7 +697,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             cluster = request.cluster_context
             user_id = str(request.user.id)
 
-            summary = RecurringPaymentManager.get_recurring_payments_summary(
+            summary = recurring_payments.get_summary(
                 cluster, user_id
             )
 
@@ -742,7 +757,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
                     cluster=cluster,
                 )
 
-            payment = RecurringPaymentManager.create_recurring_payment(
+            payment = recurring_payments.create(
                 wallet=wallet,
                 title=validated_data["title"],
                 amount=validated_data["amount"],
@@ -802,7 +817,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
                 RecurringPayment, id=payment_id, cluster=cluster, user_id=user_id
             )
 
-            success = RecurringPaymentManager.pause_recurring_payment(
+            success = recurring_payments.pause(
                 payment=payment, paused_by=user_id
             )
 
@@ -853,7 +868,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
                 RecurringPayment, id=payment_id, cluster=cluster, user_id=user_id
             )
 
-            success = RecurringPaymentManager.resume_recurring_payment(
+            success = recurring_payments.resume(
                 payment=payment, resumed_by=user_id
             )
 
@@ -904,7 +919,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
                 RecurringPayment, id=payment_id, cluster=cluster, user_id=user_id
             )
 
-            success = RecurringPaymentManager.cancel_recurring_payment(
+            success = recurring_payments.cancel(
                 payment=payment, cancelled_by=user_id
             )
 
@@ -967,7 +982,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
                     cluster=cluster,
                 )
 
-            success = RecurringPaymentManager.update_recurring_payment(
+            success = recurring_payments.update(
                 payment=payment,
                 bill=bill if "bill_id" in validated_data else None,
                 title=validated_data.get("title"),

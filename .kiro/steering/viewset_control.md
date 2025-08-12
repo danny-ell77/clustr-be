@@ -1,5 +1,5 @@
 ---
-inclusion: fileMatch
+inclusion: always
 fileMatchPattern: ['**/views*.py', '**/serializers*.py']
 ---
 

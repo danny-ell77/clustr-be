@@ -25,7 +25,7 @@ from core.common.serializers.utility_serializers import (
     UtilityPaymentSerializer,
     SetupRecurringUtilityPaymentSerializer,
 )
-from core.common.services.utility_service import UtilityPaymentManager
+from core.common.includes import utilities
 
 logger = logging.getLogger("clustr")
 
@@ -236,7 +236,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        result = UtilityPaymentManager.validate_utility_customer(
+        result = utilities.validate_utility_customer(
             utility_provider=utility_provider,
             customer_id=serializer.validated_data["customer_id"]
         )
@@ -275,7 +275,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        result = UtilityPaymentManager.process_utility_payment(
+        result = utilities.process_utility_payment(
             user_id=request.user.id,
             utility_provider=utility_provider,
             customer_id=serializer.validated_data["customer_id"],
@@ -318,7 +318,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        result = UtilityPaymentManager.setup_recurring_utility_payment(
+        result = utilities.setup_recurring_utility_payment(
             user_id=request.user.id,
             utility_provider=utility_provider,
             customer_id=serializer.validated_data["customer_id"],
@@ -341,7 +341,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"])
     def payment_history(self, request):
         """Get user's utility payment history."""
-        bills = UtilityPaymentManager.get_user_utility_bills(
+        bills = utilities.get_user_utility_bills(
             user_id=request.user.id,
             cluster=request.user.cluster
         )

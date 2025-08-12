@@ -21,7 +21,7 @@ from core.common.serializers.visitor_serializers import (
     VisitorLogCreateSerializer,
 )
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 @audit_viewset(resource_type='visitor')
 class ManagementVisitorViewSet(ModelViewSet):
@@ -86,7 +86,7 @@ class ManagementVisitorViewSet(ModelViewSet):
                 from accounts.models import AccountUser
                 inviting_user = AccountUser.objects.get(id=visitor.invited_by)
                 
-                NotificationManager.send(
+                notifications.send(
                     event_name=NotificationEvents.VISITOR_ARRIVAL,
                     recipients=[inviting_user],
                     cluster=visitor.cluster,

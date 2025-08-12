@@ -2,7 +2,7 @@
 import logging
 from celery import shared_task
 
-from core.common.utils.shift_utils import ShiftManager
+from core.common.includes import shifts
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ def check_missed_shifts():
     This task should be called periodically by a scheduler.
     """
     try:
-        ShiftManager.mark_missed_shifts()
+        shifts.mark_missed_shifts()
         logger.info("Completed missed shifts check")
     except Exception as e:
         logger.error(f"Error checking missed shifts: {str(e)}")
@@ -27,7 +27,7 @@ def send_shift_reminders():
     This task should be called periodically by a scheduler.
     """
     try:
-        ShiftManager.send_upcoming_shift_reminders()
+        shifts.send_upcoming_reminders()
         logger.info("Completed sending shift reminders")
     except Exception as e:
         logger.error(f"Error sending shift reminders: {str(e)}")

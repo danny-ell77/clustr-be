@@ -10,7 +10,7 @@ from django.utils import timezone
 from accounts.models import AccountUser
 from core.common.models import Visitor, VisitorLog, Cluster
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 
 class VisitorNotificationTestCase(TestCase):
@@ -67,7 +67,7 @@ class VisitorNotificationTestCase(TestCase):
         )
 
         # Simulate the notification call from the view
-        NotificationManager.send(
+        notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=[self.inviting_user],
             cluster=self.visitor.cluster,
@@ -116,7 +116,7 @@ class VisitorNotificationTestCase(TestCase):
         # Simulate overstay notification
         overstay_duration = timedelta(hours=2)  # 6 hours - 4 hours expected
         
-        NotificationManager.send(
+        notifications.send(
             event_name=NotificationEvents.VISITOR_OVERSTAY,
             recipients=[self.inviting_user, self.security_user],
             cluster=self.visitor.cluster,

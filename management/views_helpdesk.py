@@ -32,8 +32,8 @@ from core.common.serializers.helpdesk import (
     IssueAttachmentCreateSerializer,
 )
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
-from core.common.utils.file_storage import FileStorage
+from core.common.includes import notifications
+from core.common.includes.file_storage import FileStorage
 from accounts.permissions import IsClusterStaffOrAdmin
 
 
@@ -113,7 +113,7 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         # Send assignment notification if assigned_to changed
         new_assigned_to = instance.assigned_to
         if old_assigned_to != new_assigned_to and new_assigned_to:
-            NotificationManager.send(
+            notifications.send(
                 event=NotificationEvents.ISSUE_ASSIGNED,
                 recipients=[new_assigned_to],
                 cluster=instance.cluster,
@@ -157,10 +157,10 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         
         # Send notification
         if old_assigned_to != assigned_to:
-            from core.notifications.manager import NotificationManager
+            from core.common.includes import notifications
             from core.notifications.events import NotificationEvents
             
-            NotificationManager.send(
+            notifications.send(
                 event=NotificationEvents.ISSUE_ASSIGNED,
                 recipients=[assigned_to],
                 cluster=issue.cluster,
@@ -195,7 +195,7 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         issue.save()
         
         # Send escalation notification
-        NotificationManager.send(
+        notifications.send(
             event=NotificationEvents.ISSUE_ESCALATED,
             recipients=[issue.assigned_to, issue.reported_by], # Assuming both assigned_to and reported_by should be notified
             cluster=issue.cluster,

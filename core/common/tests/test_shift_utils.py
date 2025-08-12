@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from core.common.models import Cluster, Shift, ShiftSwapRequest, ShiftAttendance, ShiftType, ShiftStatus
-from core.common.utils.shift_utils import ShiftManager, ShiftNotificationManager
+from core.common.includes import shifts
 from accounts.models import AccountUser
 
 
@@ -46,7 +46,7 @@ class ShiftManagerTest(TestCase):
     
     def test_create_shift_success(self):
         """Test successful shift creation."""
-        shift = ShiftManager.create_shift(
+        shift = shifts.create(
             cluster=self.cluster,
             title="Security Shift",
             shift_type=ShiftType.SECURITY,
@@ -67,7 +67,7 @@ class ShiftManagerTest(TestCase):
     def test_create_shift_with_conflict(self):
         """Test shift creation with conflict detection."""
         # Create first shift
-        ShiftManager.create_shift(
+        shifts.create(
             cluster=self.cluster,
             title="First Shift",
             shift_type=ShiftType.SECURITY,
@@ -78,7 +78,7 @@ class ShiftManagerTest(TestCase):
         
         # Try to create overlapping shift
         with self.assertRaises(ValidationError):
-            ShiftManager.create_shift(
+            shifts.create(
                 cluster=self.cluster,
                 title="Overlapping Shift",
                 shift_type=ShiftType.MAINTENANCE,
@@ -90,7 +90,7 @@ class ShiftManagerTest(TestCase):
     def test_check_shift_conflicts(self):
         """Test shift conflict detection."""
         # Create a shift
-        shift = ShiftManager.create_shift(
+        shift = shifts.create(
             cluster=self.cluster,
             title="Existing Shift",
             shift_type=ShiftType.SECURITY,
@@ -100,7 +100,7 @@ class ShiftManagerTest(TestCase):
         )
         
         # Check for conflicts with overlapping time
-        conflicts = ShiftManager.check_shift_conflicts(
+        conflicts = shifts.check_conflicts(
             cluster=self.cluster,
             staff_member=self.staff_user1,
             start_time=self.start_time + timedelta(hours=2),
@@ -111,7 +111,7 @@ class ShiftManagerTest(TestCase):
         self.assertEqual(conflicts.first(), shift)
         
         # Check for conflicts with non-overlapping time
-        no_conflicts = ShiftManager.check_shift_conflicts(
+        no_conflicts = shifts.check_conflicts(
             cluster=self.cluster,
             staff_member=self.staff_user1,
             start_time=self.end_time + timedelta(hours=1),
@@ -122,7 +122,7 @@ class ShiftManagerTest(TestCase):
     
     def test_clock_in_staff(self):
         """Test clocking in staff."""
-        shift = ShiftManager.create_shift(
+        shift = shifts.create(
             cluster=self.cluster,
             title="Test Shift",
             shift_type=ShiftType.SECURITY,
@@ -132,7 +132,7 @@ class ShiftManagerTest(TestCase):
         )
         
         clock_in_time = timezone.now()
-        updated_shift = ShiftManager.clock_in_staff(shift.id, clock_in_time)
+        updated_shift = shifts.clock_in(shift.id, clock_in_time)
         
         self.assertEqual(updated_shift.status, ShiftStatus.IN_PROGRESS)
         self.assertEqual(updated_shift.actual_start_time, clock_in_time)
@@ -140,7 +140,7 @@ class ShiftManagerTest(TestCase):
     
     def test_clock_out_staff(self):
         """Test clocking out staff."""
-        shift = ShiftManager.create_shift(
+        shift = shifts.create(
             cluster=self.cluster,
             title="Test Shift",
             shift_type=ShiftType.SECURITY,
@@ -151,11 +151,11 @@ class ShiftManagerTest(TestCase):
         
         # Clock in first
         clock_in_time = timezone.now()
-        ShiftManager.clock_in_staff(shift.id, clock_in_time)
+        shifts.clock_in(shift.id, clock_in_time)
         
         # Clock out
         clock_out_time = clock_in_time + timedelta(hours=8)
-        updated_shift = ShiftManager.clock_out_staff(shift.id, clock_out_time)
+        updated_shift = shifts.clock_out(shift.id, clock_out_time)
         
         self.assertEqual(updated_shift.status, ShiftStatus.COMPLETED)
         self.assertEqual(updated_shift.actual_end_time, clock_out_time)
@@ -163,7 +163,7 @@ class ShiftManagerTest(TestCase):
     
     def test_create_shift_swap_request(self):
         """Test creating shift swap request."""
-        shift1 = ShiftManager.create_shift(
+        shift1 = shifts.create(
             cluster=self.cluster,
             title="Shift 1",
             shift_type=ShiftType.SECURITY,
@@ -172,7 +172,7 @@ class ShiftManagerTest(TestCase):
             end_time=self.end_time
         )
         
-        shift2 = ShiftManager.create_shift(
+        shift2 = shifts.create(
             cluster=self.cluster,
             title="Shift 2",
             shift_type=ShiftType.SECURITY,
@@ -181,7 +181,7 @@ class ShiftManagerTest(TestCase):
             end_time=self.end_time + timedelta(days=1)
         )
         
-        swap_request = ShiftManager.create_shift_swap_request(
+        swap_request = shifts.create_swap_request(
             original_shift_id=shift1.id,
             requested_by=self.staff_user1,
             requested_with=self.staff_user2,
@@ -198,7 +198,7 @@ class ShiftManagerTest(TestCase):
     def test_get_staff_schedule(self):
         """Test getting staff schedule."""
         # Create multiple shifts for staff member
-        shift1 = ShiftManager.create_shift(
+        shift1 = shifts.create(
             cluster=self.cluster,
             title="Shift 1",
             shift_type=ShiftType.SECURITY,
@@ -207,7 +207,7 @@ class ShiftManagerTest(TestCase):
             end_time=self.end_time
         )
         
-        shift2 = ShiftManager.create_shift(
+        shift2 = shifts.create(
             cluster=self.cluster,
             title="Shift 2",
             shift_type=ShiftType.MAINTENANCE,
@@ -217,7 +217,7 @@ class ShiftManagerTest(TestCase):
         )
         
         # Create shift for different staff member (should not be included)
-        ShiftManager.create_shift(
+        shifts.create(
             cluster=self.cluster,
             title="Other Shift",
             shift_type=ShiftType.SECURITY,
@@ -226,7 +226,7 @@ class ShiftManagerTest(TestCase):
             end_time=self.end_time + timedelta(days=2)
         )
         
-        schedule = ShiftManager.get_staff_schedule(
+        schedule = shifts.get_staff_schedule(
             cluster=self.cluster,
             staff_member=self.staff_user1,
             start_date=timezone.now().date(),
@@ -241,7 +241,7 @@ class ShiftManagerTest(TestCase):
     def test_get_shift_statistics(self):
         """Test getting shift statistics."""
         # Create shifts with different statuses
-        shift1 = ShiftManager.create_shift(
+        shift1 = shifts.create(
             cluster=self.cluster,
             title="Completed Shift",
             shift_type=ShiftType.SECURITY,
@@ -252,7 +252,7 @@ class ShiftManagerTest(TestCase):
         shift1.status = ShiftStatus.COMPLETED
         shift1.save()
         
-        shift2 = ShiftManager.create_shift(
+        shift2 = shifts.create(
             cluster=self.cluster,
             title="No Show Shift",
             shift_type=ShiftType.MAINTENANCE,
@@ -263,7 +263,7 @@ class ShiftManagerTest(TestCase):
         shift2.status = ShiftStatus.NO_SHOW
         shift2.save()
         
-        shift3 = ShiftManager.create_shift(
+        shift3 = shifts.create(
             cluster=self.cluster,
             title="Cancelled Shift",
             shift_type=ShiftType.CLEANING,
@@ -274,7 +274,7 @@ class ShiftManagerTest(TestCase):
         shift3.status = ShiftStatus.CANCELLED
         shift3.save()
         
-        stats = ShiftManager.get_shift_statistics(self.cluster)
+        stats = shifts.get_statistics(self.cluster)
         
         self.assertEqual(stats['total_shifts'], 3)
         self.assertEqual(stats['completed_shifts'], 1)
@@ -320,17 +320,17 @@ class ShiftNotificationManagerTest(TestCase):
         """Test sending shift assignment notification."""
         # This test just verifies the method runs without error
         # In a real implementation, you would mock the email service
-        result = ShiftNotificationManager.send_shift_assignment_notification(self.shift)
+        result = shifts.send_assignment_notification(self.shift)
         self.assertTrue(result)
     
     def test_send_shift_reminder_notification(self):
         """Test sending shift reminder notification."""
-        result = ShiftNotificationManager.send_shift_reminder_notification(self.shift)
+        result = shifts.send_reminder_notification(self.shift)
         self.assertTrue(result)
     
     def test_send_missed_shift_notification(self):
         """Test sending missed shift notification."""
-        result = ShiftNotificationManager.send_missed_shift_notification(self.shift)
+        result = shifts.send_missed_shift_notification(self.shift)
         self.assertTrue(result)
     
     def test_send_swap_request_notification(self):
@@ -351,7 +351,7 @@ class ShiftNotificationManagerTest(TestCase):
             reason="Personal emergency"
         )
         
-        result = ShiftNotificationManager.send_swap_request_notification(swap_request)
+        result = shifts.send_swap_request_notification(swap_request)
         self.assertTrue(result)
     
     def test_send_swap_response_notification(self):
@@ -382,5 +382,5 @@ class ShiftNotificationManagerTest(TestCase):
         
         swap_request.approve(admin_user, "Approved")
         
-        result = ShiftNotificationManager.send_swap_response_notification(swap_request)
+        result = shifts.send_swap_response_notification(swap_request)
         self.assertTrue(result)

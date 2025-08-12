@@ -5,7 +5,7 @@ from django.utils import timezone
 from accounts.models import AccountUser
 from core.common.models import Visitor
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def detect_visitor_overstays():
                 continue
 
             # Use the new async notification approach
-            success = NotificationManager.send(
+            success = notifications.send(
                 event_name=NotificationEvents.VISITOR_OVERSTAY,
                 recipients=[user],
                 cluster=visitor.cluster,

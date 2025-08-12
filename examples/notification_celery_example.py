@@ -11,7 +11,7 @@ This example shows how to use the different notification methods:
 import logging
 from django.contrib.auth import get_user_model
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 from core.common.models.cluster import Cluster
 
 User = get_user_model()
@@ -32,7 +32,7 @@ def example_async_notification():
             return
 
         # Send notification asynchronously (dispatches Celery task)
-        success = NotificationManager.send(
+        success = notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=[user],
             cluster=cluster,
@@ -65,7 +65,7 @@ def example_sync_notification():
             return
 
         # Send notification synchronously (immediate delivery)
-        success = NotificationManager.send_sync(
+        success = notifications.send_sync(
             event_name=NotificationEvents.EMERGENCY_ALERT,
             recipients=[user],
             cluster=cluster,
@@ -98,7 +98,7 @@ def example_retry_notification():
             return
 
         # Send notification with retry logic
-        success = NotificationManager.send_with_retry(
+        success = notifications.send_with_retry(
             event_name=NotificationEvents.PAYMENT_OVERDUE,
             recipients=[user],
             cluster=cluster,
@@ -149,7 +149,7 @@ def example_bulk_notifications():
             )
 
         # Send bulk notifications
-        results = NotificationManager.send_bulk(notifications)
+        results = notifications.send_bulk(notifications)
 
         successful_count = sum(1 for success in results.values() if success)
         logger.info(
@@ -173,7 +173,7 @@ def example_critical_event_handling():
             return
 
         # Critical events (like emergency alerts) are sent synchronously automatically
-        success = NotificationManager.send(
+        success = notifications.send(
             event_name=NotificationEvents.EMERGENCY_ALERT,
             recipients=[user],
             cluster=cluster,

@@ -4,7 +4,8 @@ Management command to process payment-related scheduled tasks.
 
 import logging
 from django.core.management.base import BaseCommand
-from core.common.utils.scheduled_tasks import ScheduledTaskManager
+from core.common.includes import recurring_payments, bills
+from core.common.models import Cluster
 
 logger = logging.getLogger('clustr')
 
@@ -37,28 +38,32 @@ class Command(BaseCommand):
         try:
             if task == 'recurring_payments' or task == 'all':
                 self.stdout.write('Processing recurring payments...')
-                ScheduledTaskManager.process_recurring_payments()
+                for cluster in Cluster.objects.all():
+                    recurring_payments.process_due_payments(cluster)
                 self.stdout.write(
                     self.style.SUCCESS('✓ Recurring payments processed')
                 )
             
             if task == 'recurring_reminders' or task == 'all':
                 self.stdout.write('Sending recurring payment reminders...')
-                ScheduledTaskManager.send_recurring_payment_reminders()
+                for cluster in Cluster.objects.all():
+                    recurring_payments.send_payment_reminders(cluster, days_before=1)
                 self.stdout.write(
                     self.style.SUCCESS('✓ Recurring payment reminders sent')
                 )
             
             if task == 'overdue_bills' or task == 'all':
                 self.stdout.write('Checking overdue bills...')
-                ScheduledTaskManager.check_overdue_bills()
+                for cluster in Cluster.objects.all():
+                    bills.check_and_update_overdue(cluster)
                 self.stdout.write(
                     self.style.SUCCESS('✓ Overdue bills checked')
                 )
             
             if task == 'bill_reminders' or task == 'all':
                 self.stdout.write('Sending bill reminders...')
-                ScheduledTaskManager.send_bill_reminders()
+                for cluster in Cluster.objects.all():
+                    bills.send_reminders(cluster, days_before_due=3)
                 self.stdout.write(
                     self.style.SUCCESS('✓ Bill reminders sent')
                 )

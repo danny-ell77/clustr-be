@@ -14,7 +14,7 @@ from accounts.permissions import HasClusterPermission
 from core.common.permissions import CommunicationsPermissions
 from core.common.models import AnnouncementAttachment
 from core.common.serializers.announcement_serializers import AnnouncementAttachmentSerializer
-from core.common.utils.file_storage import FileStorage
+from core.common.includes.file_storage import FileStorage
 from core.common.exceptions import InvalidFileTypeException
 
 

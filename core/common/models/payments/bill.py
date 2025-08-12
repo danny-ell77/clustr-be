@@ -270,15 +270,18 @@ class Bill(AbstractClusterModel):
         """Check if bill is overdue."""
         return self.user_id and self.due_date < timezone.now() and not self.is_fully_paid
 
-    @property
-    def remaining_amount(self):
-        """Calculate remaining amount to be paid."""
-        return self.user_id and self.amount - self.paid_amount
+
 
     @property
     def is_fully_paid(self):
-        """Check if bill is fully paid."""
-        return self.user_id and self.paid_amount >= self.amount
+        """
+        Check if bill is fully paid - unified approach for all bill types.
+        Uses transaction aggregation for cluster bills, paid_amount for user bills.
+        """
+        if self.category == BillCategory.CLUSTER_MANAGED:
+            return self.get_total_paid() >= self.amount
+        else:
+            return self.paid_amount >= self.amount
 
     @property
     def is_disputed(self):
@@ -392,22 +395,45 @@ class Bill(AbstractClusterModel):
         )
         return dispute
 
+    def get_total_paid(self):
+        """
+        Get total amount paid towards this bill - unified approach for all bill types.
+        
+        Returns:
+            Decimal: Total amount paid towards this bill
+        """
+        if self.category == BillCategory.CLUSTER_MANAGED:
+            # For cluster bills, aggregate all completed transactions
+            from .transaction import TransactionStatus
+            aggregation = self.transactions.filter(
+                status=TransactionStatus.COMPLETED
+            ).aggregate(total=models.Sum('amount'))
+            return aggregation['total'] or Decimal('0.00')
+        else:
+            # For user bills, use the paid_amount field
+            return self.paid_amount
+
+    def get_remaining_amount(self):
+        """
+        Get remaining amount to be paid - unified approach for all bill types.
+        
+        Returns:
+            Decimal: Remaining amount to be paid
+        """
+        total_paid = self.get_total_paid()
+        return max(self.amount - total_paid, Decimal('0.00'))
+
     def can_be_paid(self):
         """
         Check if the bill can be paid.
         A bill can be paid if it is not fully paid and has no active disputes.
-        Uses the correct property based on the bill category.
         """
-        if self.category == BillCategory.CLUSTER_MANAGED:
-            is_paid = self.is_fully_paid_cluster
-        else:
-            is_paid = self.is_fully_paid
-
-        return not is_paid and not self.is_disputed
+        return not self.is_fully_paid and not self.is_disputed
 
     def add_payment(self, amount, transaction):
         """
         Handles the logic for adding a payment to a bill.
+        This method debits the user's wallet and credits the cluster wallet.
 
         For USER_MANAGED bills, it updates the bill's state directly.
         For CLUSTER_MANAGED bills, it only handles post-payment actions like
@@ -418,6 +444,14 @@ class Bill(AbstractClusterModel):
         if not user:
             logger.error(f"Cannot find user associated with transaction {transaction.id}")
             return
+
+        # Debit the user's wallet first
+        try:
+            transaction.wallet.debit(amount, f"Bill payment: {self.title}")
+            logger.info(f"Debited {amount} from user {user.id} wallet for bill {self.bill_number}")
+        except ValueError as e:
+            logger.error(f"Failed to debit wallet for bill payment: {e}")
+            raise
 
         # Logic for user-managed bills (explicit, single-payer)
         if self.category == BillCategory.USER_MANAGED:
@@ -449,7 +483,7 @@ class Bill(AbstractClusterModel):
 
     def credit_cluster_wallet(self, amount, transaction=None):
         """Credit the cluster's main wallet with bill payment."""
-        from core.common.utils.cluster_wallet_utils import (
+        from core.common.includes.cluster_wallet import (
             credit_cluster_from_bill_payment,
         )
 
@@ -503,50 +537,19 @@ class Bill(AbstractClusterModel):
 
     # --- Properties and Methods for Cluster-Managed Bill Logic ---
 
-    @property
-    def total_paid_amount_cluster(self):
-        """
-        Calculates the total amount paid towards a CLUSTER_MANAGED bill
-        by aggregating all related successful transactions.
-        Returns the Bill's paid_amount for USER_MANAGED bills.
-        """
-        if self.category == BillCategory.USER_MANAGED:
-            return self.paid_amount
 
-        from .transaction import Transaction  # Local import to avoid circular dependency
-        # Assumes the related_name on Transaction.bill is 'transactions'
-        # and Transaction has a 'status' field.
-        aggregation = self.transactions.filter(
-            status=Transaction.Status.SUCCESSFUL
-        ).aggregate(
-            total=models.Sum('amount')
-        )
-        return aggregation['total'] or Decimal('0.00')
-
-    @property
-    def is_fully_paid_cluster(self):
-        """
-        Checks if a CLUSTER_MANAGED bill is fully paid by comparing the
-        aggregated transaction amounts to the total bill amount.
-        Returns the Bill's is_fully_paid status for USER_MANAGED bills.
-        """
-        if self.category == BillCategory.USER_MANAGED:
-            return self.is_fully_paid
-
-        # The bill is considered paid if the total payments meet or exceed the amount.
-        return self.total_paid_amount_cluster >= self.amount
 
     def get_user_payment_amount(self, user):
         """
         Gets the total amount a specific user has paid towards this bill
         by querying successful transactions linked to their wallet.
         """
-        from .transaction import Transaction  # Local import
+        from .transaction import TransactionStatus  # Local import
         # This assumes the Transaction model has a ForeignKey to a Wallet model,
         # which in turn has a ForeignKey to the User model.
         aggregation = self.transactions.filter(
             wallet__user=user,
-            status=Transaction.Status.SUCCESSFUL
+            status=TransactionStatus.COMPLETED
         ).aggregate(total=models.Sum('amount'))
         return aggregation['total'] or Decimal('0.00')
 

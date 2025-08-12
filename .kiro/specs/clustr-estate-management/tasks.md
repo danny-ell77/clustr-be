@@ -490,10 +490,19 @@
 
 ## Chat and Communication System
 - [ ] 16. Implement real-time chat system
+
+
+
+
+
+
+
   - Create chat room and message models in core/common/models.py
   - Implement WebSocket-based real-time messaging using Daphne (Consumers in core/common/consumers.py)
   - Add secure communication channels with encryption
   - Integrate with existing user authentication for chat access (Authentication logic in accounts app)
+  - Only implement one on one chat but leave room for group chats later
+  - Chat should be accessible for both members and management
   - _Requirements: 15.1, 15.2_
 
 - [ ] 16.1 Implement chat features and moderation

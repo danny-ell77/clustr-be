@@ -29,7 +29,7 @@ from core.common.serializers.announcement_serializers import (
     AnnouncementCommentCreateSerializer,
 )
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 
 @audit_viewset(resource_type="announcement")
@@ -206,7 +206,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
                 # Send notification to announcement author if different user
                 if announcement.author_id != request.user.id:
                     try:
-                        NotificationManager.send(
+                        notifications.send(
                             event=NotificationEvents.COMMENT_REPLY,
                             recipients=[announcement.author],
                             cluster=announcement.cluster,

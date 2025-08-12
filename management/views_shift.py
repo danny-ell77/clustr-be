@@ -29,7 +29,7 @@ from core.common.serializers.shift_serializers import (
     ClockInOutSerializer,
     ShiftStatisticsSerializer
 )
-from core.common.utils import ShiftManager, ShiftNotificationManager
+from core.common.includes import notifications, shifts
 from accounts.permissions import IsClusterStaffOrAdmin, IsClusterAdmin
 from accounts.models import AccountUser
 
@@ -88,7 +88,7 @@ class ShiftViewSet(ModelViewSet):
             raise ValidationError("Cluster context is required")
         
         try:
-            shift = ShiftManager.create_shift(
+            shift = shifts.create(
                 cluster=cluster,
                 created_by=self.request.user.id,
                 last_modified_by=self.request.user.id,
@@ -106,7 +106,7 @@ class ShiftViewSet(ModelViewSet):
             start_time = serializer.validated_data.get('start_time', serializer.instance.start_time)
             end_time = serializer.validated_data.get('end_time', serializer.instance.end_time)
             
-            conflicts = ShiftManager.check_shift_conflicts(
+            conflicts = shifts.check_conflicts(
                 cluster=serializer.instance.cluster,
                 staff_member=assigned_staff,
                 start_time=start_time,
@@ -132,7 +132,7 @@ class ShiftViewSet(ModelViewSet):
         if serializer.is_valid():
             try:
                 clock_in_time = serializer.validated_data.get('timestamp')
-                updated_shift = ShiftManager.clock_in_staff(shift, clock_in_time)
+                updated_shift = shifts.clock_in(shift, clock_in_time)
                 
                 return Response({
                     'message': 'Successfully clocked in',
@@ -155,7 +155,7 @@ class ShiftViewSet(ModelViewSet):
         if serializer.is_valid():
             try:
                 clock_out_time = serializer.validated_data.get('timestamp')
-                updated_shift = ShiftManager.clock_out_staff(shift, clock_out_time)
+                updated_shift = shifts.clock_out(shift, clock_out_time)
                 
                 return Response({
                     'message': 'Successfully clocked out',
@@ -176,7 +176,7 @@ class ShiftViewSet(ModelViewSet):
         
         try:
             shift.mark_no_show()
-            ShiftNotificationManager.send_missed_shift_notification(shift)
+            shifts.send_missed_shift_notification(shift)
             
             return Response({
                 'message': 'Shift marked as no show',
@@ -230,7 +230,7 @@ class ShiftViewSet(ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        stats = ShiftManager.get_shift_statistics(cluster, start_date, end_date)
+        stats = shifts.get_statistics(cluster, start_date, end_date)
         serializer = ShiftStatisticsSerializer(stats)
         
         return Response(serializer.data)
@@ -328,7 +328,7 @@ class ShiftSwapRequestViewSet(ModelViewSet):
             raise ValidationError("Cluster context is required")
         
         try:
-            swap_request = ShiftManager.create_shift_swap_request(
+            swap_request = shifts.create_swap_request(
                 original_shift_id=serializer.validated_data['original_shift'].id,
                 requested_by=self.request.user,
                 requested_with=serializer.validated_data['requested_with'],
@@ -356,7 +356,7 @@ class ShiftSwapRequestViewSet(ModelViewSet):
                     swap_request.reject(request.user, response_message)
                 
                 # Send notification
-                ShiftNotificationManager.send_swap_response_notification(swap_request)
+                shifts.send_swap_response_notification(swap_request)
                 
                 return Response({
                     'message': f'Swap request {action_type}d successfully',
@@ -412,7 +412,7 @@ class StaffScheduleView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
             
-            shifts = ShiftManager.get_staff_schedule(cluster, staff_member, start_date, end_date)
+            shifts = shifts.get_staff_schedule(cluster, staff_member, start_date, end_date)
             serializer = ShiftListSerializer(shifts, many=True)
             
             return Response({
@@ -432,7 +432,7 @@ class StaffScheduleView(APIView):
             
             schedules = []
             for staff_member in staff_members:
-                shifts = ShiftManager.get_staff_schedule(cluster, staff_member, start_date, end_date)
+                shifts = shifts.get_staff_schedule(cluster, staff_member, start_date, end_date)
                 schedules.append({
                     'staff_member': {
                         'id': staff_member.id,
@@ -479,7 +479,7 @@ class ShiftReportView(APIView):
         
         if report_type == 'summary':
             # Generate summary report
-            stats = ShiftManager.get_shift_statistics(cluster, start_date, end_date)
+            stats = shifts.get_statistics(cluster, start_date, end_date)
             
             # Get additional data
             shifts = Shift.objects.filter(cluster=cluster)

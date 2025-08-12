@@ -22,19 +22,15 @@ from core.common.models import (
     TransactionType,
     PaymentError,
 )
-from core.common.utils import (
-    BillManager,
-    RecurringPaymentManager,
-)
 from core.common.models import UtilityProvider
 from members.filters import RecurringPaymentFilter
-from core.common.utils.cluster_wallet_utils import ClusterWalletManager
-from core.common.utils.third_party_services import (
+from core.common.includes.third_party_services import (
     PaymentProviderFactory,
     PaymentProviderError,
 )
 from core.common.responses import success_response, error_response
-from core.common.utils.payment_error_utils import retry_failed_payment
+from core.common.includes.payment_error import retry_failed_payment
+from core.common.includes import bills, recurring_payments, cluster_wallet
 from core.common.serializers.payment_serializers import (
     PaymentDashboardSerializer,
     CreateBillSerializer,
@@ -120,12 +116,8 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             ]
 
             # Get cluster wallet information
-            cluster_wallet_info = ClusterWalletManager.get_cluster_wallet_balance(
-                cluster
-            )
-            cluster_revenue = ClusterWalletManager.get_cluster_revenue_summary(
-                cluster, days=30
-            )
+            cluster_wallet_info = cluster_wallet.get_wallet_balance(cluster)
+            cluster_revenue = cluster_wallet.get_revenue_summary(cluster, days=30)
 
             dashboard_data = {
                 "statistics": {
@@ -187,7 +179,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             # Create cluster-wide or user-specific bill based on user_id
             if user_id is None:
                 # Create cluster-wide bill
-                bill = BillManager.create_cluster_wide_bill(
+                bill = bills.create_cluster_wide(
                     cluster=cluster,
                     title=data["title"],
                     amount=data["amount"],
@@ -198,10 +190,12 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     created_by=str(request.user.id),
                     metadata=data.get("metadata", {}),
                 )
-                logger.info(f"Cluster-wide bill created: {bill.bill_number} by admin {request.user.id}")
+                logger.info(
+                    f"Cluster-wide bill created: {bill.bill_number} by admin {request.user.id}"
+                )
             else:
                 # Create user-specific bill
-                bill = BillManager.create_user_specific_bill(
+                bill = bills.create_user_specific(
                     cluster=cluster,
                     user_id=str(user_id),
                     title=data["title"],
@@ -213,7 +207,9 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     created_by=str(request.user.id),
                     metadata=data.get("metadata", {}),
                 )
-                logger.info(f"User-specific bill created: {bill.bill_number} for user {user_id} by admin {request.user.id}")
+                logger.info(
+                    f"User-specific bill created: {bill.bill_number} for user {user_id} by admin {request.user.id}"
+                )
 
             response_serializer = BillSerializer(bill)
 
@@ -246,23 +242,25 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             for bill_data in bills_data:
                 try:
                     user_id = bill_data.get("user_id")
-                    
+
                     if user_id is None:
                         # Create cluster-wide bill
-                        bill = BillManager.create_cluster_wide_bill(
+                        bill = bills.create_cluster_wide(
                             cluster=cluster,
                             title=bill_data["title"],
                             amount=bill_data["amount"],
                             bill_type=bill_data["type"],
                             due_date=bill_data["due_date"],
                             description=bill_data.get("description"),
-                            allow_payment_after_due=bill_data.get("allow_payment_after_due", True),
+                            allow_payment_after_due=bill_data.get(
+                                "allow_payment_after_due", True
+                            ),
                             created_by=str(request.user.id),
                             metadata=bill_data.get("metadata", {}),
                         )
                     else:
                         # Create user-specific bill
-                        bill = BillManager.create_user_specific_bill(
+                        bill = bills.create_user_specific(
                             cluster=cluster,
                             user_id=str(user_id),
                             title=bill_data["title"],
@@ -270,15 +268,19 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                             bill_type=bill_data["type"],
                             due_date=bill_data["due_date"],
                             description=bill_data.get("description"),
-                            allow_payment_after_due=bill_data.get("allow_payment_after_due", True),
+                            allow_payment_after_due=bill_data.get(
+                                "allow_payment_after_due", True
+                            ),
                             created_by=str(request.user.id),
                             metadata=bill_data.get("metadata", {}),
                         )
-                    
+
                     created_bills.append(bill)
-                    
+
                 except Exception as e:
-                    logger.error(f"Failed to create bill: {bill_data.get('title', 'Unknown')} - {e}")
+                    logger.error(
+                        f"Failed to create bill: {bill_data.get('title', 'Unknown')} - {e}"
+                    )
 
             response_data = {
                 "created_count": len(created_bills),
@@ -322,19 +324,21 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 else:
                     # Show bills for specific user
                     queryset = queryset.filter(user_id=user_id)
-            
+
             # Filter by cluster-wide status
             if is_cluster_wide is not None:
-                if is_cluster_wide.lower() in ['true', '1', 'yes']:
+                if is_cluster_wide.lower() in ["true", "1", "yes"]:
                     queryset = queryset.filter(user_id__isnull=True)
-                elif is_cluster_wide.lower() in ['false', '0', 'no']:
+                elif is_cluster_wide.lower() in ["false", "0", "no"]:
                     queryset = queryset.filter(user_id__isnull=False)
 
             if bill_type:
                 queryset = queryset.filter(type=bill_type)
 
             # Add prefetch for acknowledged_by to optimize queries
-            queryset = queryset.prefetch_related('acknowledged_by').order_by("-created_at")
+            queryset = queryset.prefetch_related("acknowledged_by").order_by(
+                "-created_at"
+            )
 
             paginator = PageNumberPagination()
             paginated_bills = paginator.paginate_queryset(queryset, request)
@@ -483,7 +487,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         )
         new_status = data["status"]
 
-        BillManager.update_bill_status(
+        bills.update_status(
             bill=bill, new_status=new_status, updated_by=str(request.user.id)
         )
 
@@ -505,7 +509,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             cluster=request.cluster_context,
         )
 
-        success = RecurringPaymentManager.pause_recurring_payment(
+        success = recurring_payments.pause(
             payment=payment, paused_by=str(request.user.id)
         )
 
@@ -553,7 +557,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     cluster=cluster,
                 )
 
-            payment = RecurringPaymentManager.create_recurring_payment(
+            payment = recurring_payments.create(
                 wallet=wallet,
                 title=validated_data["title"],
                 amount=validated_data["amount"],
@@ -619,7 +623,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                     cluster=cluster,
                 )
 
-            success = RecurringPaymentManager.update_recurring_payment(
+            success = recurring_payments.update(
                 payment=payment,
                 bill=bill if "bill_id" in validated_data else None,
                 title=validated_data.get("title"),
@@ -673,7 +677,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 RecurringPayment, id=payment_id, cluster=cluster
             )
 
-            success = RecurringPaymentManager.resume_recurring_payment(
+            success = recurring_payments.resume(
                 payment=payment, resumed_by=str(request.user.id)
             )
 
@@ -712,7 +716,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 RecurringPayment, id=payment_id, cluster=cluster
             )
 
-            success = RecurringPaymentManager.cancel_recurring_payment(
+            success = recurring_payments.cancel(
                 payment=payment, cancelled_by=str(request.user.id)
             )
 
@@ -743,9 +747,9 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         try:
             cluster = request.cluster_context
 
-            analytics = ClusterWalletManager.get_cluster_wallet_analytics(cluster)
+            analytics = cluster_wallet.get_wallet_analytics(cluster)
 
-            recent_transactions = ClusterWalletManager.get_cluster_wallet_transactions(
+            recent_transactions = cluster_wallet.get_wallet_transactions(
                 cluster, limit=20
             )
 
@@ -802,7 +806,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             provider = data.get("provider", "paystack")
 
-            transaction = ClusterWalletManager.transfer_from_cluster_wallet(
+            transaction = cluster_wallet.transfer_from_wallet(
                 cluster=cluster,
                 amount=data["amount"],
                 description=data["description"],
@@ -877,7 +881,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 type=TransactionType.DEPOSIT,
             )
 
-            success = ClusterWalletManager.verify_manual_credit_payment(transaction)
+            success = cluster_wallet.verify_manual_credit(transaction)
 
             if success:
                 response_data = {
@@ -996,7 +1000,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             provider = data.get("provider", "bank_transfer")
 
-            transaction = ClusterWalletManager.add_manual_credit(
+            transaction = cluster_wallet.add_manual_credit(
                 cluster=cluster,
                 amount=data["amount"],
                 description=data["description"],

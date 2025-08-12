@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from core.common.code_generator import CodeGenerator
 from core.common.models import ObjectHistoryTracker, UUIDPrimaryKey
 from core.common.permissions import DEFAULT_PERMISSIONS, DEFAULT_ROLES
-from core.common.utils import to_sentence_case
+from core.common.includes import to_sentence_case
 
 
 class UserManager(BaseUserManager):

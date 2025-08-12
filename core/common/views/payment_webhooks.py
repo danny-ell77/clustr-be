@@ -14,7 +14,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from core.common.models import PaymentProvider
-from core.common.utils import PaymentManager
+from core.common.includes import payments
 
 logger = logging.getLogger('clustr')
 
@@ -35,8 +35,7 @@ def paystack_webhook(request):
             return HttpResponse(status=400)
         
         # Process webhook
-        manager = PaymentManager()
-        transaction = manager.process_webhook(
+        transaction = payments.process_webhook(
             provider=PaymentProvider.PAYSTACK,
             payload=payload,
             signature=signature
@@ -70,8 +69,7 @@ def flutterwave_webhook(request):
             return HttpResponse(status=400)
         
         # Process webhook
-        manager = PaymentManager()
-        transaction = manager.process_webhook(
+        transaction = payments.process_webhook(
             provider=PaymentProvider.FLUTTERWAVE,
             payload=payload,
             signature=signature
@@ -115,8 +113,7 @@ def verify_payment(request):
             )
         
         # Verify payment
-        manager = PaymentManager()
-        success = manager.verify_payment(transaction)
+        success = payments.verify_payment(transaction)
         
         return Response({
             'transaction_id': transaction.transaction_id,

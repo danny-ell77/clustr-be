@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from core.common.code_generator import CodeGenerator
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 from core.common.models import UUIDPrimaryKey
 
 if TYPE_CHECKING:

@@ -36,7 +36,7 @@ from core.common.serializers.emergency_serializers import (
     IncidentReportSerializer,
     EmergencyReportFiltersSerializer,
 )
-from core.common.utils.emergency_utils import EmergencyManager
+from core.common.includes import emergencies
 from core.common.permissions import CommunicationsPermissions
 from management.filters import EmergencyContactFilter, SOSAlertFilter, EmergencyResponseFilter
 
@@ -105,7 +105,7 @@ class EmergencyContactManagementViewSet(ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        contacts = EmergencyManager.get_emergency_contacts_for_type(
+        contacts = emergencies.get_contacts_for_type(
             request.cluster_context,
             emergency_type
         )
@@ -174,7 +174,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         from accounts.models import AccountUser
         user = get_object_or_404(AccountUser, id=user_id, clusters=getattr(self.request, "cluster_context", None))
         
-        alert = EmergencyManager.create_sos_alert(
+        alert = emergencies.create_alert(
             user=user,
             emergency_type=serializer.validated_data['emergency_type'],
             description=serializer.validated_data.get('description', ''),
@@ -197,7 +197,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
     @action(detail=False, methods=['get'])
     def active(self, request):
         """Get all active alerts"""
-        active_alerts = EmergencyManager.get_active_alerts(request.cluster_context)
+        active_alerts = emergencies.get_active_alerts(request.cluster_context)
         serializer = self.get_serializer(active_alerts, many=True)
         return Response(serializer.data)
     
@@ -206,7 +206,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         """Acknowledge an SOS alert"""
         alert = self.get_object()
         
-        if EmergencyManager.acknowledge_alert(alert, request.user):
+        if emergencies.acknowledge_alert(alert, request.user):
             return Response({'message': _('Alert acknowledged successfully')})
         else:
             return Response(
@@ -219,7 +219,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         """Start response to an SOS alert"""
         alert = self.get_object()
         
-        if EmergencyManager.start_response(alert, request.user):
+        if emergencies.start_response(alert, request.user):
             return Response({'message': _('Response started successfully')})
         else:
             return Response(
@@ -233,7 +233,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         alert = self.get_object()
         notes = request.data.get('notes', '')
         
-        if EmergencyManager.resolve_alert(alert, request.user, notes):
+        if emergencies.resolve_alert(alert, request.user, notes):
             return Response({'message': _('Alert resolved successfully')})
         else:
             return Response(
@@ -247,7 +247,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         alert = self.get_object()
         reason = request.data.get('reason', 'Cancelled by management')
         
-        if EmergencyManager.cancel_alert(alert, request.user, reason):
+        if emergencies.cancel_alert(alert, request.user, reason):
             return Response({'message': _('Alert cancelled successfully')})
         else:
             return Response(
@@ -258,7 +258,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
     @action(detail=False, methods=['get'])
     def statistics(self, request):
         """Get emergency statistics"""
-        stats = EmergencyManager.get_emergency_statistics(request.cluster_context)
+        stats = emergencies.get_statistics(request.cluster_context)
         serializer = EmergencyStatsSerializer(stats)
         return Response(serializer.data)
     
@@ -308,7 +308,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         filters = filter_serializer.validated_data
         
         # Generate report
-        report = EmergencyManager.generate_emergency_report(
+        report = emergencies.generate_report(
             cluster=request.cluster_context,
             start_date=filters.get('start_date'),
             end_date=filters.get('end_date'),
@@ -325,7 +325,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
         alert = self.get_object()
         
         # Generate incident report
-        report = EmergencyManager.generate_alert_incident_report(alert)
+        report = emergencies.generate_incident_report(alert)
         
         serializer = IncidentReportSerializer(report)
         return Response(serializer.data)
@@ -363,7 +363,7 @@ class SOSAlertManagementViewSet(ModelViewSet):
                 )
         
         # Generate report
-        report = EmergencyManager.generate_emergency_report(
+        report = emergencies.generate_report(
             cluster=request.cluster_context,
             start_date=parsed_start_date,
             end_date=parsed_end_date,
@@ -373,9 +373,9 @@ class SOSAlertManagementViewSet(ModelViewSet):
         
         # Handle different export formats
         if export_format.lower() == 'csv':
-            return EmergencyManager._export_report_as_csv(report)
+            return emergencies.export_report_as_csv(report)
         elif export_format.lower() == 'pdf':
-            return EmergencyManager._export_report_as_pdf(report)
+            return emergencies.export_report_as_pdf(report)
         else:
             # Default to JSON
             serializer = EmergencyReportSerializer(report)

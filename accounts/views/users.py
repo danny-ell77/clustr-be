@@ -34,7 +34,7 @@ from accounts.utils import change_password
 from core.common.email_sender import AccountEmailSender, NotificationTypes
 from core.common.exceptions import InvalidDataException
 from core.common.responses import duplicate_entity_response
-from core.common.utils import build_runtime_serializer
+from core.common.includes import build_runtime_serializer
 from core.data_exchange.includes.generic_model_importer import GenericModelImporter
 from core.common.decorators import audit_viewset
 from core.common.error_utils import exception_to_response_mapper

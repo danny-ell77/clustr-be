@@ -53,4 +53,7 @@ urlpatterns = [
     
     # Include payment URLs
     path('', include('members.urls_payment')),
+    
+    # Include chat URLs
+    # path('', include('members.urls_chat')),
 ]

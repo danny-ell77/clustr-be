@@ -9,7 +9,7 @@ from rest_framework import serializers
 from accounts.models import AccountUser, UserVerification
 from accounts.serializers.users import AccountSerializer
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 from core.data_exchange.exceptions import RowError
 from core.data_exchange.includes.imported_attribute_validators import (
     validate_email_address,
@@ -246,7 +246,7 @@ class ResidentImportExportSerializer(DynamicFieldsSerializer):
                 # Assuming UserVerification.generate_otp or generate_token is used elsewhere
                 # and handles the notification_event setting.
                 # For now, we'll directly send the notification.
-                NotificationManager.send(
+                notifications.send(
                     event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for a more specific onboarding event
                     recipients=[resident],
                     cluster=resident.cluster, # Assuming resident has a cluster attribute

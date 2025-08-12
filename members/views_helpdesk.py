@@ -30,7 +30,7 @@ from core.common.serializers.helpdesk import (
     IssueAttachmentSerializer,
     IssueAttachmentCreateSerializer,
 )
-from core.common.utils.file_storage import FileStorage
+from core.common.includes.file_storage import FileStorage
 from django.shortcuts import get_object_or_404
 
 

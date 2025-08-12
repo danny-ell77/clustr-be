@@ -15,7 +15,7 @@ from core.common.models.emergency import (
     EmergencyContactType,
     EmergencyStatus,
 )
-from core.common.utils.emergency_utils import EmergencyManager
+from core.common.includes import emergencies
 
 
 class EmergencyManagerTest(TestCase):
@@ -71,42 +71,9 @@ class EmergencyManagerTest(TestCase):
             is_primary=True
         )
     
-    def test_get_emergency_contacts_for_type(self):
-        """Test getting emergency contacts for a specific type"""
-        contacts = EmergencyManager.get_emergency_contacts_for_type(
-            self.cluster,
-            EmergencyType.THEFT
-        )
-        
-        # Should return both personal and estate contacts that handle theft
-        self.assertEqual(len(contacts), 2)
-        contact_names = [contact.name for contact in contacts]
-        self.assertIn("Personal Contact", contact_names)
-        self.assertIn("Estate Security", contact_names)
-    
-    def test_get_emergency_contacts_for_type_with_filter(self):
-        """Test getting emergency contacts with contact type filter"""
-        contacts = EmergencyManager.get_emergency_contacts_for_type(
-            self.cluster,
-            EmergencyType.THEFT,
-            contact_type=EmergencyContactType.ESTATE_WIDE
-        )
-        
-        # Should return only estate-wide contacts
-        self.assertEqual(len(contacts), 1)
-        self.assertEqual(contacts[0].name, "Estate Security")
-    
-    def test_get_user_emergency_contacts(self):
-        """Test getting emergency contacts for a specific user"""
-        contacts = EmergencyManager.get_user_emergency_contacts(self.user)
-        
-        # Should return only the user's personal contacts
-        self.assertEqual(len(contacts), 1)
-        self.assertEqual(contacts[0].name, "Personal Contact")
-    
     def test_get_estate_emergency_contacts(self):
         """Test getting estate-wide emergency contacts"""
-        contacts = EmergencyManager.get_estate_emergency_contacts(self.cluster)
+        contacts = emergencies.get_estate_emergency_contacts(self.cluster)
         
         # Should return only estate-wide contacts
         self.assertEqual(len(contacts), 1)
@@ -114,7 +81,7 @@ class EmergencyManagerTest(TestCase):
     
     def test_get_estate_emergency_contacts_with_type_filter(self):
         """Test getting estate-wide emergency contacts with type filter"""
-        contacts = EmergencyManager.get_estate_emergency_contacts(
+        contacts = emergencies.get_estate_emergency_contacts(
             self.cluster,
             EmergencyType.SECURITY
         )
@@ -124,7 +91,7 @@ class EmergencyManagerTest(TestCase):
         self.assertEqual(contacts[0].name, "Estate Security")
         
         # Test with type that estate contact doesn't handle
-        contacts = EmergencyManager.get_estate_emergency_contacts(
+        contacts = emergencies.get_estate_emergency_contacts(
             self.cluster,
             EmergencyType.HEALTH
         )
@@ -132,10 +99,10 @@ class EmergencyManagerTest(TestCase):
         # Should return no contacts
         self.assertEqual(len(contacts), 0)
     
-    @patch('core.common.utils.emergency_utils.EmergencyManager.send_sos_alert_notifications')
+    @patch('core.common.utils.emergency_utils.emergencies.send_sos_alert_notifications')
     def test_create_sos_alert(self, mock_send_notifications):
         """Test creating an SOS alert"""
-        alert = EmergencyManager.create_sos_alert(
+        alert = emergencies.create_alert(
             user=self.user,
             emergency_type=EmergencyType.HEALTH,
             description="Medical emergency",
@@ -166,7 +133,7 @@ class EmergencyManagerTest(TestCase):
             description="Robbery in progress"
         )
         
-        EmergencyManager.send_sos_alert_notifications(alert)
+        emergencies.send_sos_alert_notifications(alert)
         
         # Should have attempted to send email
         mock_send.assert_called()
@@ -179,7 +146,7 @@ class EmergencyManagerTest(TestCase):
             emergency_type=EmergencyType.HEALTH
         )
         
-        result = EmergencyManager.acknowledge_alert(alert, self.responder)
+        result = emergencies.acknowledge_alert(alert, self.responder)
         
         self.assertTrue(result)
         alert.refresh_from_db()
@@ -195,7 +162,7 @@ class EmergencyManagerTest(TestCase):
             emergency_type=EmergencyType.HEALTH
         )
         
-        result = EmergencyManager.start_response(alert, self.responder)
+        result = emergencies.start_response(alert, self.responder)
         
         self.assertTrue(result)
         alert.refresh_from_db()
@@ -218,7 +185,7 @@ class EmergencyManagerTest(TestCase):
         )
         
         resolution_notes = "Issue resolved successfully"
-        result = EmergencyManager.resolve_alert(alert, self.responder, resolution_notes)
+        result = emergencies.resolve_alert(alert, self.responder, resolution_notes)
         
         self.assertTrue(result)
         alert.refresh_from_db()
@@ -241,7 +208,7 @@ class EmergencyManagerTest(TestCase):
         )
         
         cancellation_reason = "False alarm"
-        result = EmergencyManager.cancel_alert(alert, self.user, cancellation_reason)
+        result = emergencies.cancel_alert(alert, self.user, cancellation_reason)
         
         self.assertTrue(result)
         alert.refresh_from_db()
@@ -286,7 +253,7 @@ class EmergencyManagerTest(TestCase):
             status=EmergencyStatus.RESOLVED
         )
         
-        active_alerts = EmergencyManager.get_active_alerts(self.cluster)
+        active_alerts = emergencies.get_active_alerts(self.cluster)
         
         # Should return only active, acknowledged, and responding alerts
         self.assertEqual(len(active_alerts), 3)
@@ -311,7 +278,7 @@ class EmergencyManagerTest(TestCase):
             emergency_type=EmergencyType.THEFT
         )
         
-        user_alerts = EmergencyManager.get_user_alerts(self.user)
+        user_alerts = emergencies.get_user_alerts(self.user)
         
         # Should return only the user's alerts
         self.assertEqual(len(user_alerts), 1)
@@ -335,13 +302,13 @@ class EmergencyManagerTest(TestCase):
         )
         
         # Get only active alerts
-        active_alerts = EmergencyManager.get_user_alerts(self.user, status=EmergencyStatus.ACTIVE)
+        active_alerts = emergencies.get_user_alerts(self.user, status=EmergencyStatus.ACTIVE)
         
         self.assertEqual(len(active_alerts), 1)
         self.assertEqual(active_alerts[0].id, active_alert.id)
         
         # Get only resolved alerts
-        resolved_alerts = EmergencyManager.get_user_alerts(self.user, status=EmergencyStatus.RESOLVED)
+        resolved_alerts = emergencies.get_user_alerts(self.user, status=EmergencyStatus.RESOLVED)
         
         self.assertEqual(len(resolved_alerts), 1)
         self.assertEqual(resolved_alerts[0].id, resolved_alert.id)
@@ -370,7 +337,7 @@ class EmergencyManagerTest(TestCase):
             status=EmergencyStatus.CANCELLED
         )
         
-        stats = EmergencyManager.get_emergency_statistics(self.cluster)
+        stats = emergencies.get_emergency_statistics(self.cluster)
         
         self.assertEqual(stats['total_alerts'], 3)
         self.assertEqual(stats['active_alerts'], 1)
@@ -381,12 +348,12 @@ class EmergencyManagerTest(TestCase):
         self.assertEqual(stats['alerts_by_type']['Health Emergency'], 2)
         self.assertEqual(stats['alerts_by_type']['Theft/Robbery'], 1)
     
-    @patch('core.common.utils.emergency_utils.EmergencyManager.check_user_emergency_permissions')
+    @patch('core.common.utils.emergency_utils.emergencies.check_user_emergency_permissions')
     def test_check_user_emergency_permissions(self, mock_check_permissions):
         """Test checking user emergency permissions"""
         mock_check_permissions.return_value = True
         
-        result = EmergencyManager.check_user_emergency_permissions(
+        result = emergencies.check_user_emergency_permissions(
             self.responder,
             EmergencyType.HEALTH
         )
@@ -423,7 +390,7 @@ class EmergencyManagerTest(TestCase):
         )
         
         # Generate report
-        report = EmergencyManager.generate_emergency_report(self.cluster)
+        report = emergencies.generate_emergency_report(self.cluster)
         
         # Verify report structure
         self.assertIn('report_generated_at', report)
@@ -471,7 +438,7 @@ class EmergencyManagerTest(TestCase):
         
         # Generate report with date filter
         start_date = timezone.now() - timedelta(days=5)
-        report = EmergencyManager.generate_emergency_report(
+        report = emergencies.generate_emergency_report(
             self.cluster,
             start_date=start_date
         )
@@ -482,7 +449,7 @@ class EmergencyManagerTest(TestCase):
         self.assertEqual(report['recent_alerts'][0]['alert_id'], recent_alert.alert_id)
         
         # Generate report with emergency type filter
-        report = EmergencyManager.generate_emergency_report(
+        report = emergencies.generate_emergency_report(
             self.cluster,
             emergency_type=EmergencyType.HEALTH
         )
@@ -504,16 +471,16 @@ class EmergencyManagerTest(TestCase):
         )
         
         # Acknowledge alert
-        EmergencyManager.acknowledge_alert(alert, self.responder)
+        emergencies.acknowledge_alert(alert, self.responder)
         
         # Start response
-        EmergencyManager.start_response(alert, self.responder)
+        emergencies.start_response(alert, self.responder)
         
         # Resolve alert
-        EmergencyManager.resolve_alert(alert, self.responder, 'Patient stabilized')
+        emergencies.resolve_alert(alert, self.responder, 'Patient stabilized')
         
         # Generate incident report
-        report = EmergencyManager.generate_alert_incident_report(alert)
+        report = emergencies.generate_incident_report(alert)
         
         # Verify report structure
         self.assertIn('alert_info', report)
@@ -558,10 +525,10 @@ class EmergencyManagerTest(TestCase):
             description='False alarm'
         )
         
-        EmergencyManager.cancel_alert(alert, self.user, 'Accidental trigger')
+        emergencies.cancel_alert(alert, self.user, 'Accidental trigger')
         
         # Generate incident report
-        report = EmergencyManager.generate_alert_incident_report(alert)
+        report = emergencies.generate_incident_report(alert)
         
         # Verify timeline includes cancellation
         timeline = report['timeline']

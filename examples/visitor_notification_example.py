@@ -10,7 +10,7 @@ from django.utils import timezone
 
 # Import the new notification system
 from core.notifications.events import NotificationEvents
-from core.notifications.manager import NotificationManager
+from core.common.includes import notifications
 
 # Import models
 from accounts.models import AccountUser
@@ -56,7 +56,7 @@ def demonstrate_visitor_arrival_notification():
     
     # Send arrival notification using new system
     try:
-        success = NotificationManager.send(
+        success = notifications.send(
             event_name=NotificationEvents.VISITOR_ARRIVAL,
             recipients=[inviting_user],
             cluster=cluster,
@@ -138,7 +138,7 @@ def demonstrate_visitor_overstay_notification():
     
     # Send overstay notification using new system
     try:
-        success = NotificationManager.send(
+        success = notifications.send(
             event_name=NotificationEvents.VISITOR_OVERSTAY,
             recipients=recipients,
             cluster=cluster,
