@@ -23,7 +23,6 @@ from core.common.exceptions import (
     ClustRBaseException,
     DatabaseException,
 )
-from core.common.logging import get_request_logger, log_audit
 from core.common.middleware.request_middleware import (
     get_current_request,
     get_current_user_id,
@@ -37,7 +36,6 @@ from core.common.responses import (
     authentication_error_response,
 )
 
-# Configure logger
 logger = logging.getLogger("clustr")
 
 # Type variable for function return type
@@ -71,21 +69,16 @@ def log_exceptions(
             try:
                 return func(*args, **kwargs)
             except tuple(exception_mapping.keys()) as exc:
-                # Get the corresponding ClustR exception class
                 clustr_exception_class = exception_mapping.get(type(exc))
 
-                # Log the exception
                 log_exception_with_context(exc, log_level=log_level)
 
-                # Raise the mapped exception if available
                 if clustr_exception_class:
                     raise clustr_exception_class(str(exc)) from exc
 
-                # Reraise the original exception if requested
                 if reraise:
                     raise
 
-                # Return None if not reraising
                 return cast(T, None)
 
         return wrapper
@@ -99,50 +92,26 @@ def log_exception_with_context(
     request: Optional[HttpRequest] = None,
     context: Optional[dict[str, Any]] = None,
 ) -> None:
-    """
-    Log an exception with context.
-
-    Args:
-        exc: The exception to log
-        log_level: The log level to use
-        request: The request object
-        context: Additional context information
-    """
-    # Get the current request if not provided
-    if request is None:
-        request = get_current_request()
-
-    # Get a logger with request context if available
-    if request:
-        log = get_request_logger(request)
-    else:
-        log = logger
-
-    # Build the log message
-    message = f"Exception: {exc.__class__.__name__}: {str(exc)}"
-
-    # Build extra context
+    """Log an exception with context."""
+    message = f"{exc.__class__.__name__}: {str(exc)}"
+    
     extra = {
         "exception_type": exc.__class__.__name__,
-        "exception_message": str(exc),
         "traceback": traceback.format_exc(),
     }
-
-    # Add user and cluster context if available
+    
     user_id = get_current_user_id()
     if user_id:
         extra["user_id"] = user_id
-
+    
     cluster_id = get_current_cluster_id()
     if cluster_id:
         extra["cluster_id"] = cluster_id
-
-    # Add additional context if provided
+    
     if context:
         extra.update(context)
-
-    # Log the exception
-    log.log(log_level, message, extra=extra)
+    
+    logger.log(log_level, message, extra=extra)
 
 
 def exception_to_response_mapper(
@@ -198,9 +167,9 @@ def exception_to_response_mapper(
     
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(request: Request, *args: Any, **kwargs: Any) -> T:
+        def wrapper(self, request: Request, *args: Any, **kwargs: Any) -> T:
             try:
-                return func(*args, **kwargs)
+                return func(self, request, *args, **kwargs)
             except Exception as exc:
                 # Log the exception if requested
                 if log_exceptions:
@@ -247,61 +216,43 @@ def audit_log(
     resource_type: Optional[str] = None,
     get_resource_id: Optional[Callable[..., Optional[str]]] = None,
 ) -> Callable:
-    """
-    Decorator to log audit events.
-
-    Args:
-        event_type: The type of event (e.g., 'user.login', 'payment.create')
-        resource_type: The type of resource affected (e.g., 'user', 'payment')
-        get_resource_id: Function to extract the resource ID from function arguments
-
-    Returns:
-        A decorator function
-    """
+    """Decorator to log audit events."""
 
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
-            # Get the resource ID if a function is provided
             resource_id = None
             if get_resource_id:
                 resource_id = get_resource_id(*args, **kwargs)
 
-            # Get user and cluster IDs
             user_id = get_current_user_id()
             cluster_id = get_current_cluster_id()
 
-            # Execute the function
             try:
                 result = func(*args, **kwargs)
-
-                # Log the audit event
-                log_audit(
-                    event_type=event_type,
-                    user_id=user_id,
-                    cluster_id=cluster_id,
-                    resource_type=resource_type,
-                    resource_id=resource_id,
-                    details={"status": "success"},
+                logger.info(
+                    f"AUDIT: {event_type} success",
+                    extra={
+                        "event_type": event_type,
+                        "user_id": user_id,
+                        "cluster_id": cluster_id,
+                        "resource_type": resource_type,
+                        "resource_id": resource_id,
+                    }
                 )
-
                 return result
             except Exception as exc:
-                # Log the audit event with failure status
-                log_audit(
-                    event_type=event_type,
-                    user_id=user_id,
-                    cluster_id=cluster_id,
-                    resource_type=resource_type,
-                    resource_id=resource_id,
-                    details={
-                        "status": "failure",
+                logger.error(
+                    f"AUDIT: {event_type} failed - {exc}",
+                    extra={
+                        "event_type": event_type,
+                        "user_id": user_id,
+                        "cluster_id": cluster_id,
+                        "resource_type": resource_type,
+                        "resource_id": resource_id,
                         "error": str(exc),
-                        "error_type": exc.__class__.__name__,
-                    },
+                    }
                 )
-
-                # Reraise the exception
                 raise
 
         return wrapper

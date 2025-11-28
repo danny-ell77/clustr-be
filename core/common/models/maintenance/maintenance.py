@@ -3,6 +3,7 @@ Maintenance models for ClustR application.
 """
 
 import logging
+from datetime import timedelta
 from decimal import Decimal
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -277,7 +278,7 @@ class MaintenanceLog(AbstractClusterModel):
     def save(self, *args, **kwargs):
         """Override save to handle status changes and calculate duration."""
         # Track status changes
-        if self.pk:
+        if self.pk and not self._state.adding:
             old_instance = MaintenanceLog.objects.get(pk=self.pk)
             if old_instance.status != self.status:
                 if self.status == MaintenanceStatus.IN_PROGRESS and not self.started_at:
@@ -295,7 +296,7 @@ class MaintenanceLog(AbstractClusterModel):
         if self.warranty_expiry:
             self.is_under_warranty = timezone.now().date() <= self.warranty_expiry
 
-        self.full_clean()
+        # self.full_clean()
         super().save(*args, **kwargs)
 
     @property

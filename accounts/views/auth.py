@@ -1,16 +1,15 @@
+from django.conf import settings
 from django.core.signing import BadSignature
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from accounts.models import AccountUser, UserVerification, VerifyMode, VerifyReason
 from accounts.serializers import (
@@ -21,6 +20,7 @@ from accounts.serializers import (
     ResetPasswordSerializer,
 )
 from accounts.utils import change_password
+from accounts.authentication_utils import handle_user_login
 from core.common.email_sender import NotificationTypes
 from core.common.exceptions import CommonAPIErrorCodes, InvalidDataException
 from core.common.error_utils import exception_to_response_mapper
@@ -113,15 +113,65 @@ class ClusterMemberRegistrationAPIView(APIView):
             )
 
 
-class SigninView(TokenObtainPairView):
+class SigninView(APIView):
+    permission_classes = [AllowAny]
     serializer_class = AuthTokenPairSerializer
 
     @swagger_auto_schema(
+        request_body=AuthTokenPairSerializer,
         responses=AUTH_RESPONSE_SCHEMA,
         operation_description="Login endpoint to obtain JWT token pair",
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        serializer = self.serializer_class(data=request.data)
+        print(serializer.is_valid())
+        serializer.is_valid(raise_exception=True)
+
+        print(serializer.validated_data, serializer.data)
+        
+        try:
+            tokens = handle_user_login(
+                email_address=serializer.validated_data['email_address'],
+                password=serializer.validated_data['password'],
+                cluster_id=serializer.validated_data.get('cluster_id'),
+                remember_me=serializer.validated_data.get('remember_me', False),
+                request=request,
+            )
+            
+            response = Response(tokens, status=status.HTTP_200_OK)
+            
+            access_token = tokens.get('access_token')
+            refresh_token = tokens.get('refresh_token')
+            
+            response.set_cookie(
+                key='access_token',
+                value=access_token,
+                max_age=60 * 15,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+            )
+            
+            response.set_cookie(
+                key='refresh_token',
+                value=refresh_token,
+                max_age=60 * 60 * 24 * 7,
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite='Lax',
+            )
+            
+            response.data.pop('access_token', None)
+            response.data.pop('refresh_token', None)
+            
+            return response
+            
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
 
 
 class ForgotPasswordAPIView(APIView):
@@ -227,3 +277,37 @@ def check_token_status(request):
     return Response(
         data={"detail": "Token verified successfully"}, status=status.HTTP_200_OK
     )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def signout(request):
+    """
+    Clear authentication cookies to log the user out
+    """
+    response = Response(
+        data={"detail": "Logged out successfully"}, 
+        status=status.HTTP_200_OK
+    )
+    
+    # Clear cookies by setting max_age to 0
+    response.set_cookie(
+        key='access_token',
+        value='',
+        max_age=0,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite='Lax',
+    )
+    
+    response.set_cookie(
+        key='refresh_token',
+        value='',
+        max_age=0,
+        httponly=True,
+        secure=not settings.DEBUG,
+        samesite='Lax',
+    )
+    
+    return response
+

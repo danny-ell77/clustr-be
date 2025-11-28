@@ -31,7 +31,7 @@ class ManagementInvitationViewSet(ModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageInvitation]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = InvitationFilter

@@ -199,3 +199,6 @@ class MaintenanceSchedule(AbstractClusterModel):
 
         return maintenance_log
 
+    def update_next_due_date(self):
+        self.next_due_date = self.calculate_next_due_date()
+        self.save(update_fields=["next_due_date"])

@@ -31,7 +31,7 @@ class ManagementVisitorViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageVisitRequest),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageVisitRequest]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = VisitorFilter
@@ -157,7 +157,7 @@ class ManagementVisitorLogViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageVisitRequest),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageVisitRequest]),
     ]
     serializer_class = VisitorLogSerializer
     

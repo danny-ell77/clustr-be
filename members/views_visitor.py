@@ -29,7 +29,7 @@ class MemberVisitorViewSet(ModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageInvitation]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = MemberVisitorFilter
@@ -104,7 +104,7 @@ class MemberVisitorLogViewSet(ModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ViewInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ViewInvitation]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = MemberVisitorLogFilter

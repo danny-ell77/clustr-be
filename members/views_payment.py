@@ -65,7 +65,9 @@ class WalletViewSet(viewsets.ViewSet):
 
     permission_classes = [
         IsAuthenticated,
-        HasSpecificPermission([PaymentsPermissions.ViewWallet]),
+        HasSpecificPermission.check_permissions(
+            for_view=[PaymentsPermissions.ViewWallet]
+        ),
     ]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
@@ -266,7 +268,9 @@ class BillViewSet(viewsets.ModelViewSet):
 
     permission_classes = [
         IsAuthenticated,
-        HasSpecificPermission([PaymentsPermissions.ViewBill]),
+        HasSpecificPermission.check_permissions(
+            for_view=[PaymentsPermissions.ViewBill]
+        ),
     ]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
@@ -635,7 +639,9 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
 
     permission_classes = [
         IsAuthenticated,
-        HasSpecificPermission([PaymentsPermissions.ViewWallet]),
+        HasSpecificPermission.check_permissions(
+            for_view=[PaymentsPermissions.ViewWallet]
+        ),
     ]
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]

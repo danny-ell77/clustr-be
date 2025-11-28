@@ -40,7 +40,7 @@ class ManagementChildViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageVisitRequest),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageVisitRequest]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = ChildFilter
@@ -122,7 +122,7 @@ class ManagementExitRequestViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageVisitRequest),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageVisitRequest]),
     ]
     
     def get_queryset(self):
@@ -270,7 +270,7 @@ class ManagementEntryExitLogViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageVisitRequest),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageVisitRequest]),
     ]
     
     def get_queryset(self):

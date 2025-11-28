@@ -41,7 +41,6 @@ def retry_failed_utility_payments():
 
     logger.info("Starting retry of failed utility payments")
 
-    # Get retryable payment errors
     retryable_errors = PaymentError.objects.filter(
         is_resolved=False,
         can_retry=True,
@@ -60,7 +59,6 @@ def retry_failed_utility_payments():
     for error in retryable_errors:
         try:
             with transaction.atomic():
-                # Check if enough time has passed for retry
                 from datetime import timedelta
 
                 retry_delay = error.get_next_retry_delay()

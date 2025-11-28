@@ -90,8 +90,30 @@ from core.common.models.payments import (
     RecurringPaymentStatus,
     RecurringPaymentFrequency,
     PaymentError,
-    UtilityProvider
+    UtilityProvider,
 )
+from core.common.models.chat import (
+    Chat,
+    ChatParticipant,
+    Message,
+    MessageAttachment,
+    ChatType,
+    ChatStatus,
+    MessageType,
+    MessageStatus,
+)
+from core.common.models.meeting import (
+    Meeting,
+    MeetingParticipant,
+    MeetingRecording,
+    MeetingType,
+    MeetingStatus,
+    ParticipantRole,
+    ParticipantStatus,
+    RecordingType,
+    RecordingStatus,
+)
+
 __all__ = [
     "Cluster",
     "AbstractClusterModel",
@@ -167,4 +189,21 @@ __all__ = [
     "UtilityProvider",
     "BillCategory",
     "PaymentError",
+    "Chat",
+    "ChatParticipant",
+    "Message",
+    "MessageAttachment",
+    "ChatType",
+    "ChatStatus",
+    "MessageType",
+    "MessageStatus",
+    "Meeting",
+    "MeetingParticipant",
+    "MeetingRecording",
+    "MeetingType",
+    "MeetingStatus",
+    "ParticipantRole",
+    "ParticipantStatus",
+    "RecordingType",
+    "RecordingStatus",
 ]

@@ -1,12 +1,14 @@
 """
 Cluster models for ClustR application.
 """
-
+from typing import TYPE_CHECKING
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.common.models import UUIDPrimaryKey, ObjectHistoryTracker
 
+if TYPE_CHECKING:
+    from accounts.models.users import AccountUser
 
 class Cluster(UUIDPrimaryKey, ObjectHistoryTracker):
     """
@@ -109,3 +111,17 @@ class Cluster(UUIDPrimaryKey, ObjectHistoryTracker):
 
     def __str__(self):
         return f"{self.name} ({self.get_type_display()}, {self.city})"
+    
+    def get_all_users(self):
+        """Get all users in this cluster."""
+        return self.users.all()
+
+    def add_admin(self, admin: "AccountUser"):
+        """
+        Add an admin to this cluster.
+        There should be some logic though to figure out  which clustr to set as primary.
+        Currently the primary cluster is set to the latest cluster added.
+        """
+        admin.primary_cluster = self
+        admin.cluster.add(self)
+        admin.save(update_fields=["primary_cluster"])

@@ -33,7 +33,7 @@ class MemberChildViewSet(ModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageInvitation]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = MemberChildFilter
@@ -111,7 +111,7 @@ class MemberExitRequestViewSet(ModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageInvitation]),
     ]
 
     def get_queryset(self):
@@ -190,7 +190,7 @@ class MemberEntryExitLogViewSet(ReadOnlyModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ViewInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ViewInvitation]),
     ]
     serializer_class = EntryExitLogSerializer
 

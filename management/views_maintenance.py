@@ -31,6 +31,7 @@ from core.common.serializers.maintenance import (
 )
 from core.common.includes import maintenance
 from core.common.responses import success_response, error_response
+from core.common.error_codes import CommonAPIErrorCodes
 from core.common.decorators import audit_viewset
 from accounts.models import AccountUser
 from accounts.permissions import IsClusterStaffOrAdmin
@@ -93,6 +94,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
             assigned_to_id = request.data.get("assigned_to")
             if not assigned_to_id:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
                     message="assigned_to is required",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -101,6 +103,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
                 assigned_to = AccountUser.objects.get(id=assigned_to_id)
             except AccountUser.DoesNotExist:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.RESOURCE_NOT_FOUND,
                     message="Assigned user not found",
                     status_code=status.HTTP_404_NOT_FOUND,
                 )
@@ -119,6 +122,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error assigning maintenance: {str(e)}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to assign maintenance",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -134,7 +138,9 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
             file_obj = request.FILES.get("file")
             if not file_obj:
                 return error_response(
-                    message="File is required", status_code=status.HTTP_400_BAD_REQUEST
+                    error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
+                    message="File is required", 
+                    status_code=status.HTTP_400_BAD_REQUEST
                 )
 
             attachment_type = request.data.get("attachment_type", "OTHER")
@@ -158,6 +164,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error uploading maintenance attachment: {str(e)}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to upload attachment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -167,7 +174,12 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         """
         Get maintenance history with optional filtering.
         """
-        cluster = request.cluster_context
+        cluster = getattr(request, 'cluster_context', None)
+        if not cluster:
+            return error_response(
+                "Cluster context not found",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             property_location = request.GET.get("property_location")
@@ -198,6 +210,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error retrieving maintenance history: {str(e)}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve maintenance history",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -207,7 +220,13 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         """
         Get maintenance analytics and statistics.
         """
-        cluster = request.cluster_context
+        cluster = getattr(request, 'cluster_context', None)
+        if not cluster:
+            return error_response(
+                error_code=CommonAPIErrorCodes.CLUSTER_NOT_FOUND,
+                message="Cluster context not found",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             start_date = request.GET.get("start_date")
@@ -241,6 +260,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error retrieving maintenance analytics: {str(e)}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve maintenance analytics",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -250,7 +270,13 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         """
         Get maintenance optimization suggestions.
         """
-        cluster = request.cluster_context
+        cluster = getattr(request, 'cluster_context', None)
+        if not cluster:
+            return error_response(
+                error_code=CommonAPIErrorCodes.CLUSTER_NOT_FOUND,
+                message="Cluster context not found",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             suggestions = maintenance.suggest_optimizations(cluster)
@@ -264,6 +290,7 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"Error retrieving maintenance optimizations: {str(e)}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve maintenance optimizations",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -303,7 +330,13 @@ def maintenance_categories(request):
     """
     Get maintenance categories by property and equipment.
     """
-    cluster = request.cluster_context
+    cluster = getattr(request, 'cluster_context', None)
+    if not cluster:
+        return error_response(
+                error_code=CommonAPIErrorCodes.CLUSTER_NOT_FOUND,
+                message="Cluster context not found",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
 
     try:
         property_type = request.GET.get("property_type")
@@ -322,6 +355,7 @@ def maintenance_categories(request):
     except Exception as e:
         logger.error(f"Error retrieving maintenance categories: {str(e)}")
         return error_response(
+            error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
             message="Failed to retrieve maintenance categories",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -358,6 +392,7 @@ def maintenance_choices(request):
     except Exception as e:
         logger.error(f"Error retrieving maintenance choices: {str(e)}")
         return error_response(
+            error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
             message="Failed to retrieve maintenance choices",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

@@ -53,7 +53,7 @@ class ManagementAnnouncementViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(CommunicationsPermissions.ManageAnnouncement),
+        HasClusterPermission.check_permissions(for_view=[CommunicationsPermissions.ManageAnnouncement]),
     ]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ManagementAnnouncementFilter
@@ -384,7 +384,7 @@ class ManagementAnnouncementCommentViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(CommunicationsPermissions.ManageAnnouncement),
+        HasClusterPermission.check_permissions(for_view=[CommunicationsPermissions.ManageAnnouncement]),
     ]
     serializer_class = AnnouncementCommentSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]

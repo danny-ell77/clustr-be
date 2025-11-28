@@ -15,7 +15,6 @@ from rest_framework.request import Request
 from accounts.models import AccountUser
 from core.common.error_utils import log_exception_with_context
 
-# Configure logger
 logger = logging.getLogger("clustr")
 
 
@@ -36,17 +35,13 @@ class JWTAuthentication(authentication.BaseAuthentication):
             return None
 
         try:
-            # Decode and validate the token
             payload = self.decode_token(jwt_token)
 
-            # Validate token type
             if payload.get("token_type") != "access":
                 raise exceptions.AuthenticationFailed(_("Invalid token type."))
 
-            # Get the user from the payload
             user = self.get_user_from_payload(payload)
 
-            # Check for account lockout
             from accounts.authentication_utils import check_account_lockout
 
             if check_account_lockout(user):
@@ -54,7 +49,6 @@ class JWTAuthentication(authentication.BaseAuthentication):
                     _("Account is locked due to too many failed login attempts.")
                 )
 
-            # Set cluster context in request if present in token
             self.set_cluster_context(request, user, payload)
 
             # Record the authentication in the request for audit logging
@@ -95,10 +89,8 @@ class JWTAuthentication(authentication.BaseAuthentication):
             )
             raise exceptions.AuthenticationFailed(_("User not found."))
         except exceptions.AuthenticationFailed:
-            # Re-raise authentication failures
             raise
         except Exception as e:
-            # Log unexpected errors
             log_exception_with_context(e, log_level=logging.ERROR, request=request)
             raise exceptions.AuthenticationFailed(_("Authentication failed."))
 
@@ -113,14 +105,13 @@ class JWTAuthentication(authentication.BaseAuthentication):
             user: The authenticated user
             payload: The token payload
         """
-        # Check for cluster_id in payload
         if "cluster_id" in payload:
             cluster_id = payload["cluster_id"]
 
-            # Check if user has access to this cluster
-            if user.clusters.filter(id=cluster_id).exists():
-                # Set cluster context in request
-                request.cluster = user.clusters.get(id=cluster_id)
+            if str(user.primary_cluster.pk) == str(cluster_id):
+                request.cluster_context = user.primary_cluster
+            elif user.clusters.filter(id=cluster_id).exists():
+                request.cluster.cluster_context = user.clusters.get(id=cluster_id)
             else:
                 raise exceptions.AuthenticationFailed(
                     _("Invalid cluster context in token.")
@@ -136,12 +127,10 @@ class JWTAuthentication(authentication.BaseAuthentication):
         Returns:
             The JWT token if found, None otherwise
         """
-        # Check Authorization header
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             return auth_header.split(" ")[1]
 
-        # Check for token in cookies (if enabled)
         if getattr(settings, "JWT_COOKIE_AUTHENTICATION", False):
             token = request.COOKIES.get(
                 getattr(settings, "JWT_COOKIE_NAME", "clustr_token")
@@ -161,13 +150,10 @@ class JWTAuthentication(authentication.BaseAuthentication):
         Returns:
             The decoded token payload
         """
-        # Use settings.SECRET_KEY as the default key
         secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
 
-        # Get the allowed algorithms
         algorithms = getattr(settings, "JWT_ALGORITHMS", ["HS256"])
 
-        # Decode the token with validation
         return jwt.decode(
             token,
             secret_key,
@@ -197,17 +183,15 @@ class JWTAuthentication(authentication.BaseAuthentication):
         try:
             user = (
                 AccountUser.objects.select_related("primary_cluster", "owner")
-                .prefetch_related("clusters")
+                .prefetch_related("clusters", "groups__permissions", "user_permissions")
                 .get(id=user_id)
             )
 
-            # Check if user is active
             if not user.is_active:
                 raise exceptions.AuthenticationFailed(_("User is inactive."))
 
-            # Check if user is verified (if required)
             if (
-                getattr(settings, "REQUIRE_VERIFIED_EMAIL", True)
+                getattr(settings, "REQUIRE_VERIFIED_EMAIL", not settings.DEBUG)
                 and not user.is_verified
             ):
                 raise exceptions.AuthenticationFailed(_("Email address not verified."))
@@ -233,7 +217,6 @@ def generate_token(
     Returns:
         Dict containing access_token and refresh_token
     """
-    # Use settings or default values
     access_token_expiry = expiry or timedelta(
         hours=getattr(settings, "JWT_ACCESS_TOKEN_LIFETIME_HOURS", 1)
     )
@@ -241,15 +224,12 @@ def generate_token(
         days=getattr(settings, "JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7)
     )
 
-    # Current time for token issuance
     now = datetime.utcnow()
 
-    # Generate a unique token ID (jti) for token revocation support
     import uuid
 
     token_id = str(uuid.uuid4())
 
-    # Create the access token payload
     access_payload = {
         "user_id": str(user.id),
         "email": user.email_address,
@@ -258,17 +238,15 @@ def generate_token(
         "is_superuser": user.is_superuser,
         "is_cluster_admin": user.is_cluster_admin,
         "is_cluster_staff": user.is_cluster_staff,
-        "token_type": "access",  # Explicitly set token type
+        "token_type": "access",
         "jti": token_id,  # JWT ID for token revocation
         "iat": now,
         "exp": now + access_token_expiry,
     }
 
-    # Add cluster context if provided
     if cluster_id:
         access_payload["cluster_id"] = cluster_id
 
-    # Create the refresh token payload
     refresh_payload = {
         "user_id": str(user.id),
         "token_type": "refresh",
@@ -277,19 +255,15 @@ def generate_token(
         "exp": now + refresh_token_expiry,
     }
 
-    # Add cluster context to refresh token if provided
     if cluster_id:
         refresh_payload["cluster_id"] = cluster_id
 
-    # Use settings.SECRET_KEY as the default key
     secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
     algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
 
-    # Generate the tokens
     access_token = jwt.encode(access_payload, secret_key, algorithm=algorithm)
     refresh_token = jwt.encode(refresh_payload, secret_key, algorithm=algorithm)
 
-    # Log token generation (without sensitive details)
     logger.info(
         f"Generated tokens for user: {user.email_address}",
         extra={
@@ -320,12 +294,10 @@ def refresh_token(
     Returns:
         Dict containing new access_token and refresh_token
     """
-    # Use settings.SECRET_KEY as the default key
     secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
     algorithms = getattr(settings, "JWT_ALGORITHMS", ["HS256"])
 
     try:
-        # Decode the refresh token with strict validation
         payload = jwt.decode(
             refresh_token_str,
             secret_key,
@@ -338,7 +310,6 @@ def refresh_token(
             },
         )
 
-        # Verify it's a refresh token
         if payload.get("token_type") != "refresh":
             log_exception_with_context(
                 Exception("Invalid token type during refresh"),
@@ -348,7 +319,6 @@ def refresh_token(
             )
             raise exceptions.AuthenticationFailed(_("Invalid refresh token."))
 
-        # Get the user
         user_id = payload.get("user_id")
         if not user_id:
             log_exception_with_context(
@@ -361,7 +331,6 @@ def refresh_token(
         try:
             user = AccountUser.objects.get(id=user_id)
 
-            # Check if user is active
             if not user.is_active:
                 log_exception_with_context(
                     Exception("Inactive user attempted token refresh"),
@@ -371,7 +340,6 @@ def refresh_token(
                 )
                 raise exceptions.AuthenticationFailed(_("User is inactive."))
 
-            # Check for account lockout
             from accounts.authentication_utils import check_account_lockout
 
             if check_account_lockout(user):
@@ -385,7 +353,6 @@ def refresh_token(
                     _("Account is locked due to too many failed login attempts.")
                 )
 
-            # Get cluster context from token
             cluster_id = payload.get("cluster_id")
 
             # Check if token has been revoked (would be implemented in a TokenBlacklist model)
@@ -393,10 +360,8 @@ def refresh_token(
             # if is_token_revoked(payload.get('jti')):
             #     raise exceptions.AuthenticationFailed(_('Token has been revoked.'))
 
-            # Generate new tokens
             new_tokens = generate_token(user, cluster_id)
 
-            # Log successful token refresh
             logger.info(
                 f"Token refreshed for user: {user.email_address}",
                 extra={"user_id": str(user.id), "cluster_id": cluster_id or "None"},
@@ -433,6 +398,5 @@ def refresh_token(
         )
         raise exceptions.AuthenticationFailed(_("Invalid refresh token."))
     except Exception as e:
-        # Log unexpected errors
         log_exception_with_context(e, log_level=logging.ERROR, request=request)
         raise exceptions.AuthenticationFailed(_("Token refresh failed."))

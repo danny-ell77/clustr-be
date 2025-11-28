@@ -130,6 +130,8 @@ def get_history(
 
 def get_analytics(cluster, start_date=None, end_date=None):
     """Get maintenance analytics and statistics."""
+    from django.db.models import Avg, Sum, Count
+    
     logs = MaintenanceLog.objects.filter(cluster=cluster)
 
     if start_date:
@@ -137,24 +139,48 @@ def get_analytics(cluster, start_date=None, end_date=None):
     if end_date:
         logs = logs.filter(created_at__lte=end_date)
 
+    total_count = logs.count()
+    completed_count = logs.filter(status="COMPLETED").count()
+    completion_rate = (completed_count / total_count * 100) if total_count > 0 else 0.0
+    
+    cost_data = logs.aggregate(
+        total=Sum('cost'),
+        average=Avg('cost')
+    )
+    
+    by_type = {}
+    for log in logs.values('maintenance_type').annotate(count=Count('id')):
+        by_type[log['maintenance_type']] = log['count']
+    
+    by_property = {}
+    for log in logs.values('property_type').annotate(count=Count('id')):
+        by_property[log['property_type']] = log['count']
+    
+    by_status = {}
+    for log in logs.values('status').annotate(count=Count('id')):
+        by_status[log['status']] = log['count']
+    
+    frequent_locations = list(
+        logs.values('property_location')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+    
+    avg_duration = logs.filter(actual_duration__isnull=False).aggregate(
+        avg=Avg('actual_duration')
+    )['avg']
+
     return {
-        "total_maintenance": logs.count(),
-        "completed": logs.filter(status="COMPLETED").count(),
-        "in_progress": logs.filter(status="IN_PROGRESS").count(),
-        "scheduled": logs.filter(status="SCHEDULED").count(),
-        "cancelled": logs.filter(status="CANCELLED").count(),
-        "by_type": {
-            "preventive": logs.filter(maintenance_type="PREVENTIVE").count(),
-            "corrective": logs.filter(maintenance_type="CORRECTIVE").count(),
-            "emergency": logs.filter(maintenance_type="EMERGENCY").count(),
-            "routine": logs.filter(maintenance_type="ROUTINE").count(),
-        },
-        "by_priority": {
-            "urgent": logs.filter(priority="URGENT").count(),
-            "high": logs.filter(priority="HIGH").count(),
-            "medium": logs.filter(priority="MEDIUM").count(),
-            "low": logs.filter(priority="LOW").count(),
-        },
+        "total_maintenance": total_count,
+        "completed_maintenance": completed_count,
+        "completion_rate": round(completion_rate, 2),
+        "total_cost": float(cost_data['total'] or 0),
+        "average_cost": float(cost_data['average'] or 0),
+        "by_type": by_type,
+        "by_property": by_property,
+        "by_status": by_status,
+        "frequent_locations": frequent_locations,
+        "average_duration": avg_duration,
     }
 
 
@@ -299,13 +325,14 @@ def process_due_schedules(cluster):
     now = timezone.now()
     due_schedules = MaintenanceSchedule.objects.filter(
         cluster=cluster, is_active=True, next_due_date__lte=now
-    )
+    ).iterator()
 
-    created_logs = []
+    logs_to_create = []
+    schedules_to_update = []
+
     for schedule in due_schedules:
-        try:
             # Create maintenance log from schedule
-            log = create_log(
+            log = MaintenanceLog(
                 cluster=cluster,
                 requested_by=None,  # System generated
                 title=f"Scheduled: {schedule.name}",
@@ -317,17 +344,25 @@ def process_due_schedules(cluster):
                 scheduled_date=schedule.next_due_date,
             )
 
-            # Update schedule's next due date
-            schedule.update_next_due_date()
-            created_logs.append(log)
+            logs_to_create.append(log)
 
+            schedule.next_due_date = schedule.calculate_next_due_date()
+            schedules_to_update.append(schedule)
+
+    with transaction.atomic():
+        try:
+            MaintenanceLog.objects.bulk_create(logs_to_create)
         except Exception as e:
             logger.error(
                 f"Failed to create maintenance log from schedule {schedule.id}: {e}"
             )
+    def _on_commit():
+        MaintenanceSchedule.objects.bulk_update(schedules_to_update, batch_size=100)
+
+    transaction.on_commit(_on_commit)
 
     logger.info(f"Created {len(created_logs)} maintenance logs from schedules")
-    return created_logs
+    return logs_to_create
 
 
 def send_due_alerts(cluster):
@@ -338,7 +373,7 @@ def send_due_alerts(cluster):
 
     due_maintenance = MaintenanceLog.objects.filter(
         cluster=cluster,
-        status__in=[MaintenanceLogStatus.SCHEDULED],
+        status__in=[MaintenanceStatus.SCHEDULED],
         scheduled_date__gte=now,
         scheduled_date__lte=due_soon,
         performed_by__isnull=False,

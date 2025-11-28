@@ -4,10 +4,12 @@ Issue models for ClustR application.
 
 import logging
 from decimal import Decimal
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+
+from core.common.code_generator import CodeGenerator
 
 from core.common.models.base import AbstractClusterModel
 
@@ -24,7 +26,6 @@ class IssuePriority(models.TextChoices):
     MEDIUM = "MEDIUM", _("Medium")
     HIGH = "HIGH", _("High")
     URGENT = "URGENT", _("Urgent")
-
 
 class IssueStatus(models.TextChoices):
     """Issue status choices"""
@@ -233,7 +234,7 @@ class IssueTicket(AbstractClusterModel):
         from django.utils import timezone
         
         # Track status changes
-        if self.pk:
+        if self.pk and not self._state.adding:
             old_instance = IssueTicket.objects.get(pk=self.pk)
             if old_instance.status != self.status:
                 if self.status == IssueStatus.RESOLVED and not self.resolved_at:
@@ -243,3 +244,66 @@ class IssueTicket(AbstractClusterModel):
         
         super().save(*args, **kwargs)
 
+    @transaction.atomic()
+    def assign(self, assign_to):
+        if not assign_to:
+            return Response(
+                {'error': 'assigned_to is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+                
+        old_assigned_to = issue.assigned_to
+        issue.assigned_to = assigned_to
+        issue.save(update_fields=["assigned_to"])
+        
+        def _on_commit():
+            # Send notification
+            if old_assigned_to != assigned_to:
+                from core.common.includes import notifications
+                from core.notifications.events import NotificationEvents
+                
+                notifications.send(
+                    event=NotificationEvents.ISSUE_ASSIGNED,
+                    recipients=[assigned_to],
+                    cluster=issue.cluster,
+                    context={
+                        'issue_number': issue.issue_number,
+                        'title': issue.title,
+                        'description': issue.description[:200] + '...' if len(issue.description) > 200 else issue.description,
+                        'priority': issue.get_priority_display(),
+                        'category': issue.get_category_display(),
+                        'location': issue.location or 'Not specified',
+                        'assigned_to_name': assigned_to.name,
+                        'reported_by_name': issue.reported_by.name if issue.reported_by else 'System',
+                    }
+                )
+        
+        transaction.on_commit(_on_commit)
+
+
+    def escalate(escalate_to):
+        if issue.escalated_at:
+            return Response(
+                {'error': 'Issue is already escalated'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        issue.escalated_at = timezone.now()
+        issue.priority = IssuePriority.URGENT
+        issue.save()
+        
+        notifications.send(
+            event=NotificationEvents.ISSUE_ESCALATED,
+            recipients=[issue.assigned_to, issue.reported_by], # Assuming both assigned_to and reported_by should be notified
+            cluster=issue.cluster,
+            context={
+                "issue_number": issue.issue_no,
+                "issue_title": issue.title,
+                "issue_description": issue.description,
+                "issue_type": issue.get_issue_type_display(),
+                "priority": issue.get_priority_display(),
+                "reported_by_name": issue.reported_by.name,
+                "escalated_at": issue.escalated_at.strftime('%Y-%m-%d %H:%M'),
+            }
+        )

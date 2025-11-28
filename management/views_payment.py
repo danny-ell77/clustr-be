@@ -29,6 +29,7 @@ from core.common.includes.third_party_services import (
     PaymentProviderError,
 )
 from core.common.responses import success_response, error_response
+from core.common.error_codes import CommonAPIErrorCodes
 from core.common.includes.payment_error import retry_failed_payment
 from core.common.includes import bills, recurring_payments, cluster_wallet
 from core.common.serializers.payment_serializers import (
@@ -63,8 +64,13 @@ class PaymentManagementViewSet(viewsets.ViewSet):
     permission_classes = [
         IsAuthenticated,
         IsClusterStaffOrAdmin,
-        HasSpecificPermission(
-            [
+        HasSpecificPermission.check_permissions(
+            for_view=[
+                PaymentsPermissions.ManageWallet,
+                PaymentsPermissions.ManageBill,
+                PaymentsPermissions.ManageTransaction,
+            ],
+            for_object=[
                 PaymentsPermissions.ManageWallet,
                 PaymentsPermissions.ManageBill,
                 PaymentsPermissions.ManageTransaction,
@@ -99,7 +105,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             pending_bills = Bill.objects.filter(
                 cluster=cluster,
-                status__in=[BillStatus.PENDING, BillStatus.PARTIALLY_PAID],
+                paid_at__isnull=True,
             )
 
             total_pending_bills_amount = pending_bills.aggregate(
@@ -159,6 +165,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrieving payment dashboard: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve payment dashboard",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -222,6 +229,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error creating bill: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to create bill",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -297,6 +305,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error creating bulk bills: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to create bulk bills",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -366,6 +375,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrieving bills: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve bills",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -421,6 +431,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrieving transactions: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve transactions",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -469,6 +480,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrieving recurring payments: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve recurring payments",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -521,6 +533,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             )
         else:
             return error_response(
+                error_code=CommonAPIErrorCodes.OPERATION_NOT_ALLOWED,
                 message="Cannot pause recurring payment in current status",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
@@ -585,6 +598,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error creating recurring payment: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to create recurring payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -650,6 +664,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 )
             else:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.OPERATION_NOT_ALLOWED,
                     message="Cannot update recurring payment in current status",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -657,6 +672,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error updating recurring payment: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to update recurring payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -689,6 +705,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 )
             else:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.OPERATION_NOT_ALLOWED,
                     message="Cannot resume recurring payment in current status",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -696,6 +713,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error resuming recurring payment: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to resume recurring payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -728,6 +746,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 )
             else:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.OPERATION_NOT_ALLOWED,
                     message="Recurring payment is already cancelled",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -735,6 +754,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error cancelling recurring payment: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to cancel recurring payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -771,6 +791,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrieving cluster wallet information: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve cluster wallet information",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -790,6 +811,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             recipient_account = data.get("recipient_account")
             if not recipient_account:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
                     message="Recipient account details are required",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -800,6 +822,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             ]
             if missing_fields:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
                     message=f"Missing recipient account fields: {', '.join(missing_fields)}",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -842,19 +865,23 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
         except ValueError as e:
             return error_response(
-                message=str(e), status_code=status.HTTP_400_BAD_REQUEST
+                error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
+                message=str(e), 
+                status_code=status.HTTP_400_BAD_REQUEST
             )
         except PaymentProviderError as e:
             logger.error(
                 f"Payment provider error processing cluster wallet transfer: {e}"
             )
             return error_response(
+                error_code=CommonAPIErrorCodes.PAYMENT_GATEWAY_ERROR,
                 message=f"Payment provider error: {str(e)}",
                 status_code=status.HTTP_502_BAD_GATEWAY,
             )
         except Exception as e:
             logger.error(f"Error processing cluster wallet transfer: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to process cluster wallet transfer",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -870,6 +897,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             if not transaction_id:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
                     message="Transaction ID is required",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -898,6 +926,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 )
             else:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.PAYMENT_ERROR,
                     message="Payment verification failed",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -905,6 +934,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error verifying manual credit payment: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to verify manual credit payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -920,6 +950,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             if not error_id:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
                     message="Payment error ID is required",
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -944,6 +975,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 )
             else:
                 return error_response(
+                    error_code=CommonAPIErrorCodes.PAYMENT_ERROR,
                     message=message,
                     status_code=status.HTTP_400_BAD_REQUEST,
                 )
@@ -951,6 +983,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrying failed payment: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retry payment",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -982,6 +1015,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
         except Exception as e:
             logger.error(f"Error retrieving available payment providers: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve available payment providers",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -1023,17 +1057,21 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
         except ValueError as e:
             return error_response(
-                message=str(e), status_code=status.HTTP_400_BAD_REQUEST
+                error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
+                message=str(e), 
+                status_code=status.HTTP_400_BAD_REQUEST
             )
         except PaymentProviderError as e:
             logger.error(f"Payment provider error adding cluster wallet credit: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.PAYMENT_GATEWAY_ERROR,
                 message=f"Payment provider error: {str(e)}",
                 status_code=status.HTTP_502_BAD_GATEWAY,
             )
         except Exception as e:
             logger.error(f"Error adding cluster wallet credit: {e}")
             return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to add cluster wallet credit",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

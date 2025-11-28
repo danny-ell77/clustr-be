@@ -38,6 +38,11 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Optiona
     """
     Custom exception handler for REST framework that formats the response consistently.
     
+    1. Get request information for logging
+    2. Call REST framework's default exception handler first
+    3. If this is a Django exception that wasn't handled by DRF
+    4. Unhandled exceptions should be logged with full traceback
+    
     Args:
         exc: The exception that was raised
         context: The context of the exception
@@ -45,16 +50,13 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Optiona
     Returns:
         A formatted Response object or None if the exception cannot be handled
     """
-    # Get request information for logging
     request = context.get('request')
     request_info = ""
     if request:
         request_info = f"{request.method} {request.path}"
     
-    # Call REST framework's default exception handler first
     response = exception_handler(exc, context)
 
-    # If this is a Django exception that wasn't handled by DRF
     if response is None:
         if isinstance(exc, Http404):
             logger.info(f"Resource not found: {request_info}")
@@ -93,7 +95,6 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Optiona
             response = Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         else:
-            # Unhandled exceptions should be logged with full traceback
             logger.error(
                 f"Unhandled exception in {request_info}: {exc.__class__.__name__}",
                 exc_info=exc
@@ -114,21 +115,17 @@ def custom_exception_handler(exc: Exception, context: dict[str, Any]) -> Optiona
             }
             response = Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
-        # Format DRF exceptions consistently
         data = response.data
         error_code = _get_error_code(exc)
         
-        # Log based on error type and severity
         _log_exception(exc, error_code, request_info)
         
-        # Format the response data
         formatted_data = {
             "error": error_code,
             "message": _get_error_message(exc, data),
             "details": _get_error_details(data),
         }
         
-        # Remove None values
         if formatted_data["details"] is None:
             del formatted_data["details"]
             

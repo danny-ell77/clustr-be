@@ -13,9 +13,9 @@ from management.views_emergency import (
 
 # Create router and register viewsets
 router = DefaultRouter()
-router.register(r'emergency-contacts', EmergencyContactManagementViewSet, basename='emergency-contacts-management')
+router.register(r'contacts', EmergencyContactManagementViewSet, basename='emergency-contacts-management')
 router.register(r'sos-alerts', SOSAlertManagementViewSet, basename='sos-alerts-management')
-router.register(r'emergency-responses', EmergencyResponseManagementViewSet, basename='emergency-responses-management')
+router.register(r'responses', EmergencyResponseManagementViewSet, basename='emergency-responses-management')
 
 urlpatterns = [
     path('', include(router.urls)),

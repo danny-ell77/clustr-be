@@ -228,7 +228,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
         try:
             utility_provider = UtilityProvider.objects.get(
                 id=serializer.validated_data["utility_provider_id"],
-                cluster=request.user.cluster
+                cluster=request.user.primary_cluster
             )
         except UtilityProvider.DoesNotExist:
             return Response(
@@ -256,7 +256,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
         try:
             utility_provider = UtilityProvider.objects.get(
                 id=serializer.validated_data["utility_provider_id"],
-                cluster=request.user.cluster
+                cluster=request.user.primary_cluster
             )
         except UtilityProvider.DoesNotExist:
             return Response(
@@ -267,7 +267,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
         try:
             wallet = Wallet.objects.get(
                 user_id=request.user.id,
-                cluster=request.user.cluster
+                cluster=request.user.primary_cluster
             )
         except Wallet.DoesNotExist:
             return Response(
@@ -299,7 +299,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
         try:
             utility_provider = UtilityProvider.objects.get(
                 id=serializer.validated_data["utility_provider_id"],
-                cluster=request.user.cluster
+                cluster=request.user.primary_cluster
             )
         except UtilityProvider.DoesNotExist:
             return Response(
@@ -310,7 +310,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
         try:
             wallet = Wallet.objects.get(
                 user_id=request.user.id,
-                cluster=request.user.cluster
+                cluster=request.user.primary_cluster
             )
         except Wallet.DoesNotExist:
             return Response(
@@ -343,7 +343,7 @@ class UtilityPaymentViewSet(viewsets.ViewSet):
         """Get user's utility payment history."""
         bills = utilities.get_user_utility_bills(
             user_id=request.user.id,
-            cluster=request.user.cluster
+            cluster=request.user.primary_cluster
         )
 
         # Filter by query parameters

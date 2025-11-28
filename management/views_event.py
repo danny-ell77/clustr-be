@@ -34,7 +34,7 @@ class ManagementEventViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageEvent),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageEvent]),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = EventFilter
@@ -152,7 +152,7 @@ class ManagementEventGuestViewSet(ModelViewSet):
     """
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageEvent),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageEvent]),
     ]
     
     def get_queryset(self):

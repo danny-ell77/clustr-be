@@ -19,6 +19,4 @@ class CommonConfig(AppConfig):
         This method is called when the app is ready. It's a good place to
         perform initialization tasks like configuring logging.
         """
-        # Import and configure logging
-        from core.common.logging import configure_logging
-        configure_logging()
+        ...

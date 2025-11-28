@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
+from datetime import timedelta
 import os
 from pathlib import Path
 
@@ -51,15 +52,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "core.common.middleware.request_middleware.RequestMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "core.common.middleware.request_middleware.RequestMiddleware",
     "core.common.middleware.jwt_middleware.JWTAuthenticationMiddleware",
     "core.common.middleware.cluster_middleware.ClusterContextMiddleware",
-    "core.common.middleware.exception_middleware.ExceptionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -99,6 +99,10 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", "skybrow77"),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 600,
+        "OPTIONS": {
+            "connect_timeout": 10,
+        },
     }
 }
 
@@ -121,6 +125,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Password hashers - MD5 for development speed only
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+] if not DEBUG else [
+    "django.contrib.auth.hashers.MD5PasswordHasher",
+]
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
@@ -141,6 +153,18 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# Session settings
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_CACHE_ALIAS = "default"
+
 # REST Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -152,13 +176,18 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
-    "EXCEPTION_HANDLER": "core.common.exception_handlers.custom_exception_handler",
+    # "EXCEPTION_HANDLER": "core.common.exception_handlers.custom_exception_handler",
 }
 
 # JWT settings
 JWT_SECRET_KEY = SECRET_KEY  # Use the same secret key for JWT
 JWT_ACCESS_TOKEN_LIFETIME_HOURS = 1
 JWT_REFRESH_TOKEN_LIFETIME_DAYS = 7
+JWT_EXTENDED_TOKEN_LIFETIME = timedelta(hours=6)
+
+
+REFRESH_TOKEN_LIFETIME = timedelta(days=1)
+REFRESH_TOKEN_LIFETIME_WITH_REMEMBER_ME = timedelta(days=7)
 
 # File storage settings
 MEDIA_URL = "/media/"
@@ -168,63 +197,53 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
 # Logging configuration
+os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+        "simple": {
+            "format": "{asctime} {levelname} {message}",
             "style": "{",
         },
-        "simple": {
-            "format": "{levelname} {message}",
+        "detailed": {
+            "format": "{asctime} {levelname} {name} {message}",
             "style": "{",
         },
     },
     "handlers": {
         "console": {
-            "level": "INFO",
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "simple",
+            "level": "DEBUG" if DEBUG else "INFO",
         },
         "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "app.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 3,
+            "formatter": "detailed",
             "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs", "django.log"),
-            "maxBytes": 10 * 1024 * 1024,  # 10 MB
-            "backupCount": 5,
-            "formatter": "verbose",
-        },
-        "error_file": {
-            "level": "ERROR",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "logs", "error.log"),
-            "maxBytes": 10 * 1024 * 1024,  # 10 MB
-            "backupCount": 5,
-            "formatter": "verbose",
         },
     },
     "loggers": {
-        "django": {
+        "clustr": {
             "handlers": ["console", "file"],
-            "level": "INFO",
-            "propagate": True,
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO" if DEBUG else "WARNING",
         },
         "django.request": {
-            "handlers": ["console", "error_file"],
+            "handlers": ["console", "file"],
             "level": "ERROR",
             "propagate": False,
         },
-        "clustr": {
-            "handlers": ["console", "file", "error_file"],
-            "level": "DEBUG" if DEBUG else "INFO",
-            "propagate": True,
-        },
     },
 }
-
-# Ensure the logs directory exists
-os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
 
 # Channels configuration
 CHANNEL_LAYERS = {
@@ -234,6 +253,17 @@ CHANNEL_LAYERS = {
             "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/1")],
         },
     },
+}
+
+# Cache settings
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "clustr-cache",
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+        },
+    }
 }
 
 # Celery settings

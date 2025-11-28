@@ -41,7 +41,9 @@ class EmergencyContactViewSet(ModelViewSet):
     serializer_class = EmergencyContactSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        HasSpecificPermission(CommunicationsPermissions.ViewEmergencyContacts),
+        HasSpecificPermission.check_permissions(
+            for_view=[CommunicationsPermissions.ViewEmergencyContacts]
+        ),
     ]
 
     def get_queryset(self):
@@ -109,7 +111,9 @@ class SOSAlertViewSet(ModelViewSet):
     serializer_class = SOSAlertSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        HasSpecificPermission(CommunicationsPermissions.ViewEmergency),
+        HasSpecificPermission.check_permissions(
+            for_view=[CommunicationsPermissions.ViewEmergency]
+        ),
     ]
 
     def get_queryset(self):
@@ -235,7 +239,9 @@ class EmergencyResponseViewSet(ReadOnlyModelViewSet):
     serializer_class = EmergencyResponseSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        HasSpecificPermission(CommunicationsPermissions.ViewEmergency),
+        HasSpecificPermission.check_permissions(
+            for_view=[CommunicationsPermissions.ViewEmergency]
+        ),
     ]
 
     def get_queryset(self):

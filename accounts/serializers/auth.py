@@ -1,29 +1,16 @@
-from typing import Optional
-
-from django.conf import settings
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from accounts.models import VerifyMode
 
 
-class AuthTokenPairSerializer(TokenObtainPairSerializer):
+class AuthTokenPairSerializer(serializers.Serializer):
     """
-    Custom token pair serializer to allow for dynamic refresh token TTL. For people who enabled 'Remember me',
-    The token will have a longer TTL which means that the user will stay signed in for longer.
+    Serializer for user login credentials.
     """
-
-    def __init__(self, data: Optional[dict] = None, *args, **kwargs):
-        if data:
-            remember_me = data.pop("remember_me", False)
-            if remember_me:
-                self.token_class.lifetime = settings.REFRESH_TOKEN_LIFETIME
-            else:
-                self.token_class.lifetime = (
-                    settings.REFRESH_TOKEN_LIFETIME_WITH_REMEMBER_ME
-                )
-        super().__init__(data=data, *args, **kwargs)
-
+    email_address = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    remember_me = serializers.BooleanField(default=False, write_only=True, required=False)
+    cluster_id = serializers.UUIDField(required=False, write_only=True, allow_null=True)
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email_address = serializers.EmailField(required=True)

@@ -29,7 +29,7 @@ class MemberInvitationViewSet(ModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(AccessControlPermissions.ManageInvitation),
+        HasClusterPermission.check_permissions(for_view=[AccessControlPermissions.ManageInvitation]),
     ]
 
     def get_queryset(self):

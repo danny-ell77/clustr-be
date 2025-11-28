@@ -41,7 +41,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
 
     permission_classes = [
         permissions.IsAuthenticated,
-        HasClusterPermission(CommunicationsPermissions.ViewAnnouncement),
+        HasClusterPermission.check_permissions(for_view=[CommunicationsPermissions.ViewAnnouncement]),
     ]
     serializer_class = AnnouncementSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

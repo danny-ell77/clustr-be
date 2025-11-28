@@ -1,5 +1,5 @@
 from django.urls import path
-from rest_framework_simplejwt.views import token_refresh
+from accounts.views.auth_refresh import CookieTokenRefreshView
 
 from accounts.views.auth import (
     ClusterMemberRegistrationAPIView,
@@ -8,13 +8,14 @@ from accounts.views.auth import (
     ResetPasswordAPIView,
     SigninView,
     check_token_status,
+    signout,
 )
 
 urlpatterns = [
     path("signin/", SigninView.as_view(), name="login"),
     path(
         "signin/refresh/",
-        token_refresh,
+        CookieTokenRefreshView.as_view(),
         name="token_refresh",
     ),
     path(
@@ -28,4 +29,5 @@ urlpatterns = [
     path("forgot-password/", ForgotPasswordAPIView.as_view(), name="forgot_password"),
     path("reset-password/", ResetPasswordAPIView.as_view(), name="reset_password"),
     path("token-status/", check_token_status, name="check_token_status"),
+    path("signout/", signout, name="signout"),
 ]

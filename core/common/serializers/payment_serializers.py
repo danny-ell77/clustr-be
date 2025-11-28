@@ -105,7 +105,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     """Serializer for Transaction model"""
 
     user_id = serializers.UUIDField(source="wallet.user_id", read_only=True)
-    failed_payments = PaymentErrorSerializer(many=True, read_only=True, source="failed_payments")
+    failed_payments = PaymentErrorSerializer(many=True, read_only=True)
 
     class Meta:
         model = Transaction
@@ -548,7 +548,7 @@ class PaymentDashboardSerializer(serializers.Serializer):
     cluster_revenue = ClusterRevenueSerializer()
     recent_transactions = TransactionSerializer(many=True)
     recent_bills = BillSerializer(many=True)
-    error_summary = serializers.JSONField()
+    # error_summary = serializers.JSONField()
 
 
 class ClusterWalletAnalyticsSerializer(serializers.Serializer):

@@ -50,7 +50,10 @@ class EmergencyContactManagementViewSet(ModelViewSet):
     serializer_class = EmergencyContactSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        HasSpecificPermission(CommunicationsPermissions.ManageEmergencyContacts)
+        HasSpecificPermission.check_permissions(
+            for_view=[CommunicationsPermissions.ManageEmergencyContacts],
+            for_object=[CommunicationsPermissions.ManageEmergencyContacts]
+        ),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = EmergencyContactFilter
@@ -143,7 +146,9 @@ class SOSAlertManagementViewSet(ModelViewSet):
     serializer_class = SOSAlertSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        HasSpecificPermission(CommunicationsPermissions.ManageEmergency)
+        HasSpecificPermission.check_permissions(
+            for_view=[CommunicationsPermissions.ManageEmergency]
+        ),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = SOSAlertFilter
@@ -391,7 +396,9 @@ class EmergencyResponseManagementViewSet(ModelViewSet):
     serializer_class = EmergencyResponseSerializer
     permission_classes = [
         permissions.IsAuthenticated,
-        HasSpecificPermission(CommunicationsPermissions.ManageEmergency)
+        HasSpecificPermission.check_permissions(
+            for_view=[CommunicationsPermissions.ManageEmergency]
+        ),
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_class = EmergencyResponseFilter

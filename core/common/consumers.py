@@ -29,18 +29,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.chat_group_name = f'chat_{self.chat_id}'
         self.user = self.scope.get('user')
 
-        # Check if user is authenticated
         if isinstance(self.user, AnonymousUser):
             await self.close(code=4001)  # Unauthorized
             return
 
-        # Verify user has access to this chat
         has_access = await self.verify_chat_access()
         if not has_access:
             await self.close(code=4003)  # Forbidden
             return
 
-        # Join chat group
         await self.channel_layer.group_add(
             self.chat_group_name,
             self.channel_name
@@ -51,7 +48,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection"""
-        # Leave chat group
         await self.channel_layer.group_discard(
             self.chat_group_name,
             self.channel_name
@@ -88,13 +84,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.send_error("Message content cannot be empty")
             return
 
-        # Create message in database
         message = await self.create_message(content, reply_to_id)
         if not message:
             await self.send_error("Failed to create message")
             return
 
-        # Broadcast message to chat group
         await self.channel_layer.group_send(
             self.chat_group_name,
             {
@@ -197,7 +191,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 content=content,
                 message_type=MessageType.TEXT,
                 reply_to=reply_to,
-                cluster=self.user.cluster
+                cluster=self.user.primary_cluster
             )
             return message
         except Exception as e:

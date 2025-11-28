@@ -65,7 +65,7 @@ class ManagementIssueTicketViewSet(ModelViewSet):
     def get_queryset(self):
         """Get all issues in the cluster with search functionality"""
         queryset = IssueTicket.objects.filter(
-            
+            cluster=self.request.cluster_context
         ).select_related(
             'reported_by',
             'assigned_to',
@@ -129,16 +129,10 @@ class ManagementIssueTicketViewSet(ModelViewSet):
     @action(detail=True, methods=['post'])
     def assign(self, request, pk=None):
         """Assign issue to a staff member"""
-        issue = self.get_object()
+        issue: IssueTicket = self.get_object()
         assigned_to_id = request.data.get('assigned_to')
-        
-        if not assigned_to_id:
-            return Response(
-                {'error': 'assigned_to is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
         from accounts.models import AccountUser
+
         try:
             assigned_to = AccountUser.objects.get(
                 id=assigned_to_id,
@@ -150,32 +144,8 @@ class ManagementIssueTicketViewSet(ModelViewSet):
                 {'error': 'Invalid staff member'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        old_assigned_to = issue.assigned_to
-        issue.assigned_to = assigned_to
-        issue.save(update_fields=["assigned_to"])
-        
-        # Send notification
-        if old_assigned_to != assigned_to:
-            from core.common.includes import notifications
-            from core.notifications.events import NotificationEvents
-            
-            notifications.send(
-                event=NotificationEvents.ISSUE_ASSIGNED,
-                recipients=[assigned_to],
-                cluster=issue.cluster,
-                context={
-                    'issue_number': issue.issue_number,
-                    'title': issue.title,
-                    'description': issue.description[:200] + '...' if len(issue.description) > 200 else issue.description,
-                    'priority': issue.get_priority_display(),
-                    'category': issue.get_category_display(),
-                    'location': issue.location or 'Not specified',
-                    'assigned_to_name': assigned_to.name,
-                    'reported_by_name': issue.reported_by.name if issue.reported_by else 'System',
-                }
-            )
-        
+
+        issue.assign(assigned_to)        
         serializer = self.get_serializer(issue)
         return Response(serializer.data)
     
@@ -183,32 +153,7 @@ class ManagementIssueTicketViewSet(ModelViewSet):
     def escalate(self, request, pk=None):
         """Escalate an issue"""
         issue = self.get_object()
-        
-        if issue.escalated_at:
-            return Response(
-                {'error': 'Issue is already escalated'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        issue.escalated_at = timezone.now()
-        issue.priority = IssuePriority.URGENT
-        issue.save()
-        
-        # Send escalation notification
-        notifications.send(
-            event=NotificationEvents.ISSUE_ESCALATED,
-            recipients=[issue.assigned_to, issue.reported_by], # Assuming both assigned_to and reported_by should be notified
-            cluster=issue.cluster,
-            context={
-                "issue_number": issue.issue_no,
-                "issue_title": issue.title,
-                "issue_description": issue.description,
-                "issue_type": issue.get_issue_type_display(),
-                "priority": issue.get_priority_display(),
-                "reported_by_name": issue.reported_by.name,
-                "escalated_at": issue.escalated_at.strftime('%Y-%m-%d %H:%M'),
-            }
-        )
+        issue.escalte()
         
         serializer = self.get_serializer(issue)
         return Response(serializer.data)

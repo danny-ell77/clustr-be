@@ -45,6 +45,12 @@ class CommunicationsPermissions(TextChoices):
     ManageOptions = "ManageOptions"
     ViewResponses = "ViewResponses"
     ManageResponses = "ManageResponses"
+    ViewChat = "ViewChat"
+    ManageChat = "ManageChat"
+    ModerateChat = "ModerateChat"
+    ViewMeeting = "ViewMeeting"
+    ManageMeeting = "ManageMeeting"
+    RecordMeeting = "RecordMeeting"
 
 
 class DocumentationPermissions(TextChoices):
@@ -214,6 +220,8 @@ DEFAULT_ROLES = {
             CommunicationsPermissions.ViewResponses,
             CommunicationsPermissions.ViewComplaint,
             CommunicationsPermissions.ManageComplaint,
+            CommunicationsPermissions.ViewChat,
+            CommunicationsPermissions.ViewMeeting,
             DocumentationPermissions.ViewDocuments,
             MarketplacePermissions.ViewPost,
             MarketplacePermissions.ViewSeller,

@@ -1507,6 +1507,89 @@ components:
       properties:
         total_bills:
           type: integer
+          description: Total number of bills.
+        paid_bills:
+          type: integer
+          description: Number of paid bills.
+        pending_bills:
+          type: integer
+          description: Number of pending bills.
+        overdue_bills:
+          type: integer
+          description: Number of overdue bills.
+        total_amount:
+          type: number
+          format: decimal
+          description: Total amount of all bills.
+        paid_amount:
+          type: number
+          format: decimal
+          description: Total amount paid.
+
+    RecurringUtilityPaymentSummary:
+      type: object
+      description: Summary of recurring utility payments.
+      properties:
+        total_payments:
+          type: integer
+          description: Total number of recurring payments.
+        active_payments:
+          type: integer
+          description: Number of active payments.
+        paused_payments:
+          type: integer
+          description: Number of paused payments.
+        cancelled_payments:
+          type: integer
+          description: Number of cancelled payments.
+        total_monthly_amount:
+          type: number
+          format: decimal
+          description: Total monthly payment amount.
+        next_payments:
+          type: array
+          description: Upcoming payments.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              amount:
+                type: number
+                format: decimal
+              next_payment_date:
+                type: string
+                format: date-time
+
+    UtilityPaymentHistoryResponse:
+      type: object
+      description: Response for utility payment history.
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UtilityBill'
+        count:
+          type: integer
+          description: Total number of bills.
+        num_pages:
+          type: integer
+          description: Total number of pages.
+        current_page:
+          type: integer
+          description: Current page number.
+        has_next:
+          type: boolean
+          description: Whether there is a next page.
+        has_previous:
+          type: boolean
+          description: Whether there is a previous page.
+      properties:
+        total_bills:
+          type: integer
           minimum: 0
           description: Total number of bills.
         paid_bills:
@@ -2641,6 +2724,208 @@ components:
               minimum: 0
               description: The total number of pages.
 
+    # --- Member-Specific Schemas ---
+    MemberRegistrationRequest:
+      type: object
+      description: Request body for member registration.
+      required:
+        - email_address
+        - name
+        - phone_number
+        - unit_address
+        - password
+        - confirm_password
+        - cluster_id
+      properties:
+        email_address:
+          type: string
+          format: email
+          description: Member's email address.
+        name:
+          type: string
+          description: Member's full name.
+        phone_number:
+          type: string
+          description: Member's phone number.
+        unit_address:
+          type: string
+          description: Member's unit address within the cluster.
+        password:
+          type: string
+          minLength: 8
+          writeOnly: true
+          description: Member's password.
+        confirm_password:
+          type: string
+          minLength: 8
+          writeOnly: true
+          description: Password confirmation.
+        property_owner:
+          type: boolean
+          default: false
+          description: Whether the member is a property owner.
+        cluster_id:
+          type: string
+          format: uuid
+          writeOnly: true
+          description: ID of the cluster the member is joining.
+
+    MemberLoginRequest:
+      type: object
+      description: Request body for member login.
+      required:
+        - email_address
+        - password
+      properties:
+        email_address:
+          type: string
+          format: email
+          description: Member's email address.
+        password:
+          type: string
+          writeOnly: true
+          description: Member's password.
+        device_name:
+          type: string
+          description: Name of the device being used for login.
+        device_id:
+          type: string
+          description: Unique identifier for the device.
+        remember_me:
+          type: boolean
+          default: false
+          description: Whether to extend the session duration.
+        cluster_id:
+          type: string
+          format: uuid
+          description: ID of the cluster context for login.
+
+    AuthTokenResponse:
+      type: object
+      description: Response containing authentication tokens.
+      properties:
+        access_token:
+          type: string
+          description: JWT access token.
+        refresh_token:
+          type: string
+          description: JWT refresh token.
+        token_type:
+          type: string
+          default: "Bearer"
+          description: Type of the token.
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds.
+
+    PhoneVerificationRequest:
+      type: object
+      description: Request body for phone verification.
+      required:
+        - phone_number
+      properties:
+        phone_number:
+          type: string
+          description: Phone number to verify.
+
+    VerifyPhoneRequest:
+      type: object
+      description: Request body for verifying phone with OTP.
+      required:
+        - phone_number
+        - verification_code
+      properties:
+        phone_number:
+          type: string
+          description: Phone number being verified.
+        verification_code:
+          type: string
+          description: OTP verification code.
+
+    MemberProfile:
+      type: object
+      description: Member profile information.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique identifier for the member.
+        name:
+          type: string
+          description: Member's full name.
+        email_address:
+          type: string
+          format: email
+          readOnly: true
+          description: Member's email address.
+        phone_number:
+          type: string
+          description: Member's phone number.
+        unit_address:
+          type: string
+          description: Member's unit address.
+        profile_image_url:
+          type: string
+          format: uri
+          description: URL to member's profile image.
+        property_owner:
+          type: boolean
+          description: Whether the member is a property owner.
+        is_verified:
+          type: boolean
+          readOnly: true
+          description: Whether the member's email is verified.
+        is_phone_verified:
+          type: boolean
+          readOnly: true
+          description: Whether the member's phone is verified.
+        emergency_contacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmergencyContact'
+          description: List of emergency contacts.
+
+    EmergencyContact:
+      type: object
+      description: Emergency contact information.
+      required:
+        - name
+        - phone_number
+        - contact_type
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: Unique identifier for the emergency contact.
+        name:
+          type: string
+          description: Name of the emergency contact.
+        phone_number:
+          type: string
+          description: Phone number of the emergency contact.
+        email:
+          type: string
+          format: email
+          description: Email address of the emergency contact.
+        emergency_types:
+          type: array
+          items:
+            type: string
+          description: Types of emergencies this contact handles.
+        contact_type:
+          type: string
+          enum: [primary, secondary, medical, security, family, friend, other]
+          description: Type of emergency contact.
+        is_primary:
+          type: boolean
+          default: false
+          description: Whether this is the primary emergency contact.
+        notes:
+          type: string
+          description: Additional notes about the emergency contact.
+
   securitySchemes:
     BearerAuth:
       type: http
@@ -2706,6 +2991,315 @@ paths:
                     $ref: '#/components/schemas/User'
         '401':
           description: Unauthorized - invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # --- Member-Specific Paths ---
+  /members/register:
+    post:
+      tags: [Members]
+      summary: Register a new member account.
+      description: Allows a new member to create an account within a specific cluster.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberRegistrationRequest'
+      responses:
+        '201':
+          description: Member registered successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '400':
+          description: Invalid input or validation errors.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cluster not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /members/login:
+    post:
+      tags: [Members]
+      summary: Member login.
+      description: Authenticates a member and returns authentication tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberLoginRequest'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+        '401':
+          description: Invalid credentials or account locked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /members/verify-phone/request:
+    post:
+      tags: [Members]
+      summary: Request phone verification.
+      description: Sends a verification code to the member's phone number.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneVerificationRequest'
+      responses:
+        '200':
+          description: Verification code sent successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '500':
+          description: Failed to send verification code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /members/verify-phone/verify:
+    post:
+      tags: [Members]
+      summary: Verify phone number with OTP.
+      description: Verifies the member's phone number using the OTP code.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyPhoneRequest'
+      responses:
+        '200':
+          description: Phone number verified successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid or expired verification code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /members/profile:
+    get:
+      tags: [Members]
+      summary: Get member profile.
+      description: Retrieves the authenticated member's profile information.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfile'
+    put:
+      tags: [Members]
+      summary: Update member profile.
+      description: Updates the authenticated member's profile information.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberProfile'
+      responses:
+        '200':
+          description: Profile updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfile'
+        '400':
+          description: Invalid input data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [Members]
+      summary: Partially update member profile.
+      description: Partially updates the authenticated member's profile information.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberProfile'
+      responses:
+        '200':
+          description: Profile updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberProfile'
+        '400':
+          description: Invalid input data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /members/emergency-contacts:
+    get:
+      tags: [Members]
+      summary: List emergency contacts.
+      description: Retrieves all emergency contacts for the authenticated member.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Emergency contacts retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmergencyContact'
+    post:
+      tags: [Members]
+      summary: Create emergency contact.
+      description: Creates a new emergency contact for the authenticated member.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyContact'
+      responses:
+        '201':
+          description: Emergency contact created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+        '400':
+          description: Invalid input data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /members/emergency-contacts/{contactId}:
+    get:
+      tags: [Members]
+      summary: Get emergency contact details.
+      description: Retrieves details of a specific emergency contact.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: contactId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the emergency contact.
+      responses:
+        '200':
+          description: Emergency contact retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+        '404':
+          description: Emergency contact not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Members]
+      summary: Update emergency contact.
+      description: Updates an existing emergency contact.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: contactId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the emergency contact.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmergencyContact'
+      responses:
+        '200':
+          description: Emergency contact updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmergencyContact'
+        '400':
+          description: Invalid input data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Emergency contact not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Members]
+      summary: Delete emergency contact.
+      description: Deletes an existing emergency contact.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: contactId
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the emergency contact.
+      responses:
+        '204':
+          description: Emergency contact deleted successfully.
+        '404':
+          description: Emergency contact not found.
           content:
             application/json:
               schema:
@@ -3404,6 +3998,617 @@ paths:
 
     post:
       summary: Approve or reject visit request
+      
+  # --- Utility Bill Automation Paths ---
+  /utility/providers:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility providers
+      description: Retrieves a list of active utility providers for the user's cluster.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of utility providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UtilityProvider'
+        '401':
+          description: Unauthorized
+
+  /utility/providers/by-type:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility providers grouped by type
+      description: Retrieves utility providers organized by provider type.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Utility providers grouped by type
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UtilityProvider'
+        '401':
+          description: Unauthorized
+
+  /utility/bills:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility bills
+      description: Retrieves utility bills for the authenticated user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of utility bills
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UtilityBill'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags: [Utility Bills]
+      summary: Create utility bill
+      description: Creates a new utility bill for the authenticated user.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityBill'
+      responses:
+        '201':
+          description: Bill created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBill'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+
+  /utility/bills/{billId}:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility bill details
+      description: Retrieves details of a specific utility bill.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Bill details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBill'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Bill not found
+
+    put:
+      tags: [Utility Bills]
+      summary: Update utility bill
+      description: Updates an existing utility bill.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityBill'
+      responses:
+        '200':
+          description: Bill updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBill'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Bill not found
+
+    delete:
+      tags: [Utility Bills]
+      summary: Delete utility bill
+      description: Deletes a utility bill.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Bill deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Bill not found
+
+  /utility/bills/summary:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility bills summary
+      description: Retrieves summary statistics for user's utility bills.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Bills summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityBillSummary'
+        '401':
+          description: Unauthorized
+
+  /utility/recurring-payments:
+    get:
+      tags: [Utility Bills]
+      summary: Get recurring utility payments
+      description: Retrieves recurring utility payment setups for the authenticated user.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of recurring payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RecurringUtilityPayment'
+        '401':
+          description: Unauthorized
+
+    post:
+      tags: [Utility Bills]
+      summary: Create recurring utility payment
+      description: Creates a new recurring utility payment setup.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringUtilityPayment'
+      responses:
+        '201':
+          description: Recurring payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPayment'
+        '400':
+          description: Invalid input or wallet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+
+  /utility/recurring-payments/{paymentId}:
+    get:
+      tags: [Utility Bills]
+      summary: Get recurring payment details
+      description: Retrieves details of a specific recurring payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPayment'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Recurring payment not found
+
+    put:
+      tags: [Utility Bills]
+      summary: Update recurring payment
+      description: Updates an existing recurring payment setup.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringUtilityPayment'
+      responses:
+        '200':
+          description: Recurring payment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPayment'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Recurring payment not found
+
+    delete:
+      tags: [Utility Bills]
+      summary: Delete recurring payment
+      description: Deletes a recurring payment setup.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Recurring payment deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Recurring payment not found
+
+  /utility/recurring-payments/{paymentId}/pause:
+    post:
+      tags: [Utility Bills]
+      summary: Pause recurring payment
+      description: Pauses an active recurring payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment paused successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recurring payment paused successfully"
+        '400':
+          description: Only active payments can be paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Recurring payment not found
+
+  /utility/recurring-payments/{paymentId}/resume:
+    post:
+      tags: [Utility Bills]
+      summary: Resume recurring payment
+      description: Resumes a paused recurring payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment resumed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recurring payment resumed successfully"
+        '400':
+          description: Only paused payments can be resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Recurring payment not found
+
+  /utility/recurring-payments/{paymentId}/cancel:
+    post:
+      tags: [Utility Bills]
+      summary: Cancel recurring payment
+      description: Cancels a recurring payment.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Recurring payment cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Recurring payment cancelled successfully"
+        '400':
+          description: Payment is already cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Recurring payment not found
+
+  /utility/recurring-payments/summary:
+    get:
+      tags: [Utility Bills]
+      summary: Get recurring payments summary
+      description: Retrieves summary statistics for user's recurring payments.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Recurring payments summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringUtilityPaymentSummary'
+        '401':
+          description: Unauthorized
+
+  /utility/payment/validate-customer:
+    post:
+      tags: [Utility Bills]
+      summary: Validate utility customer
+      description: Validates a customer ID with the utility provider.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityCustomerValidationRequest'
+      responses:
+        '200':
+          description: Customer validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityCustomerValidationResponse'
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityCustomerValidationResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Utility provider not found
+
+  /utility/payment/pay-utility:
+    post:
+      tags: [Utility Bills]
+      summary: Process one-time utility payment
+      description: Processes a one-time utility bill payment.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UtilityPaymentRequest'
+      responses:
+        '201':
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityPaymentResponse'
+        '400':
+          description: Payment failed or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityPaymentResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Utility provider or wallet not found
+
+  /utility/payment/setup-recurring:
+    post:
+      tags: [Utility Bills]
+      summary: Setup recurring utility payment
+      description: Sets up a recurring utility payment with automatic processing.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetupRecurringUtilityPaymentRequest'
+      responses:
+        '201':
+          description: Recurring payment setup successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupRecurringUtilityPaymentResponse'
+        '400':
+          description: Setup failed or invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupRecurringUtilityPaymentResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Utility provider or wallet not found
+
+  /utility/payment/history:
+    get:
+      tags: [Utility Bills]
+      summary: Get utility payment history
+      description: Retrieves the user's utility payment history with pagination.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [electricity, water, security, maintenance, service_charge, waste_management, electricity_utility, water_utility, internet_utility, cable_tv_utility, other]
+          description: Filter by bill type
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending_acknowledgment, acknowledged, disputed, pending, overdue, paid, partially_paid, cancelled]
+          description: Filter by bill status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilityPaymentHistoryResponse'
+        '401':
+          description: Unauthorized
       requestBody:
         required: true
         content:
@@ -5557,7 +6762,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RecurringPaymentSummary'
+                $ref: '#/components/schemas/RecurringUtilityPaymentSummary'
         '401':
           description: Unauthorized
           content:
@@ -5742,27 +6947,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/UtilityBill'
-                  count:
-                    type: integer
-                    description: Total number of records
-                  num_pages:
-                    type: integer
-                    description: Total number of pages
-                  current_page:
-                    type: integer
-                    description: Current page number
-                  has_next:
-                    type: boolean
-                    description: Whether there is a next page
-                  has_previous:
-                    type: boolean
-                    description: Whether there is a previous page
+                $ref: '#/components/schemas/UtilityPaymentHistoryResponse'
         '401':
           description: Unauthorized
           content:

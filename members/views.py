@@ -12,12 +12,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.authentication import generate_token
 from accounts.authentication_utils import (
-    check_account_lockout,
-    handle_failed_login,
-    handle_successful_login,
-    get_client_ip,
+    handle_user_login,
+    handle_user_registration,
 )
 from accounts.models import (
     AccountUser,
@@ -65,57 +62,18 @@ class MemberRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Extract cluster_id from validated data
-        cluster_id = serializer.validated_data.pop("cluster_id")
-
         try:
-            # Get the cluster
-            cluster = Cluster.objects.get(id=cluster_id)
-
-            # Create the user
-            user = AccountUser.objects.create_owner(
+            tokens = handle_user_registration(
                 email_address=serializer.validated_data["email_address"],
                 password=serializer.validated_data["password"],
-                **{
-                    k: v
-                    for k, v in serializer.validated_data.items()
-                    if k != "password"
-                },
+                cluster_id=serializer.validated_data["cluster_id"],
+                name=serializer.validated_data.get("name", ""),
+                phone_number=serializer.validated_data.get("phone_number"),
+                unit_address=serializer.validated_data.get("unit_address"),
+                property_owner=serializer.validated_data.get("property_owner", False),
+                request=request,
             )
-
-            # Associate user with cluster
-            user.clusters.add(cluster)
-            user.primary_cluster = cluster
-
-            # For backward compatibility
-            user.estates.add(cluster)
-            user.primary_estate = cluster
-
-            user.save()
-
-            # Generate verification token
-            verification = UserVerification.for_mode(
-                VerifyMode.OTP, user, VerifyReason.EMAIL_VERIFICATION
-            )
-            verification.send_mail()
-
-            # Generate authentication tokens
-            tokens = generate_token(user, str(cluster.id))
-
-            # Log successful registration
-            logger.info(
-                f"User registered successfully: {user.email_address}",
-                extra={
-                    "user_id": str(user.id),
-                    "cluster_id": str(cluster.id),
-                    "ip_address": get_client_ip(request),
-                },
-            )
-
             return Response(tokens, status=status.HTTP_201_CREATED)
-
-        except Cluster.DoesNotExist:
-            raise ResourceNotFoundException(_("Cluster not found."))
         except Exception as e:
             log_exception_with_context(e, request=request)
             raise
@@ -144,67 +102,18 @@ class MemberLoginView(APIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get user by email
-        email = serializer.validated_data.get("email_address")
-
         try:
-            user = AccountUser.objects.get(email_address=email)
-
-            # Check if account is locked
-            if check_account_lockout(user):
-                raise AuthenticationException(
-                    _("Account is locked due to too many failed login attempts.")
-                )
-
-            # Validate password
-            if not user.check_password(serializer.validated_data.get("password")):
-                # Handle failed login
-                handle_failed_login(user)
-                raise AuthenticationException(_("Invalid credentials."))
-
-            # Handle successful login
-            handle_successful_login(user, get_client_ip(request))
-
-            # Get cluster context if provided
-            cluster_id = serializer.validated_data.get("cluster_id")
-
-            # If no cluster_id provided but user has a primary cluster, use that
-            if not cluster_id and user.primary_cluster:
-                cluster_id = str(user.primary_cluster.id)
-
-            # Generate tokens
-            tokens = generate_token(
-                user,
-                cluster_id,
-                # Use longer expiry if remember_me is True
-                expiry=(
-                    settings.JWT_EXTENDED_TOKEN_LIFETIME
-                    if serializer.validated_data.get("remember_me")
-                    else None
-                ),
+            tokens = handle_user_login(
+                email_address=serializer.validated_data["email_address"],
+                password=serializer.validated_data["password"],
+                cluster_id=serializer.validated_data.get("cluster_id"),
+                remember_me=serializer.validated_data.get("remember_me", False),
+                device_name=serializer.validated_data.get("device_name"),
+                device_id=serializer.validated_data.get("device_id"),
+                request=request,
             )
-
-            # Log successful login
-            logger.info(
-                f"User logged in successfully: {user.email_address}",
-                extra={
-                    "user_id": str(user.id),
-                    "cluster_id": cluster_id or "None",
-                    "ip_address": get_client_ip(request),
-                    "device_name": serializer.validated_data.get(
-                        "device_name", "unknown"
-                    ),
-                    "device_id": serializer.validated_data.get("device_id", "unknown"),
-                },
-            )
-
             return Response(tokens)
-
-        except AccountUser.DoesNotExist:
-            # For security reasons, use the same error message as invalid password
-            raise AuthenticationException(_("Invalid credentials."))
         except AuthenticationException:
-            # Re-raise authentication exceptions
             raise
         except Exception as e:
             log_exception_with_context(e, request=request)

@@ -20,6 +20,9 @@ class AccountSerializer(serializers.ModelSerializer):
             "phone_number",
             "profile_image_url",
             "is_verified",
+            "is_owner",
+            "is_cluster_admin",
+            "is_cluster_staff",
         ]
         read_only_fields = ["is_verified"]
 
@@ -131,25 +134,31 @@ class ClusterAdminAccountSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data: dict) -> Cluster:
         admin = self._create_admin_account(validated_data.pop("admin"))
-        cluster = self._create_cluster(validated_data, admin)
-        self._send_onboarding_email(user=admin)
+        cluster = self._create_cluster(validated_data)
+        cluster.add_admin(admin)
+
+        def on_commit():
+            self._send_onboarding_email(user=admin)
+        
+        transaction.on_commit(on_commit)
         return cluster
 
-    def _create_cluster(self, data, admin) -> Cluster:
-        return Cluster.objects.create(**data, owner_id=admin.pk)
+    def _create_cluster(self, data) -> Cluster:
+        return Cluster.objects.create(**data)
 
     def _create_admin_account(self, data) -> AccountUser:
         return AccountUser.objects.create_admin(**data)
 
     def _send_onboarding_email(self, user: AccountUser):
-        notifications.send(
-            event=NotificationEvents.SYSTEM_UPDATE, # Placeholder for NEW_ADMIN_ONBOARDING
-            recipients=[user],
-            cluster=user.cluster, # Assuming user has a cluster attribute
-            context={
-                "admin_name": user.name,
-            }
-        )
+        # notifications.send(
+        #     event_name=NotificationEvents.SYSTEM_UPDATE, # Placeholder for NEW_ADMIN_ONBOARDING
+        #     recipients=[user],
+        #     cluster=user.primary_cluster, # Assuming user has a cluster attribute
+        #     context={
+        #         "admin_name": user.name,
+        #     }
+        # )
+        pass
 
 
 class UserSummarySerializer(serializers.ModelSerializer):

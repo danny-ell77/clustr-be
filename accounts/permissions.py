@@ -20,13 +20,16 @@ class IsOwnerOrReadOnly(BasePermission):
 
 
 class CanManageAccountUsers(IsOwnerOrReadOnly):
-    CAN_MANAGER_RESIDENTS = (
-        f"accounts.{AccountsPermissions.ManageResidents}"  # for staff
-    )
+    """
+    Permission class for managing account users.
 
-    CAN_MANAGE_USERS = (
-        f"accounts.{AccountsPermissions.ManageAccountUser}"  # for members
-    )
+    Attributes:
+        CAN_MANAGER_RESIDENTS: Permission required for staff to manage residents
+        CAN_MANAGE_USERS: Permission required for members to manage users
+    """
+
+    CAN_MANAGER_RESIDENTS = f"accounts.{AccountsPermissions.ManageResidents}"
+    CAN_MANAGE_USERS = f"accounts.{AccountsPermissions.ManageAccountUser}"
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         user = cast(AccountUser, request.user)
@@ -78,125 +81,182 @@ class IsClusterStaffOrAdmin(BasePermission):
         return user.is_cluster_staff or user.is_cluster_admin
 
 
-class HasClusterPermission(RoleBasedPermission):
+class HasClusterPermission(BasePermission):
     """
     Permission class that checks if the user has the specified permission for the current cluster.
-
-    This class extends RoleBasedPermission to provide a cleaner, more maintainable
-    implementation that eliminates string manipulation and code duplication.
+    Uses a factory pattern to avoid instantiation issues with DRF.
 
     Usage:
-        permission_classes = [HasClusterPermission(AccessControlPermissions.ManageVisitRequest)]
+        permission_classes = [
+            HasClusterPermission.check_permissions(
+                for_view=[AccessControlPermissions.ManageVisitRequest]
+            )
+        ]
     """
 
-    def __init__(
-        self, permission: Union[str, List[str]], allow_safe_methods: bool = False
-    ):
-        """
-        Initialize the permission class.
+    view_permissions: List[str] = []
+    obj_permissions: List[str] = []
+    allow_staff: bool = True
+    allow_cluster_admin: bool = True
+    check_ownership: bool = True
 
-        Args:
-            permission: Single permission or list of permissions to check
-            allow_safe_methods: Whether to allow safe methods without specific permissions
-        """
-        super().__init__()
-
-        # Convert single permission to list for consistency
-        if isinstance(permission, str):
-            self.required_permissions = [permission]
-        else:
-            self.required_permissions = permission
-
-        self.allow_safe_methods = allow_safe_methods
-
-    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
-        """
-        Enhanced object permission checking with better ownership detection.
-        """
-        user = cast(AccountUser, request.user)
-
-        # Use parent class logic for basic permission checks
-        if not super().has_object_permission(request, view, obj):
-            return False
-
-        # Additional ownership checks for specific object types
-        if hasattr(obj, "owner") and obj.owner == user:
-            return True
-
-        if hasattr(obj, "invited_by") and str(obj.invited_by) == str(user.id):
-            return True
-
-        if hasattr(obj, "created_by") and str(obj.created_by) == str(user.id):
-            return True
-
-        # If we have required permissions, check them
-        if self.required_permissions:
-            return user.has_any_permission(self.required_permissions)
-
-        return False
-
-
-class HasSpecificPermission(RoleBasedPermission):
-    """
-    A more flexible permission class that can be configured for specific use cases.
-
-    This class provides a cleaner alternative to HasClusterPermission with better
-    configuration options and more explicit permission handling.
-    """
-
-    def __init__(
-        self,
-        permissions: Union[str, List[str]],
-        allow_safe_methods: bool = False,
+    @classmethod
+    def check_permissions(
+        cls,
+        for_view: Union[str, List[str]] = None,
+        for_object: Union[str, List[str]] = None,
         allow_staff: bool = True,
         allow_cluster_admin: bool = True,
         check_ownership: bool = True,
     ):
         """
-        Initialize the permission class.
-
+        Returns a subclass that enforces view and object permissions.
+        
         Args:
-            permissions: Permission(s) to check
-            allow_safe_methods: Whether to allow safe methods without permissions
+            for_view: Permission(s) to check for the view
+            for_object: Permission(s) to check for the object
             allow_staff: Whether staff can bypass permission checks
             allow_cluster_admin: Whether cluster admins can bypass permission checks
             check_ownership: Whether to check object ownership
+        
+        Usage:
+            permission_classes = [
+                HasClusterPermission.check_permissions(
+                    for_view=[AccessControlPermissions.ManageVisitRequest],
+                    for_object=[AccessControlPermissions.ManageVisitRequest]
+                )
+            ]
         """
-        super().__init__()
+        view_perms = [for_view] if isinstance(for_view, str) else (for_view or [])
+        obj_perms = [for_object] if isinstance(for_object, str) else (for_object or [])
+        
+        return type(
+            "HasClusterPermission",
+            (cls,),
+            {
+                "view_permissions": view_perms,
+                "obj_permissions": obj_perms,
+                "allow_staff": allow_staff,
+                "allow_cluster_admin": allow_cluster_admin,
+                "check_ownership": check_ownership,
+            },
+        )
 
-        if isinstance(permissions, str):
-            self.required_permissions = [permissions]
-        else:
-            self.required_permissions = permissions
-
-        self.allow_safe_methods = allow_safe_methods
-        self.allow_staff = allow_staff
-        self.allow_cluster_admin = allow_cluster_admin
-        self.check_ownership = check_ownership
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        """Check view-level permissions."""
+        user = cast(AccountUser, request.user)
+        
+        if self.allow_staff and user.is_staff:
+            return True
+        
+        if self.allow_cluster_admin and user.is_cluster_admin:
+            return True
+        
+        if not self.view_permissions:
+            return True
+        
+        return user.has_any_permission(self.view_permissions)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
-        """
-        Check object permissions with configurable ownership checking.
-        """
+        """Check object-level permissions with ownership detection."""
         user = cast(AccountUser, request.user)
-
-        # Use parent class logic for basic permission checks
-        if not super().has_object_permission(request, view, obj):
-            return False
-
-        # Check ownership if enabled
+        
+        if self.allow_staff and user.is_staff:
+            return True
+        
+        if self.allow_cluster_admin and user.is_cluster_admin:
+            return True
+        
         if self.check_ownership:
             if hasattr(obj, "owner") and obj.owner == user:
                 return True
-
-            if hasattr(obj, "user") and obj.user == user:
+            if hasattr(obj, "invited_by") and str(obj.invited_by) == str(user.id):
                 return True
-
-            if isinstance(obj, AccountUser) and obj == user:
+            if hasattr(obj, "created_by") and str(obj.created_by) == str(user.id):
                 return True
+        
+        if not self.obj_permissions:
+            return True
+        
+        return user.has_any_permission(self.obj_permissions)
 
-        # Check specific permissions
-        if self.required_permissions:
-            return user.has_any_permission(self.required_permissions)
 
-        return False
+class HasSpecificPermission(BasePermission):
+    """
+    Simple permission checker that can be configured for view and object permissions.
+    Uses a factory pattern to avoid instantiation issues with DRF.
+    """
+    
+    view_permissions: List[str] = []
+    obj_permissions: List[str] = []
+    allow_staff: bool = True
+    allow_cluster_admin: bool = True
+
+    @classmethod
+    def check_permissions(
+        cls,
+        for_view: Union[str, List[str]] = None,
+        for_object: Union[str, List[str]] = None,
+        allow_staff: bool = True,
+        allow_cluster_admin: bool = True,
+    ):
+        """
+        Returns a subclass that enforces view and object permissions.
+        
+        Args:
+            for_view: Permission(s) to check for the view
+            for_object: Permission(s) to check for the object
+            allow_staff: Whether staff can bypass permission checks
+            allow_cluster_admin: Whether cluster admins can bypass permission checks
+        
+        Usage:
+            permission_classes = [
+                HasSpecificPermission.check_permissions(
+                    for_view=[PaymentsPermissions.ManageWallet],
+                    for_object=[PaymentsPermissions.ManageWallet]
+                )
+            ]
+        """
+        view_perms = [for_view] if isinstance(for_view, str) else (for_view or [])
+        obj_perms = [for_object] if isinstance(for_object, str) else (for_object or [])
+        
+        return type(
+            "HasSpecificPermission",
+            (cls,),
+            {
+                "view_permissions": view_perms,
+                "obj_permissions": obj_perms,
+                "allow_staff": allow_staff,
+                "allow_cluster_admin": allow_cluster_admin,
+            },
+        )
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        """Check view-level permissions."""
+        user = cast(AccountUser, request.user)
+        
+        if self.allow_staff and user.is_staff:
+            return True
+        
+        if self.allow_cluster_admin and user.is_cluster_admin:
+            return True
+        
+        if not self.view_permissions:
+            return True
+        
+        return user.has_any_permission(self.view_permissions)
+
+    def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
+        """Check object-level permissions."""
+        user = cast(AccountUser, request.user)
+        
+        if self.allow_staff and user.is_staff:
+            return True
+        
+        if self.allow_cluster_admin and user.is_cluster_admin:
+            return True
+        
+        if not self.obj_permissions:
+            return True
+        
+        return user.has_any_permission(self.obj_permissions)

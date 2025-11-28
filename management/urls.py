@@ -13,12 +13,15 @@ app_name = "management"
 
 # Create a router for ViewSets
 router = DefaultRouter()
-router.register(r'maintenance-logs', views_maintenance.MaintenanceLogViewSet, basename='management-maintenance-log')
-router.register(r'maintenance-schedules', views_maintenance.MaintenanceScheduleViewSet, basename='management-maintenance-schedule')
 router.register(r'invitations', views_invitation.ManagementInvitationViewSet, basename='management-invitation')
 router.register(r'events', views_event.ManagementEventViewSet, basename='management-event')
 router.register(r'announcements', views_announcement.ManagementAnnouncementViewSet, basename='management-announcement')
 router.register(r'children', views_child.ManagementChildViewSet, basename='management-child')
+
+# Maintenance router with nested structure
+maintenance_router = DefaultRouter()
+maintenance_router.register(r'logs', views_maintenance.MaintenanceLogViewSet, basename='management-maintenance-log')
+maintenance_router.register(r'schedules', views_maintenance.MaintenanceScheduleViewSet, basename='management-maintenance-schedule')
 
 # Create nested routers for event guests
 events_router = NestedDefaultRouter(router, r'events', lookup='event')
@@ -38,11 +41,16 @@ urlpatterns = [
     path('', include(router.urls)),
     path('', include(events_router.urls)),
     
+    # Include maintenance URLs with nested structure
+    path('maintenance/', include(maintenance_router.urls)),
+    path('maintenance/categories/', views_maintenance.maintenance_categories, name='maintenance-categories'),
+    path('maintenance/choices/', views_maintenance.maintenance_choices, name='maintenance-choices'),
+    
     # Include helpdesk URLs
     path('', include('management.urls_helpdesk')),
     
-    # Include emergency URLs
-    path('', include('management.urls_emergency')),
+    # Include emergency URLs with emergency/ prefix
+    path('emergency/', include('management.urls_emergency')),
     
     # Include shift management URLs
     path('', include('management.urls_shift')),
@@ -55,8 +63,4 @@ urlpatterns = [
     
     # Include chat URLs
     # path('', include('management.urls_chat')),
-
-    # Maintenance specific function-based views that are not part of viewsets
-    path('maintenance/categories/', views_maintenance.maintenance_categories, name='maintenance-categories'),
-    path('maintenance/choices/', views_maintenance.maintenance_choices, name='maintenance-choices'),
 ]

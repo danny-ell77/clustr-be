@@ -3,7 +3,7 @@ Celery tasks for notification management.
 
 This module contains Celery tasks for sending notifications asynchronously.
 """
-
+import itertools
 import logging
 from typing import List, Any, Dict
 from celery import shared_task
@@ -66,12 +66,7 @@ def send_notification_task(
                 context=context,
             )
 
-        logger.info(
-            f"Notification task completed for event {event_name}: "
-            f"{len(recipients)} recipients, cluster {cluster.name}, result: {result}"
-        )
-
-        return result
+        logger.info(f"Notification task completed for event {event_name}: ")
 
     except Exception as e:
         logger.error(f"Error in notification task for event {event_name}: {str(e)}")

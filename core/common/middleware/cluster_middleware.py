@@ -30,6 +30,10 @@ class ClusterContextMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest):
         """
         Process the request and set the cluster context.
+        Get the cluster_id from various sources in order of precedence:
+        1. Request headers
+        2. Query parameters
+        3. JWT token payload (set by JWTAuthenticationMiddleware)
         
         Args:
             request: The request object
@@ -37,63 +41,52 @@ class ClusterContextMiddleware(MiddlewareMixin):
         Returns:
             None
         """
-        # Skip for unauthenticated users or admin paths
-        if not request.user.is_authenticated or request.path.startswith('/admin/'):
+        request.cluster_context = None
+        
+        if request.path.startswith('/admin/'):
             return None
 
-        # Get the cluster_id from various sources in order of precedence:
-        # 1. Request headers
-        # 2. Query parameters
-        # 3. JWT token payload (set by JWTAuthenticationMiddleware)
+        if not hasattr(request, 'user') or not request.user.is_authenticated:
+            return None
+
         cluster_id = (
             request.headers.get('X-Cluster-ID') or 
             request.GET.get('cluster_id') or 
             getattr(request, '_cluster_id', None)
         )
         
-        # If user is authenticated, set the cluster context
         from accounts.models import AccountUser
 
+        if not isinstance(request.user, AccountUser):
+            return None
 
-        if hasattr(request, 'user') and isinstance(request.user, AccountUser):
-            user = request.user
-            
-            # If cluster_id is provided, validate that the user has access to this cluster
-            if cluster_id:
-                try:
-                    # Check if user has access to this cluster via the clusters M2M field
-                    if hasattr(user, 'clusters') and user.clusters.filter(id=cluster_id).exists():
-                        request.cluster_context = user.clusters.get(id=cluster_id)
-                    # Check if user has access via the cluster ForeignKey (legacy)
-                    elif user.cluster and str(user.cluster.id) == cluster_id:
-                        request.cluster_context = user.cluster
-                    else:
-                        # User doesn't have access to this cluster
-                        logger.warning(
-                            f"User {user.id} attempted to access unauthorized cluster {cluster_id}",
-                            extra={
-                                'user_id': str(user.id),
-                                'cluster_id': cluster_id
-                            }
-                        )
-                        request.cluster_context = None
-                except Exception as e:
-                    from core.common.error_utils import log_exception
-
-                    # Log the error but don't fail the request
-                    log_exception(
-                        e,
-                        log_level=logging.WARNING,
-                        request=request,
-                        context={'message': 'Error setting cluster context'}
-                    )
-                    request.cluster_context = None
-            else:
-                # No cluster_id provided, use the user's primary cluster
-                if hasattr(user, 'primary_cluster') and user.primary_cluster:
+        user = request.user
+        
+        if cluster_id:
+            try:
+                if hasattr(user, 'clusters') and user.clusters.filter(id=cluster_id).exists():
+                    request.cluster_context = user.clusters.get(id=cluster_id)
+                elif user.primary_cluster and str(user.primary_cluster.id) == cluster_id:
                     request.cluster_context = user.primary_cluster
-                # Fallback to the cluster ForeignKey (legacy)
-                elif user.cluster:
-                    request.cluster_context = user.cluster
+                else:
+                    logger.warning(
+                        f"User {user.id} attempted to access unauthorized cluster {cluster_id}",
+                        extra={
+                            'user_id': str(user.id),
+                            'cluster_id': cluster_id
+                        }
+                    )
+            except Exception as e:
+                from core.common.error_utils import log_exception_with_context
+
+                log_exception_with_context(
+                    e,
+                    log_level=logging.WARNING,
+                    request=request,
+                    context={'message': 'Error setting cluster context'}
+                )
+        else:
+            if user.primary_cluster:
+                request.cluster_context = user.primary_cluster
         
         return None

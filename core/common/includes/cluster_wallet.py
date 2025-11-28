@@ -16,19 +16,45 @@ logger = logging.getLogger('clustr')
 
 def get_wallet_balance(cluster):
     """Get cluster wallet balance."""
+    if not cluster:
+        return {
+            'balance': Decimal('0.00'), 
+            'available_balance': Decimal('0.00'),
+            'currency': 'NGN', 
+            'last_transaction_at': None,
+            'status': 'inactive'
+        }
+    
     try:
         wallet = Wallet.objects.get(cluster=cluster, user_id=cluster.id)
         return {
             'balance': wallet.balance,
+            'available_balance': wallet.available_balance,
             'currency': wallet.currency,
-            'last_updated': wallet.last_transaction_at
+            'last_transaction_at': wallet.last_transaction_at,
+            'status': wallet.status
         }
     except Wallet.DoesNotExist:
-        return {'balance': Decimal('0.00'), 'currency': 'NGN', 'last_updated': None}
+        return {
+            'balance': Decimal('0.00'), 
+            'available_balance': Decimal('0.00'),
+            'currency': 'NGN', 
+            'last_transaction_at': None,
+            'status': 'inactive'
+        }
 
 
 def get_revenue_summary(cluster, days=30):
     """Get cluster revenue summary."""
+    if not cluster:
+        return {
+            'period_days': days,
+            'total_revenue': Decimal('0.00'),
+            'bill_payment_count': 0,
+            'current_balance': Decimal('0.00'),
+            'transactions_count': 0
+        }
+    
     end_date = timezone.now()
     start_date = end_date - timezone.timedelta(days=days)
     
@@ -40,22 +66,25 @@ def get_revenue_summary(cluster, days=30):
     )
     
     total_revenue = sum(t.amount for t in transactions)
+    wallet_info = get_wallet_balance(cluster)
     
     return {
-        'total_revenue': total_revenue,
-        'transaction_count': transactions.count(),
         'period_days': days,
-        'start_date': start_date,
-        'end_date': end_date
+        'total_revenue': total_revenue,
+        'bill_payment_count': transactions.count(),
+        'current_balance': wallet_info['balance'],
+        'transactions_count': transactions.count()
     }
 
 
 def get_wallet_analytics(cluster):
     """Get cluster wallet analytics."""
+    if not cluster:
+        raise ValueError("Cluster context is required")
+    
     try:
         wallet = Wallet.objects.get(cluster=cluster, user_id=cluster.id)
         
-        # Get recent transactions for the cluster wallet
         recent_transactions = Transaction.objects.filter(
             wallet=wallet
         ).order_by('-created_at')[:10]
@@ -64,6 +93,7 @@ def get_wallet_analytics(cluster):
             'current_balance': wallet.balance,
             'available_balance': wallet.available_balance,
             'currency': wallet.currency,
+            'status': wallet.status,
             'recent_transactions': [
                 {
                     'id': t.id,
@@ -77,11 +107,20 @@ def get_wallet_analytics(cluster):
             ]
         }
     except Wallet.DoesNotExist:
-        return {'error': 'Cluster wallet not found'}
+        return {
+            'current_balance': Decimal('0.00'),
+            'available_balance': Decimal('0.00'),
+            'currency': 'NGN',
+            'status': 'inactive',
+            'recent_transactions': []
+        }
 
 
 def get_wallet_transactions(cluster, limit=20):
     """Get cluster wallet transactions."""
+    if not cluster:
+        return Transaction.objects.none()
+    
     try:
         wallet = Wallet.objects.get(cluster=cluster, user_id=cluster.id)
         return Transaction.objects.filter(
@@ -94,14 +133,16 @@ def get_wallet_transactions(cluster, limit=20):
 @transaction.atomic
 def transfer_from_wallet(cluster, amount, description, created_by):
     """Transfer from cluster wallet."""
+    if not cluster:
+        raise ValueError("Cluster context is required")
+    
     try:
         wallet = Wallet.objects.get(cluster=cluster, user_id=cluster.id)
         
         if not wallet.has_sufficient_balance(amount):
             raise ValueError("Insufficient wallet balance")
         
-        # Create transaction
-        transaction = Transaction.objects.create(
+        txn = Transaction.objects.create(
             cluster=cluster,
             wallet=wallet,
             type=TransactionType.TRANSFER,
@@ -112,30 +153,27 @@ def transfer_from_wallet(cluster, amount, description, created_by):
             created_by=created_by
         )
         
-        # Debit the cluster wallet
         wallet.debit(amount, description)
         
-        # Mark transaction as completed
-        transaction.status = 'completed'
-        transaction.processed_at = timezone.now()
-        transaction.save(update_fields=['status', 'processed_at'])
+        txn.status = 'completed'
+        txn.processed_at = timezone.now()
+        txn.save(update_fields=['status', 'processed_at'])
         
-        logger.info(f"Transfer completed: {transaction.transaction_id}")
-        return transaction
+        logger.info(f"Transfer completed: {txn.transaction_id}")
+        return txn
         
     except Exception as e:
         logger.error(f"Transfer failed: {e}")
         raise
 
 
-def verify_manual_credit(transaction):
+def verify_manual_credit(txn):
     """Verify manual credit payment."""
     try:
-        # Implement verification logic here
-        transaction.status = 'verified'
-        transaction.save()
+        txn.status = 'verified'
+        txn.save()
         
-        logger.info(f"Manual credit verified: {transaction.id}")
+        logger.info(f"Manual credit verified: {txn.id}")
         return True
         
     except Exception as e:
@@ -146,6 +184,9 @@ def verify_manual_credit(transaction):
 @transaction.atomic
 def add_manual_credit(cluster, amount, description, created_by):
     """Add manual credit to cluster wallet."""
+    if not cluster:
+        raise ValueError("Cluster context is required")
+    
     try:
         from core.common.models import WalletStatus
         
@@ -162,8 +203,7 @@ def add_manual_credit(cluster, amount, description, created_by):
             }
         )
         
-        # Create transaction
-        transaction = Transaction.objects.create(
+        txn = Transaction.objects.create(
             cluster=cluster,
             wallet=wallet,
             type=TransactionType.DEPOSIT,
@@ -175,11 +215,10 @@ def add_manual_credit(cluster, amount, description, created_by):
             created_by=created_by
         )
         
-        # Credit the cluster wallet
         wallet.credit(amount, description)
         
-        logger.info(f"Manual credit added: {transaction.transaction_id}")
-        return transaction
+        logger.info(f"Manual credit added: {txn.transaction_id}")
+        return txn
         
     except Exception as e:
         logger.error(f"Manual credit failed: {e}")
@@ -187,12 +226,14 @@ def add_manual_credit(cluster, amount, description, created_by):
 
 
 @transaction.atomic
-def credit_cluster_from_bill_payment(cluster, amount, bill, transaction=None):
+def credit_cluster_from_bill_payment(cluster, amount, bill, txn=None):
     """Credit cluster wallet from bill payment."""
+    if not cluster:
+        raise ValueError("Cluster context is required")
+    
     try:
         from core.common.models import WalletStatus
         
-        # Get or create cluster wallet (using cluster.id as user_id)
         wallet, created = Wallet.objects.get_or_create(
             cluster=cluster,
             user_id=cluster.id,
@@ -208,8 +249,7 @@ def credit_cluster_from_bill_payment(cluster, amount, bill, transaction=None):
         
         description = f"Bill payment: {bill.title} (Bill #{bill.bill_number})"
         
-        # Create credit transaction for cluster wallet
-        credit_transaction = Transaction.objects.create(
+        credit_txn = Transaction.objects.create(
             cluster=cluster,
             wallet=wallet,
             type=TransactionType.DEPOSIT,
@@ -224,26 +264,24 @@ def credit_cluster_from_bill_payment(cluster, amount, bill, transaction=None):
                 'bill_id': str(bill.id),
                 'bill_number': bill.bill_number,
                 'bill_title': bill.title,
-                'original_transaction_id': str(transaction.id) if transaction else None
+                'original_transaction_id': str(txn.id) if txn else None
             }
         )
         
-        # Credit the cluster wallet
         wallet.credit(amount, description)
         
-        # Update original transaction metadata if provided
-        if transaction:
-            if not transaction.metadata:
-                transaction.metadata = {}
-            transaction.metadata.update({
+        if txn:
+            if not txn.metadata:
+                txn.metadata = {}
+            txn.metadata.update({
                 'cluster_credited': True,
                 'cluster_credit_amount': str(amount),
-                'cluster_credit_transaction_id': credit_transaction.transaction_id
+                'cluster_credit_transaction_id': credit_txn.transaction_id
             })
-            transaction.save(update_fields=['metadata'])
+            txn.save(update_fields=['metadata'])
         
         logger.info(f"Cluster {cluster.name} credited {amount} from bill payment: {bill.bill_number}")
-        return credit_transaction
+        return credit_txn
         
     except Exception as e:
         logger.error(f"Failed to credit cluster from bill payment: {e}")
