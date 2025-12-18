@@ -1,8 +1,16 @@
+from django.http import JsonResponse
 from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 from django.contrib.auth import get_user_model
+from rest_framework.decorators import api_view
+
+
+@api_view(["GET"])
+def health_check(request):
+    """Simple health check endpoint for container orchestration."""
+    return JsonResponse({"status": "ok"})
 
 
 class PublicSchemaPermission(permissions.AllowAny):
@@ -39,6 +47,7 @@ v1_endpoints = [
 
 
 urlpatterns = [
+    path("api/health/", health_check, name="health-check"),
     re_path("api/v1/", include(v1_endpoints)),
     path(
         "doc/",
