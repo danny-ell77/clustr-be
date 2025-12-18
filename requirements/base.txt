@@ -23,7 +23,7 @@ djangorestframework-simplejwt #  https://github.com/jazzband/djangorestframework
 # DRF-YASG for api documentation
 drf-yasg # https://github.com/axnsan12/drf-yasg
 # Django Filter for API filtering
-django-filter# https://github.com/carltongibson/django-filter
+django-filter # https://github.com/carltongibson/django-filter
 # Django Channels for WebSocket support
 channels # https://github.com/django/channels
 channels-redis # https://github.com/django/channels_redis
