@@ -9,4 +9,4 @@ hiredis # https://github.com/redis/hiredis-py
 # Django
 # ------------------------------------------------------------------------------
 django-storages[s3]  # https://github.com/jschneier/django-storages
-django-anymail[mailgun]# https://github.com/anymail/django-anymail
+django-anymail[mailgun] # https://github.com/anymail/django-anymail
