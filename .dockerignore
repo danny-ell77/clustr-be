@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Testing
+.coverage
+.pytest_cache
+htmlcov/
+.tox
+
+# Build
+*.egg-info
+dist/
+build/
+
+# Local development
+*.sqlite3
+db.sqlite3
+.env
+.env.*
+*.log
+
+# Documentation (optional - remove if needed in container)
+docs/
+docs-v2/
+*.md
+!README.md
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Misc
+*.bak
+*.tmp
+logs/
