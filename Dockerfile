@@ -7,6 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings_production
 
+# Create non-root user
+RUN adduser --system --no-create-home appuser
+
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -20,14 +23,13 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements/production.txt
 
 # Copy application code
-COPY . .
+COPY --chown=appuser . .
 
-# Create directories and collect static files
+# Create directories, collect static files, and set permissions
 RUN mkdir -p /app/logs /app/staticfiles /app/media \
-    && python manage.py collectstatic --noinput --clear
+    && python manage.py collectstatic --noinput --clear \
+    && chown -R appuser:appuser /app/logs /app/staticfiles /app/media
 
-# Create non-root user
-RUN adduser --system --no-create-home appuser
 USER appuser
 
 EXPOSE 8000
