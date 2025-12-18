@@ -364,11 +364,11 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 },
             }
 
-            response_serializer = BillListResponseSerializer(data=response_data)
-            response_serializer.is_valid(raise_exception=True)
+            # response_serializer = BillListResponseSerializer(data=response_data)
+            # response_serializer.is_valid(raise_exception=True)
 
             return success_response(
-                data=response_serializer.validated_data,
+                data=response_data,
                 message="Bills retrieved successfully",
             )
 
@@ -377,6 +377,29 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             return error_response(
                 error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve bills",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"], url_path=r"bills/(?P<bill_id>[^/.]+)")
+    def bill_detail(self, request, bill_id=None):
+        """
+        Get a single bill by ID.
+        """
+        try:
+            cluster = request.cluster_context
+            bill = get_object_or_404(Bill, id=bill_id, cluster=cluster)
+            serializer = BillSerializer(bill)
+            
+            return success_response(
+                data=serializer.data,
+                message="Bill retrieved successfully",
+            )
+
+        except Exception as e:
+            logger.error(f"Error retrieving bill: {e}")
+            return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
+                message="Failed to retrieve bill",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -410,6 +433,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
 
             serializer = TransactionSerializer(paginated_transactions, many=True)
 
+
             response_data = {
                 "transactions": serializer.data,
                 "pagination": {
@@ -420,11 +444,9 @@ class PaymentManagementViewSet(viewsets.ViewSet):
                 },
             }
 
-            response_serializer = TransactionListResponseSerializer(data=response_data)
-            response_serializer.is_valid(raise_exception=True)
 
             return success_response(
-                data=response_serializer.validated_data,
+                data=response_data,
                 message="Transactions retrieved successfully",
             )
 
@@ -433,6 +455,29 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             return error_response(
                 error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
                 message="Failed to retrieve transactions",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @action(detail=False, methods=["get"], url_path=r"transactions/(?P<transaction_id>[^/.]+)")
+    def transaction_detail(self, request, transaction_id=None):
+        """
+        Get a single transaction by ID.
+        """
+        try:
+            cluster = request.cluster_context
+            transaction = get_object_or_404(Transaction, id=transaction_id, cluster=cluster)
+            serializer = TransactionSerializer(transaction)
+            
+            return success_response(
+                data=serializer.data,
+                message="Transaction retrieved successfully",
+            )
+
+        except Exception as e:
+            logger.error(f"Error retrieving transaction: {e}")
+            return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
+                message="Failed to retrieve transaction",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

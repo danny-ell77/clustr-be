@@ -58,6 +58,15 @@ class ManagementVisitorViewSet(ModelViewSet):
         """
         serializer.save(invited_by=self.request.user.id)
     
+    @action(detail=False, methods=['get'])
+    def active(self, request):
+        """
+        Get all currently checked-in (active) visitors.
+        """
+        active_visitors = self.get_queryset().filter(status=Visitor.Status.CHECKED_IN)
+        serializer = self.get_serializer(active_visitors, many=True)
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['post'])
     def check_in(self, request, pk=None):
         """

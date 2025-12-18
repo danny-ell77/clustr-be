@@ -301,6 +301,21 @@ def get_statistics(cluster, start_date=None, end_date=None):
     eligible_shifts = total_shifts - cancelled_shifts
     attendance_rate = (completed_shifts / eligible_shifts * 100) if eligible_shifts > 0 else 0
     
+    # Calculate average overtime hours
+    completed_with_attendance = shifts_qs.filter(
+        status=ShiftStatus.COMPLETED,
+        attendance__isnull=False
+    ).select_related('attendance')
+    
+    total_overtime_seconds = 0
+    overtime_count = 0
+    for shift in completed_with_attendance:
+        if shift.attendance and shift.attendance.overtime_hours:
+            total_overtime_seconds += shift.attendance.overtime_hours.total_seconds()
+            overtime_count += 1
+    
+    average_overtime_hours = (total_overtime_seconds / 3600 / overtime_count) if overtime_count > 0 else 0
+    
     return {
         'total_shifts': total_shifts,
         'completed_shifts': completed_shifts,
@@ -309,4 +324,5 @@ def get_statistics(cluster, start_date=None, end_date=None):
         'missed_shifts': no_show_shifts,  # Alias for compatibility
         'in_progress_shifts': shifts_qs.filter(status=ShiftStatus.IN_PROGRESS).count(),
         'attendance_rate': round(attendance_rate, 2),
+        'average_overtime_hours': round(average_overtime_hours, 2),
     }

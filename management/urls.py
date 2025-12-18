@@ -13,6 +13,8 @@ app_name = "management"
 
 # Create a router for ViewSets
 router = DefaultRouter()
+router.register(r'visitors', views_visitor.ManagementVisitorViewSet, basename='management-visitor')
+router.register(r'visitor-logs', views_visitor.ManagementVisitorLogViewSet, basename='management-visitor-log')
 router.register(r'invitations', views_invitation.ManagementInvitationViewSet, basename='management-invitation')
 router.register(r'events', views_event.ManagementEventViewSet, basename='management-event')
 router.register(r'announcements', views_announcement.ManagementAnnouncementViewSet, basename='management-announcement')
@@ -60,6 +62,9 @@ urlpatterns = [
     
     # Include payment management URLs
     path('', include('management.urls_payment')),
+    
+    # Include resident management URLs
+    path('', include('management.urls_resident')),
     
     # Include chat URLs
     # path('', include('management.urls_chat')),

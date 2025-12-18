@@ -124,11 +124,8 @@ class SigninView(APIView):
     )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
-        print(serializer.is_valid())
         serializer.is_valid(raise_exception=True)
 
-        print(serializer.validated_data, serializer.data)
-        
         try:
             tokens = handle_user_login(
                 email_address=serializer.validated_data['email_address'],

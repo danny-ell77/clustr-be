@@ -85,34 +85,59 @@ def get_wallet_analytics(cluster):
     try:
         wallet = Wallet.objects.get(cluster=cluster, user_id=cluster.id)
         
-        recent_transactions = Transaction.objects.filter(
-            wallet=wallet
-        ).order_by('-created_at')[:10]
+        deposits = Transaction.objects.filter(
+            wallet=wallet,
+            type=TransactionType.DEPOSIT,
+            status='completed'
+        )
+        total_deposits = sum(t.amount for t in deposits) if deposits.exists() else Decimal('0.00')
+        
+        withdrawals = Transaction.objects.filter(
+            wallet=wallet,
+            type=TransactionType.TRANSFER,
+            status='completed'
+        )
+        total_withdrawals = sum(t.amount for t in withdrawals) if withdrawals.exists() else Decimal('0.00')
+        
+        bill_payments = Transaction.objects.filter(
+            wallet=wallet,
+            type=TransactionType.DEPOSIT,
+            status='completed',
+            metadata__source='bill_payment'
+        )
+        bill_payment_revenue = sum(t.amount for t in bill_payments) if bill_payments.exists() else Decimal('0.00')
+        bill_payment_count = bill_payments.count()
+        
+        all_transactions = Transaction.objects.filter(wallet=wallet)
+        total_transactions = all_transactions.count()
+        
+        last_transaction = all_transactions.order_by('-created_at').first()
+        last_transaction_at = last_transaction.created_at if last_transaction else None
         
         return {
             'current_balance': wallet.balance,
             'available_balance': wallet.available_balance,
-            'currency': wallet.currency,
-            'status': wallet.status,
-            'recent_transactions': [
-                {
-                    'id': t.id,
-                    'transaction_id': t.transaction_id,
-                    'type': t.type,
-                    'amount': t.amount,
-                    'description': t.description,
-                    'status': t.status,
-                    'created_at': t.created_at
-                } for t in recent_transactions
-            ]
+            'total_deposits': total_deposits,
+            'total_withdrawals': total_withdrawals,
+            'net_balance': total_deposits - total_withdrawals,
+            'bill_payment_revenue': bill_payment_revenue,
+            'bill_payment_count': bill_payment_count,
+            'total_transactions': total_transactions,
+            'last_transaction_at': last_transaction_at,
+            'wallet_created_at': wallet.created_at
         }
     except Wallet.DoesNotExist:
         return {
             'current_balance': Decimal('0.00'),
             'available_balance': Decimal('0.00'),
-            'currency': 'NGN',
-            'status': 'inactive',
-            'recent_transactions': []
+            'total_deposits': Decimal('0.00'),
+            'total_withdrawals': Decimal('0.00'),
+            'net_balance': Decimal('0.00'),
+            'bill_payment_revenue': Decimal('0.00'),
+            'bill_payment_count': 0,
+            'total_transactions': 0,
+            'last_transaction_at': None,
+            'wallet_created_at': None
         }
 
 

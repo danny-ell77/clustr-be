@@ -54,6 +54,15 @@ class Transaction(AbstractClusterModel):
         help_text=_("The wallet this transaction belongs to"),
     )
 
+    bill = models.ForeignKey('Bill',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+        verbose_name=_("bill"),
+        help_text=_("The bill this transaction is paying for (for cluster-managed bills)"),
+    )
+
     transaction_id = models.CharField(
         verbose_name=_("transaction ID"),
         max_length=100,
