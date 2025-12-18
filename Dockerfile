@@ -30,8 +30,13 @@ RUN mkdir -p /app/logs /app/staticfiles /app/media \
     && python manage.py collectstatic --noinput --clear \
     && chown -R appuser:appuser /app/logs /app/staticfiles /app/media
 
+# Copy entrypoint script and make it executable
+COPY --chown=appuser:appuser entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 USER appuser
 
 EXPOSE 8000
 
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "config.wsgi:application"]
