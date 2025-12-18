@@ -113,8 +113,9 @@ LOGGING = {
 os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+# TODO: Update this later. for now lets get things to work.
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
 
 # REST Framework settings
 REST_FRAMEWORK = {
