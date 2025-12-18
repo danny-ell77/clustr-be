@@ -8,7 +8,7 @@ from pathlib import Path
 from .settings import *  # noqa
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = bool(int(os.getenv("DEBUG", "0")))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
