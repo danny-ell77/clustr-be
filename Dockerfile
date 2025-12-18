@@ -7,8 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings_production
 
-# Create non-root user
-RUN adduser --system --no-create-home appuser
+# Create non-root user with group
+RUN addgroup --system appuser && adduser --system --no-create-home --ingroup appuser appuser
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements/production.txt
 
 # Copy application code
-COPY --chown=appuser . .
+COPY --chown=appuser:appuser . .
 
 # Create directories, collect static files, and set permissions
 RUN mkdir -p /app/logs /app/staticfiles /app/media \
