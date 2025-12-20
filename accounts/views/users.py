@@ -31,7 +31,7 @@ from accounts.serializers import (
     EmailVerificationSerializer,
 )
 from accounts.utils import change_password
-from core.common.email_sender import AccountEmailSender, NotificationTypes
+
 from core.common.exceptions import InvalidDataException
 from core.common.responses import duplicate_entity_response
 from core.common.includes import build_runtime_serializer
@@ -209,10 +209,7 @@ class UserViewSet(
             current_password=data["current_password"],
             force_logout=force_logout,
         )
-        AccountEmailSender(
-            recipients=[user.email_address],
-            email_type=NotificationTypes.PASSWORD_CHANGED,
-        ).send()
+        # Notification is already sent by change_password utility
         status_code = (
             status.HTTP_205_RESET_CONTENT if force_logout else status.HTTP_200_OK
         )

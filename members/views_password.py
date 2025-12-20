@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.conf import settings
 from accounts.authentication_utils import check_account_lockout
 from accounts.models import UserVerification, VerifyMode, VerifyReason
 from accounts.serializers.auth import PasswordChangeSerializer
@@ -48,7 +49,7 @@ class ChangePasswordView(APIView):
                 current_password=serializer.validated_data["current_password"],
                 new_password=serializer.validated_data["new_password"],
                 force_logout=serializer.validated_data.get("force_logout", False),
-                notify=True,
+                notify=settings.DEBUG,
             )
 
             return Response(

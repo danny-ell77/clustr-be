@@ -11,6 +11,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import serializers
 
 from accounts.authentication_utils import (
     handle_user_login,
@@ -95,6 +96,9 @@ class MemberLoginView(APIView):
             ),
             ValidationException: lambda exc: error_response(
                 "VALIDATION_ERROR", str(exc), 400
+            ),
+            serializers.ValidationError: lambda exc: error_response(
+                "VALIDATION_ERROR", str(exc.detail), 400
             ),
         }
     )

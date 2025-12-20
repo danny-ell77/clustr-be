@@ -289,8 +289,6 @@ def handle_user_registration(
         
         user.clusters.add(cluster)
         user.primary_cluster = cluster
-        user.estates.add(cluster)
-        user.primary_estate = cluster
         user.save()
         
         verification = UserVerification.for_mode(

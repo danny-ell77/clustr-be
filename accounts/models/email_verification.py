@@ -11,8 +11,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.common.code_generator import CodeGenerator
-from core.notifications.events import NotificationEvents
-from core.common.includes import notifications
+from core.common.email_sender import AccountEmailSender
+from core.common.email_sender.types import NotificationTypes
 from core.common.models import UUIDPrimaryKey
 
 if TYPE_CHECKING:
@@ -58,21 +58,21 @@ class VerifyMode(TextChoices):
     SMS = "SMS"  # New mode for SMS verification
 
 
-otp_notification_events = {
-    VerifyReason.ONBOARDING: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.PASSWORD_RESET: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.RESEND_TOKEN: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.EMAIL_VERIFICATION: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.PHONE_VERIFICATION: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.PROFILE_UPDATE: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+otp_notification_types = {
+    VerifyReason.ONBOARDING: NotificationTypes.ONBOARDING_OTP_PASSWORD_RESET,
+    VerifyReason.PASSWORD_RESET: NotificationTypes.OTP_PASSWORD_RESET,
+    VerifyReason.RESEND_TOKEN: NotificationTypes.RESEND_OTP,
+    VerifyReason.EMAIL_VERIFICATION: NotificationTypes.EMAIL_VERIFICATION_OTP,
+    VerifyReason.PHONE_VERIFICATION: NotificationTypes.PHONE_VERIFICATION_OTP,
+    VerifyReason.PROFILE_UPDATE: NotificationTypes.PROFILE_UPDATE_OTP,
 }
 
-web_token_notification_events = {
-    VerifyReason.ONBOARDING: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.PASSWORD_RESET: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.RESEND_TOKEN: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.EMAIL_VERIFICATION: NotificationEvents.SYSTEM_UPDATE, # Placeholder
-    VerifyReason.PROFILE_UPDATE: NotificationEvents.SYSTEM_UPDATE, # Placeholder
+web_token_notification_types = {
+    VerifyReason.ONBOARDING: NotificationTypes.ONBOARDING_TOKEN_PASSWORD_RESET,
+    VerifyReason.PASSWORD_RESET: NotificationTypes.WEB_TOKEN_PASSWORD_RESET,
+    VerifyReason.RESEND_TOKEN: NotificationTypes.RESEND_WEB_TOKEN,
+    VerifyReason.EMAIL_VERIFICATION: NotificationTypes.EMAIL_VERIFICATION_TOKEN,
+    VerifyReason.PROFILE_UPDATE: NotificationTypes.PROFILE_UPDATE_TOKEN,
 }
 
 
@@ -117,7 +117,7 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
         return cls.objects.create(
             token=token,
             requested_by=user,
-            notification_type=web_token_notification_types[reason],
+            notification_event=web_token_notification_types[reason].value,
         )
 
     @classmethod
@@ -128,7 +128,7 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
         return cls.objects.create(
             otp=otp,
             requested_by=user,
-            notification_type=otp_notification_types[reason],
+            notification_event=otp_notification_types[reason].value,
         )
 
     @property
@@ -141,17 +141,12 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
         self.is_used = True
 
         # Update the appropriate verification field based on the verification reason
-        if self.notification_type in [
-            NotificationTypes.EMAIL_VERIFICATION_OTP,
-            NotificationTypes.EMAIL_VERIFICATION_TOKEN,
-            NotificationTypes.ONBOARDING_OTP_PASSWORD_RESET,
-            NotificationTypes.ONBOARDING_TOKEN_PASSWORD_RESET,
+        if self.notification_event in [
+            NotificationTypes.EMAIL_VERIFICATION_OTP.value,
+            NotificationTypes.EMAIL_VERIFICATION_TOKEN.value,
         ]:
             self.requested_by.is_verified = True
             self.requested_by.save(update_fields=["is_verified"])
-        elif self.notification_type == NotificationTypes.PHONE_VERIFICATION_OTP:
-            self.requested_by.is_phone_verified = True
-            self.requested_by.save(update_fields=["is_phone_verified"])
 
         self.save(update_fields=["is_used"])
 
@@ -164,7 +159,7 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
         verification = cls.objects.create(
             otp=otp,
             requested_by=user,
-            notification_type=otp_notification_types[reason],
+            notification_event=otp_notification_types[reason].value,
         )
         # Note: The actual SMS sending would be implemented in a separate method
         return verification
@@ -187,16 +182,23 @@ class UserVerification(UUIDPrimaryKey, BaseUserToken, CodeGenerator):
         return strategy(user, reason)
 
     def send_mail(self):
-        context = Context(
-            dict_={
-                "user": self.requested_by,
-                "token": self.sign_token(reason=self.notification_type),
-                "otp": self.otp,
-            }
-        )
+        """Send verification email using AccountEmailSender."""
+        user = self.requested_by
+        try:
+            email_type = NotificationTypes(self.notification_event)
+        except ValueError:
+            email_type = NotificationTypes.RESEND_OTP
+
+        context = Context({
+            "user_name": user.name,
+            "otp": self.otp,
+            "token": self.sign_token(reason=self.notification_event) if self.token else None,
+            "user": user,
+        })
+
         AccountEmailSender(
-            recipients=[self.to_email_address],
-            email_type=self.notification_type,
+            recipients=[user.email_address],
+            email_type=email_type,
             context=context,
         ).send()
 

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><title>Bill Payment Reminder</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+<p>This is a reminder that you have a bill due for payment:</p>
+
+{% if bill_number %}<p><strong>Bill Number:</strong> {{ bill_number }}</p>{% endif %}
+{% if bill_title %}<p><strong>Title:</strong> {{ bill_title }}</p>{% endif %}
+{% if formatted_amount %}<p><strong>Amount:</strong> {{ formatted_amount }}</p>{% endif %}
+{% if formatted_due_date %}<p><strong>Due Date:</strong> {{ formatted_due_date }}</p>{% endif %}
+
+{% if days_until_due %}<p>This bill is due in {{ days_until_due }} day(s).</p>{% endif %}
+{% if days_overdue %}<p><strong>This bill is {{ days_overdue }} day(s) overdue.</strong></p>{% endif %}
+
+<p>Please log in to your ClustR account to make payment.</p>
+
+<p>Thank you,<br>The ClustR Team</p>
+</body>
+</html>

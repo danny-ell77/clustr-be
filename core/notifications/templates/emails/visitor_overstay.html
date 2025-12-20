@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><title>Visitor Overstay Alert</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+<p>Your visitor <strong>{{ visitor_name }}</strong> has exceeded their scheduled visit duration.</p>
+
+{% if access_code %}<p><strong>Access Code:</strong> {{ access_code }}</p>{% endif %}
+{% if formatted_departure_time %}<p><strong>Expected Departure:</strong> {{ formatted_departure_time }}</p>{% endif %}
+
+<p>Please check on your visitor or update their visit duration if needed.</p>
+
+<p>Thank you,<br>The ClustR Team</p>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Welcome to ClustR!</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+<p><strong>Welcome to ClustR!</strong> Your account has been successfully created.</p>
+
+{% if otp %}<p><strong>Your verification code is:</strong> {{ otp }}</p>{% endif %}
+
+<p>Thank you for joining us!</p>
+
+<p>The ClustR Team</p>
+</body>
+</html>

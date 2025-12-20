@@ -55,4 +55,44 @@ DEFAULT_EMAIL_ATTRIBUTES: dict[NotificationTypes, EmailAttribute] = {
         context=DEFAULT_CONTEXT,
         subject="You've been to join {{ owner.name }} at {{ cluster.name }}",
     ),
+    NotificationTypes.PASSWORD_CHANGED: EmailAttribute(
+        template_name="password_changed.html",
+        context=DEFAULT_CONTEXT,
+        subject="Your password has been changed",
+    ),
+    NotificationTypes.EMAIL_VERIFICATION_OTP: EmailAttribute(
+        template_name="email_verification_otp.html",
+        context=DEFAULT_CONTEXT,
+        subject="Verify your email address",
+    ),
+    NotificationTypes.PHONE_VERIFICATION_OTP: EmailAttribute(
+        template_name="phone_verification_otp.html",
+        context=DEFAULT_CONTEXT,
+        subject="Verify your phone number",
+    ),
+    NotificationTypes.PROFILE_UPDATE_OTP: EmailAttribute(
+        template_name="profile_update_otp.html",
+        context=DEFAULT_CONTEXT,
+        subject="Verify your profile update",
+    ),
+    NotificationTypes.EMAIL_VERIFICATION_TOKEN: EmailAttribute(
+        template_name="email_verification_token.html",
+        context=DEFAULT_CONTEXT,
+        subject="Verify your email address",
+    ),
+    NotificationTypes.PROFILE_UPDATE_TOKEN: EmailAttribute(
+        template_name="profile_update_token.html",
+        context=DEFAULT_CONTEXT,
+        subject="Verify your profile update",
+    ),
+    NotificationTypes.RESEND_OTP: EmailAttribute(
+        template_name="resend_otp.html",
+        context=DEFAULT_CONTEXT,
+        subject="Your verification code",
+    ),
+    NotificationTypes.RESEND_WEB_TOKEN: EmailAttribute(
+        template_name="resend_web_token.html",
+        context=DEFAULT_CONTEXT,
+        subject="Verify your email address",
+    ),
 }

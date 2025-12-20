@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Visitor Arrival</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+<p>Your visitor <strong>{{ visitor_name }}</strong> has arrived at the estate.</p>
+
+{% if access_code %}<p><strong>Access Code:</strong> {{ access_code }}</p>{% endif %}
+{% if formatted_arrival_time %}<p><strong>Arrival Time:</strong> {{ formatted_arrival_time }}</p>{% endif %}
+{% if unit %}<p><strong>Unit:</strong> {{ unit }}</p>{% endif %}
+
+<p>Thank you,<br>The ClustR Team</p>
+</body>
+</html>

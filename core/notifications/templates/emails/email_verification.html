@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Verify Your Email</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+<p>Please verify your email address.</p>
+
+{% if otp %}<p><strong>Your verification code is:</strong> {{ otp }}</p>{% endif %}
+{% if verification_link %}<p><a href="{{ verification_link }}">Click here to verify</a></p>{% endif %}
+
+<p>Thank you,<br>The ClustR Team</p>
+</body>
+</html>

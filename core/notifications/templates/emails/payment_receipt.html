@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head><title>Payment Receipt</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+<p>Thank you for your payment. Here are the details:</p>
+
+{% if bill_number %}<p><strong>Bill Number:</strong> {{ bill_number }}</p>{% endif %}
+{% if formatted_payment_amount %}<p><strong>Payment Amount:</strong> {{ formatted_payment_amount }}</p>{% endif %}
+{% if transaction_id %}<p><strong>Transaction ID:</strong> {{ transaction_id }}</p>{% endif %}
+{% if formatted_payment_date %}<p><strong>Payment Date:</strong> {{ formatted_payment_date }}</p>{% endif %}
+
+<p>Thank you for using ClustR!</p>
+
+<p>The ClustR Team</p>
+</body>
+</html>

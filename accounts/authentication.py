@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple, Any
 
-from django.conf import settings
+from config import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework import authentication, exceptions
 from rest_framework.request import Request
@@ -194,11 +194,19 @@ class JWTAuthentication(authentication.BaseAuthentication):
                 getattr(settings, "REQUIRE_VERIFIED_EMAIL", not settings.DEBUG)
                 and not user.is_verified
             ):
+                print("here ==>", getattr(settings, "REQUIRE_VERIFIED_EMAIL", False), settings.DEBUG, user.is_verified)
                 raise exceptions.AuthenticationFailed(_("Email address not verified."))
 
             return user
         except AccountUser.DoesNotExist:
             raise exceptions.AuthenticationFailed(_("User not found."))
+
+    def authenticate_header(self, request):
+        """
+        Return a string to be used as the value of the `WWW-Authenticate`
+        header in a `401 Unauthenticated` response.
+        """
+        return 'Bearer realm="api"'
 
 
 def generate_token(

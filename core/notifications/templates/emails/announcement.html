@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>{{ announcement_title|default:"New Announcement" }}</title></head>
+<body>
+<p>Hello {{ user_name }},</p>
+
+{% if announcement_title %}<h2>{{ announcement_title }}</h2>{% endif %}
+
+{% if announcement_content %}<div>{{ announcement_content }}</div>{% endif %}
+
+{% if announcement_date %}<p><em>Posted on: {{ announcement_date }}</em></p>{% endif %}
+
+<p>Thank you,<br>The ClustR Team</p>
+</body>
+</html>

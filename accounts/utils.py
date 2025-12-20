@@ -9,6 +9,7 @@ from rest_framework_simplejwt.token_blacklist.models import (
 )
 
 from accounts.models import AccountUser
+from django.utils.crypto import get_random_string
 
 ALLOWED_CHARS = (
     """abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789#$%&()+-/<=>?@[\]"""
@@ -18,7 +19,7 @@ PASSWORD_LENGTH = 20
 
 
 def generate_strong_password() -> str:
-    return AccountUser.objects.make_random_password(
+    return get_random_string(
         length=PASSWORD_LENGTH, allowed_chars=ALLOWED_CHARS
     )
 
@@ -71,13 +72,13 @@ def change_password(*, user, new_password, current_password=None, force_logout=F
     
     # Send notification email
     if notify:
-        from django.template import Context
-        from core.common.email_sender import AccountEmailSender, NotificationTypes
+        from core.common.email_sender import AccountEmailSender
+        from core.common.email_sender.types import NotificationTypes
         
         AccountEmailSender(
             recipients=[user.email_address],
             email_type=NotificationTypes.PASSWORD_CHANGED,
-            context=Context(dict_={"user": user})
+            context={"user_name": user.name}
         ).send()
 
 
