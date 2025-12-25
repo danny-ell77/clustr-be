@@ -7,6 +7,9 @@ from rest_framework_simplejwt.token_blacklist.models import (
     BlacklistedToken,
     OutstandingToken,
 )
+from django.utils.translation import gettext_lazy as _
+from django.template import Context
+
 
 from accounts.models import AccountUser
 from django.utils.crypto import get_random_string
@@ -78,7 +81,7 @@ def change_password(*, user, new_password, current_password=None, force_logout=F
         AccountEmailSender(
             recipients=[user.email_address],
             email_type=NotificationTypes.PASSWORD_CHANGED,
-            context={"user_name": user.name}
+            context=Context({"user_name": user.name})
         ).send()
 
 

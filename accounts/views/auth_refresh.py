@@ -29,13 +29,16 @@ class CookieTokenRefreshView(APIView):
         try:
             tokens = refresh_token(refresh_token_str, request)
             
-            response = Response(
-                {'detail': 'Token refreshed successfully'},
-                status=status.HTTP_200_OK
-            )
-            
             access_token = tokens.get('access_token')
             new_refresh_token = tokens.get('refresh_token')
+            
+            response = Response(
+                {
+                    'detail': 'Token refreshed successfully',
+                    'access_token': access_token,
+                },
+                status=status.HTTP_200_OK
+            )
             
             if access_token:
                 response.set_cookie(

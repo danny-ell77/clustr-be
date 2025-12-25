@@ -25,6 +25,12 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
     and extracts cluster context from tokens for multi-tenant support.
     """
     
+    # Whitelist of public routes that don't need JWT processing
+    PUBLIC_ROUTE_PREFIXES = (
+        '/admin/',
+        '/api/v1/auth/',
+    )
+    
     def process_request(self, request: HttpRequest):
         """
         Process the request and prepare for JWT authentication.
@@ -35,12 +41,12 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         Returns:
             None
         """
-        if request.path.startswith('/admin/'):
+        if any(request.path.startswith(prefix) for prefix in self.PUBLIC_ROUTE_PREFIXES):
             return None
+        
         auth_header = request.headers.get('Authorization', '')
         if auth_header.startswith('Bearer '):
             jwt_token = auth_header.split(' ')[1]
-            
             try:
                 secret_key = getattr(settings, 'JWT_SECRET_KEY', settings.SECRET_KEY)
                 algorithms = getattr(settings, 'JWT_ALGORITHMS', ['HS256'])
@@ -61,14 +67,15 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
                 self._extract_context(request, payload)
                 
             except Exception as e:
-                from core.common.error_utils import log_exception
+                ...
+                # from core.common.error_utils import log_exception_with_context
 
-                log_exception(
-                    e,
-                    log_level=logging.DEBUG,
-                    request=request,
-                    context={'message': 'Error extracting JWT payload in middleware'}
-                )
+                # log_exception_with_context(
+                #     e,
+                #     log_level=logging.DEBUG,
+                #     request=request,
+                #     context={'message': 'Error extracting JWT payload in middleware'}
+                # )
             
         return None
     

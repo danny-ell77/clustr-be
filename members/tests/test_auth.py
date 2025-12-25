@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from accounts.models import AccountUser
 from .utils import create_cluster, create_user, authenticate_user, MOCK_USER_PWD
-
+from unittest.mock import patch
 
 class MemberRegistrationViewTests(APITestCase):
     """
@@ -17,7 +17,8 @@ class MemberRegistrationViewTests(APITestCase):
     def setUp(self):
         self.cluster, self.admin = create_cluster()
 
-    def test_registration_success(self):
+    @patch('core.common.email_sender.AccountEmailSender.send')
+    def test_registration_success(self, mock_email_sender):
         """
         A new member should be able to register successfully with valid data.
         """
