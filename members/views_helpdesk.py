@@ -47,6 +47,9 @@ class MembersIssueTicketViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Get issues reported by the current user with search functionality"""
+        if getattr(self, "swagger_fake_view", False):
+            return IssueTicket.objects.none()
+
         queryset = (
             IssueTicket.objects.filter(reported_by=self.request.user)
             .select_related("reported_by", "assigned_to", "cluster")
@@ -148,6 +151,9 @@ class MembersIssueCommentViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Get comments for issues reported by the current user"""
+        if getattr(self, "swagger_fake_view", False):
+            return IssueComment.objects.none()
+
         issue_id = self.kwargs.get("issue_pk")
 
         # Verify the issue belongs to the current user
@@ -243,6 +249,9 @@ class MembersIssueAttachmentViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Get attachments for issues/comments by the current user"""
+        if getattr(self, "swagger_fake_view", False):
+            return IssueAttachment.objects.none()
+
         issue_id = self.kwargs.get("issue_pk")
         comment_id = self.kwargs.get("comment_pk")
 

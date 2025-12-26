@@ -62,6 +62,9 @@ class MaintenanceLogViewSet(viewsets.ModelViewSet):
     pagination_class = MaintenancePagination
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return MaintenanceLog.objects.none()
+
         cluster= getattr(self.request, "cluster_context", None)
         return self.queryset.filter(cluster=cluster).order_by("-created_at")
 
@@ -310,6 +313,9 @@ class MaintenanceScheduleViewSet(viewsets.ModelViewSet):
     filterset_class = MaintenanceScheduleFilter
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return MaintenanceSchedule.objects.none()
+
         cluster= getattr(self.request, "cluster_context", None)
         return self.queryset.filter(cluster=cluster).order_by("next_due_date")
 

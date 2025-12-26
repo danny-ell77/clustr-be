@@ -72,6 +72,7 @@ class WalletViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = TransactionFilter
+    queryset = Wallet.objects.none()
 
     @action(detail=False, methods=["get"])
     def balance(self, request):
@@ -646,6 +647,7 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecurringPaymentFilter
+    queryset = RecurringPayment.objects.none()
 
     @action(
         detail=False, methods=["get"], url_path="my-payments", url_name="my-payments"

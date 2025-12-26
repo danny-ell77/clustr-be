@@ -40,6 +40,9 @@ class ManagementTaskViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Get tasks for the current cluster."""
+        if getattr(self, "swagger_fake_view", False):
+            return Task.objects.none()
+
         return Task.objects.filter(cluster=getattr(self.request, "cluster_context", None)).select_related(
             'assigned_to', 'created_by', 'escalated_to'
         ).prefetch_related(
@@ -372,6 +375,9 @@ class ManagementTaskCommentViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Get comments for tasks in the current cluster."""
+        if getattr(self, "swagger_fake_view", False):
+            return TaskComment.objects.none()
+
         return TaskComment.objects.filter(
             task__cluster=getattr(self.request, "cluster_context", None)
         ).select_related('author', 'task', 'parent')

@@ -38,6 +38,9 @@ class MemberVisitorViewSet(ModelViewSet):
         """
         Return only visitors invited by the current user.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return Visitor.objects.none()
+
         return Visitor.objects.filter(invited_by=self.request.user.id)
 
     def get_serializer_class(self):
@@ -114,6 +117,9 @@ class MemberVisitorLogViewSet(ModelViewSet):
         """
         Return only visitor logs for visitors invited by the current user.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return VisitorLog.objects.none()
+
         visitor_ids = Visitor.objects.filter(
             invited_by=self.request.user.id
         ).values_list("id", flat=True)

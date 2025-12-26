@@ -299,10 +299,13 @@ class ShiftSwapRequestViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get swap requests for the current cluster."""
+        if getattr(self, "swagger_fake_view", False):
+            return ShiftSwapRequest.objects.none()
+
         cluster = getattr(self.request, 'cluster_context', None)
         if not cluster:
             return ShiftSwapRequest.objects.none()
-        
+
         queryset = ShiftSwapRequest.objects.filter(
             cluster=cluster
         ).select_related(
@@ -312,7 +315,7 @@ class ShiftSwapRequestViewSet(ModelViewSet):
             'requested_with',
             'approved_by'
         )
-        
+
         return queryset.order_by('-created_at')
     
     def get_serializer_class(self):

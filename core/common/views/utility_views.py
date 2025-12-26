@@ -38,6 +38,9 @@ class UtilityProviderViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """Get utility providers for user's cluster."""
+        if getattr(self, "swagger_fake_view", False):
+            return UtilityProvider.objects.none()
+
         return UtilityProvider.objects.filter(
             cluster=self.request.cluster.id,
             is_active=True
@@ -66,6 +69,9 @@ class UtilityBillViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get utility bills for the current user."""
+        if getattr(self, "swagger_fake_view", False):
+            return Bill.objects.none()
+
         return Bill.objects.filter(
             user_id=self.request.user.id,
             cluster=self.request.cluster.id,
@@ -112,6 +118,9 @@ class RecurringUtilityPaymentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get recurring utility payments for the current user."""
+        if getattr(self, "swagger_fake_view", False):
+            return RecurringPayment.objects.none()
+
         return RecurringPayment.objects.filter(
             user_id=self.request.user.id,
             cluster=self.request.cluster.id,

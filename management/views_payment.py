@@ -60,6 +60,7 @@ class PaymentManagementViewSet(viewsets.ViewSet):
     """
     ViewSet for payment management operations (admin/staff only).
     """
+    queryset = Transaction.objects.none()
 
     permission_classes = [
         IsAuthenticated,

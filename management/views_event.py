@@ -159,6 +159,9 @@ class ManagementEventGuestViewSet(ModelViewSet):
         """
         Return all event guests for the current cluster.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return EventGuest.objects.none()
+
         event_id = self.kwargs.get('event_pk')
         if event_id:
             return EventGuest.objects.filter(event_id=event_id)

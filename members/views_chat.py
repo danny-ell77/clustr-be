@@ -40,6 +40,9 @@ class ChatViewSet(PermissionRequiredMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get chats that the user can access"""
+        if getattr(self, "swagger_fake_view", False):
+            return Chat.objects.none()
+
         user = self.request.user
 
         # Get chats where user is a participant or public chats
@@ -238,6 +241,9 @@ class MessageViewSet(PermissionRequiredMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Get messages that the user can access"""
+        if getattr(self, "swagger_fake_view", False):
+            return Message.objects.none()
+
         user = self.request.user
 
         return (

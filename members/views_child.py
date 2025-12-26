@@ -42,6 +42,9 @@ class MemberChildViewSet(ModelViewSet):
         """
         Return only children belonging to the current user.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return Child.objects.none()
+
         return Child.objects.filter(parent=self.request.user)
 
     def get_serializer_class(self):
@@ -118,6 +121,9 @@ class MemberExitRequestViewSet(ModelViewSet):
         """
         Return only exit requests for children belonging to the current user.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return ExitRequest.objects.none()
+
         child_ids = Child.objects.filter(parent=self.request.user).values_list(
             "id", flat=True
         )
@@ -198,6 +204,9 @@ class MemberEntryExitLogViewSet(ReadOnlyModelViewSet):
         """
         Return only entry/exit logs for children belonging to the current user.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return EntryExitLog.objects.none()
+
         child_ids = Child.objects.filter(parent=self.request.user).values_list(
             "id", flat=True
         )

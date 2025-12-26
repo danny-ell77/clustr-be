@@ -42,6 +42,9 @@ class UserListView(generics.ListCreateAPIView):
     ordering = ['-date_joined']
     
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return AccountUser.objects.none()
+
         user = self.request.user
         
         # Staff and superusers can see all users
@@ -98,6 +101,9 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = 'pk'
     
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return AccountUser.objects.none()
+
         user = self.request.user
         
         # Staff and superusers can see all users
@@ -146,6 +152,9 @@ class RoleListView(generics.ListCreateAPIView):
     ordering = ['name']
     
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Role.objects.none()
+
         user = self.request.user
         
         # Staff and superusers can see all roles
@@ -184,6 +193,9 @@ class RoleDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = 'pk'
     
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Role.objects.none()
+
         user = self.request.user
         
         # Staff and superusers can see all roles

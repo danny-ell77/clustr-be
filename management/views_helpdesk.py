@@ -64,6 +64,9 @@ class ManagementIssueTicketViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get all issues in the cluster with search functionality"""
+        if getattr(self, "swagger_fake_view", False):
+            return IssueTicket.objects.none()
+
         queryset = IssueTicket.objects.filter(
             cluster=self.request.cluster_context
         ).select_related(
@@ -211,6 +214,9 @@ class ManagementIssueCommentViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get comments for a specific issue"""
+        if getattr(self, "swagger_fake_view", False):
+            return IssueComment.objects.none()
+
         issue_id = self.kwargs.get('issue_pk')
         return IssueComment.objects.filter(
             issue_id=issue_id,
@@ -249,6 +255,9 @@ class ManagementIssueAttachmentViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get attachments for a specific issue or comment"""
+        if getattr(self, "swagger_fake_view", False):
+            return IssueAttachment.objects.none()
+
         issue_id = self.kwargs.get('issue_pk')
         comment_id = self.kwargs.get('comment_pk')
         

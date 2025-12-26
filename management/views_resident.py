@@ -44,6 +44,9 @@ class ResidentViewSet(viewsets.ModelViewSet):
     filterset_fields = ['approved_by_admin', 'is_verified']
     
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return AccountUser.objects.none()
+
         cluster = self.request.cluster_context
         return AccountUser.objects.filter(
             clusters=cluster,

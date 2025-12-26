@@ -53,6 +53,9 @@ class MemberMaintenanceLogViewSet(viewsets.ModelViewSet):
     pagination_class = MaintenancePagination
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return MaintenanceLog.objects.none()
+
         cluster= getattr(self.request, "cluster_context", None)
         return self.queryset.filter(
             cluster=cluster, requested_by=self.request.user

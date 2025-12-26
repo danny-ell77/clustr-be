@@ -275,6 +275,9 @@ class EmergencyContactListView(generics.ListCreateAPIView):
     filterset_class = EmergencyContactFilter
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return EmergencyContact.objects.none()
+
         return EmergencyContact.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -291,4 +294,7 @@ class EmergencyContactDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = EmergencyContactSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return EmergencyContact.objects.none()
+
         return EmergencyContact.objects.filter(user=self.request.user)

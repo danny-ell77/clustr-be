@@ -36,6 +36,9 @@ class MemberInvitationViewSet(ModelViewSet):
         """
         Return only invitations created by the current user.
         """
+        if getattr(self, "swagger_fake_view", False):
+            return Invitation.objects.none()
+
         return Invitation.objects.filter(created_by=self.request.user.id)
 
     def get_serializer_class(self):

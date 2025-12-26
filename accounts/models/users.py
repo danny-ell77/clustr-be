@@ -133,7 +133,7 @@ class AccountUser(UUIDPrimaryKey, ObjectHistoryTracker, AbstractUser):
     phone_number = models.CharField(
         verbose_name=_("phone number"),
         max_length=16,
-        validators=[MinLengthValidator(4), RegexValidator("^\+[1-9]\d{1,14}$")],
+        validators=[MinLengthValidator(4), RegexValidator(r"^\+[1-9]\d{1,14}$")],
         # editable=False,
         help_text=_(
             "The phone number for this subscription in E.164 format. "

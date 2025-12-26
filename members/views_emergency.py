@@ -48,6 +48,9 @@ class EmergencyContactViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Get emergency contacts for the current user"""
+        if getattr(self, "swagger_fake_view", False):
+            return EmergencyContact.objects.none()
+
         return EmergencyContact.objects.filter(
             user=self.request.user, contact_type=EmergencyContactType.PERSONAL
         )
@@ -118,6 +121,9 @@ class SOSAlertViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Get SOS alerts for the current user"""
+        if getattr(self, "swagger_fake_view", False):
+            return SOSAlert.objects.none()
+
         return SOSAlert.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
@@ -246,6 +252,9 @@ class EmergencyResponseViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """Get emergency responses for the current user's alerts"""
+        if getattr(self, "swagger_fake_view", False):
+            return EmergencyResponse.objects.none()
+
         user_alerts = SOSAlert.objects.filter(user=self.request.user)
 
         return EmergencyResponse.objects.filter(alert__in=user_alerts)
