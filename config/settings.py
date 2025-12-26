@@ -185,6 +185,19 @@ REST_FRAMEWORK = {
     # "EXCEPTION_HANDLER": "core.common.exception_handlers.custom_exception_handler",
 }
 
+# Swagger settings for DRF-YASG
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {"type": "apiKey", "name": "Authorization", "in": "header"}
+    },
+    "USE_SESSION_AUTH": False,
+    "JSON_EDITOR": True,
+    "OPERATIONS_SORTER": "alpha",
+    "TAGS_SORTER": "alpha",
+    "DOC_EXPANSION": "list",
+    "SHOW_COMMON_EXTENSIONS": True,
+}
+
 # JWT settings
 JWT_SECRET_KEY = SECRET_KEY  # Use the same secret key for JWT
 JWT_ACCESS_TOKEN_LIFETIME_HOURS = 1
