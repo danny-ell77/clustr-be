@@ -60,6 +60,9 @@ class EmergencyContactManagementViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get all emergency contacts for the cluster"""
+        if getattr(self, "swagger_fake_view", False):
+            return EmergencyContact.objects.none()
+
         return EmergencyContact.objects.filter(
             cluster=getattr(self.request, "cluster_context", None)
         )
@@ -155,6 +158,9 @@ class SOSAlertManagementViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get all SOS alerts for the cluster"""
+        if getattr(self, "swagger_fake_view", False):
+            return SOSAlert.objects.none()
+
         return SOSAlert.objects.filter(
             cluster=getattr(self.request, "cluster_context", None)
         )
@@ -405,6 +411,9 @@ class EmergencyResponseManagementViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get all emergency responses for the cluster"""
+        if getattr(self, "swagger_fake_view", False):
+            return EmergencyResponse.objects.none()
+
         return EmergencyResponse.objects.filter(
             cluster=getattr(self.request, "cluster_context", None)
         )

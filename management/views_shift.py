@@ -61,6 +61,9 @@ class ShiftViewSet(ModelViewSet):
     
     def get_queryset(self):
         """Get shifts for the current cluster."""
+        if getattr(self, "swagger_fake_view", False):
+            return Shift.objects.none()
+
         cluster = getattr(self.request, 'cluster_context', None)
         if not cluster:
             return Shift.objects.none()
