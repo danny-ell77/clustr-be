@@ -47,18 +47,18 @@ v1_endpoints = [
     path("core/", include("core.common.urls")),
     path("members/", include("members.urls")),
     path("management/", include("management.urls")),
-    path(
-        "doc/",
-        schema_view.with_ui("swagger", cache_timeout=0),
-        name="schema-swagger-ui",
-    ),
-    path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
 ]
 
 
 urlpatterns = [
     path("api/health/", health_check, name="health-check"),
     re_path("api/v1/", include(v1_endpoints)),
+    path(
+        "doc/",
+        schema_view.with_ui("swagger", cache_timeout=0),
+        name="schema-swagger-ui",
+    ),
+    path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
 ]
 
 # if settings.DEBUG:

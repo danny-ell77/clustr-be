@@ -15,7 +15,6 @@ class ClustRSchemaGenerator(OpenAPISchemaGenerator):
         # Example: /api/health/ -> ['api', 'health']
         path_segments = [s for s in path.strip("/").split("/") if s]
 
-        # Tag Mappings for descriptive titles
         tag_mappings = {
             "auth": "Authentication",
             "accounts": "Accounts",
