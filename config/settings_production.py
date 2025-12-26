@@ -11,7 +11,8 @@ from .settings import *  # noqa
 DEBUG = bool(int(os.getenv("DEBUG", "0")))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+# Fallback is for build-time only (e.g., collectstatic). Real key required at runtime.
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "build-time-placeholder-not-for-production")
 
 # Allow all host headers
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
