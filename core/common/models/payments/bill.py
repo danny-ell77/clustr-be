@@ -159,6 +159,35 @@ class Bill(AbstractClusterModel):
 
     # Status field removed - will be derived from acknowledgments and transactions
     
+    @property
+    def status(self):
+        """Derived status based on bill state."""
+        if self.is_fully_paid:
+            return BillStatus.PAID
+            
+        if self.paid_amount > 0 and not self.is_fully_paid:
+            return BillStatus.PARTIALLY_PAID
+            
+        if self.is_disputed:
+            return BillStatus.DISPUTED
+            
+        if self.is_overdue:
+            return BillStatus.OVERDUE
+            
+        # User-managed flow specific statuses
+        if self.category == BillCategory.USER_MANAGED:
+            # Check for acknowledgment
+            has_ack = self.acknowledgment_count > 0
+            if not has_ack:
+                return BillStatus.PENDING_ACKNOWLEDGMENT
+            if has_ack and self.paid_amount == 0:
+                # If acknowledged but not paid/started paying, could return ACKNOWLEDGED or PENDING
+                # Based on tests, it seems ACKNOWLEDGED is expected immediately after ack
+                return BillStatus.ACKNOWLEDGED
+                
+        # Default state
+        return BillStatus.PENDING
+    
     acknowledged_by = models.ManyToManyField(
         "accounts.AccountUser",
         blank=True,

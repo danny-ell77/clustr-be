@@ -90,10 +90,9 @@ class AbstractClusterModel(UUIDPrimaryKey, ObjectHistoryTracker):
         """
         # If cluster is not set, try to get it from the current request
         if not self.cluster_id:
-            from threading import local
+            from core.common.middleware.request_middleware import get_current_request
 
-            thread_local = local()
-            request = getattr(thread_local, "request", None)
+            request = get_current_request()
 
             if (
                 request

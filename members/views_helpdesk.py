@@ -114,7 +114,7 @@ class MembersIssueTicketViewSet(ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="my-statistics",
-        url_name="my_statistics",
+        url_name="my-statistics",
     )
     def my_statistics(self, request):
         """Get user's issue statistics"""

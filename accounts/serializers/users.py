@@ -180,3 +180,36 @@ class EmailVerificationSerializer(serializers.Serializer):
     verify_mode = serializers.ChoiceField(
         choices=[VerifyMode.OTP.value, VerifyMode.TOKEN.value]
     )
+
+
+class EmailAccountVerificationSerializer(serializers.Serializer):
+    """Serializer for email account verification request body"""
+    email_address = serializers.EmailField(required=True)
+
+
+class AccountVerificationResponseSerializer(serializers.ModelSerializer):
+    """Serializer for account verification response"""
+    next_step = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = AccountUser
+        fields = [
+            'name',
+            'email_address',
+            'approved_by_admin',
+            'is_verified',
+            'is_phone_verified',
+            'next_step',
+        ]
+        read_only_fields = fields
+
+    def get_next_step(self, obj: AccountUser) -> str:
+        """
+        Determine the next step for the user based on verification status.
+        Returns:
+            "signin" if email is verified
+            "verify" if email is not verified
+        """
+        if obj.is_verified:
+            return "signin"
+        return "verify"

@@ -80,7 +80,7 @@ class MemberAnnouncementViewSetTests(APITestCase):
         """
         Liking an already liked announcement should not error.
         """
-        AnnouncementLike.objects.create(announcement=self.announcement, user_id=self.member.id)
+        AnnouncementLike.objects.create(announcement=self.announcement, user_id=self.member.id, cluster=self.cluster)
         authenticate_user(self.client, self.member)
         url = reverse("members:announcement-like", kwargs={"pk": str(self.announcement.id)})
         response = self.client.post(url)
@@ -91,7 +91,7 @@ class MemberAnnouncementViewSetTests(APITestCase):
         """
         User should be able to unlike an announcement.
         """
-        AnnouncementLike.objects.create(announcement=self.announcement, user_id=self.member.id)
+        AnnouncementLike.objects.create(announcement=self.announcement, user_id=self.member.id, cluster=self.cluster)
         self.announcement.likes_count = 1
         self.announcement.save()
         authenticate_user(self.client, self.member)
@@ -139,7 +139,7 @@ class MemberAnnouncementViewSetTests(APITestCase):
         User should be able to mark an announcement as unread.
         """
         AnnouncementReadStatus.objects.create(
-            announcement=self.announcement, user_id=self.member.id, is_read=True
+            announcement=self.announcement, user_id=self.member.id, is_read=True, cluster=self.cluster
         )
         authenticate_user(self.client, self.member)
         url = reverse("members:announcement-mark-as-unread", kwargs={"pk": str(self.announcement.id)})
@@ -192,3 +192,4 @@ class MemberAnnouncementViewSetTests(APITestCase):
         url = reverse("members:announcement-attachments", kwargs={"pk": str(self.announcement.id)})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        

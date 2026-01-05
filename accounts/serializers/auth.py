@@ -32,4 +32,12 @@ class PasswordChangeSerializer(serializers.Serializer):
         min_length=8, write_only=True, required=True
     )
     new_password = serializers.CharField(min_length=8, write_only=True, required=True)
+    confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
     force_logout = serializers.BooleanField(default=False)
+
+    def validate(self, attrs):
+        if attrs.get("new_password") != attrs.get("confirm_password"):
+            raise serializers.ValidationError(
+                {"confirm_password": "New passwords do not match."}
+            )
+        return attrs

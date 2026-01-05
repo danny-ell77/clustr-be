@@ -43,7 +43,7 @@ class MaintenanceLogSerializer(serializers.ModelSerializer):
             'property_location', 'equipment_name',
             'priority', 'priority_display',
             'status', 'status_display',
-            'performed_by', 'supervised_by', 'requested_by',
+            'performed_by', 'supervised_by', 'requested_by', 'related_ticket',
             'scheduled_date', 'started_at', 'completed_at',
             'estimated_duration', 'actual_duration',
             'cost', 'materials_used', 'tools_used',
@@ -86,7 +86,7 @@ class MaintenanceLogCreateSerializer(serializers.ModelSerializer):
             'property_location', 'equipment_name', 'priority',
             'scheduled_date', 'estimated_duration', 'cost',
             'materials_used', 'tools_used', 'notes',
-            'next_maintenance_due', 'warranty_expiry'
+            'next_maintenance_due', 'warranty_expiry', 'related_ticket'
         ]
     
     def validate_scheduled_date(self, value):
@@ -106,7 +106,7 @@ class MaintenanceLogUpdateSerializer(serializers.ModelSerializer):
             'property_location', 'equipment_name', 'priority', 'status',
             'scheduled_date', 'estimated_duration', 'actual_duration',
             'cost', 'materials_used', 'tools_used', 'notes',
-            'completion_notes', 'next_maintenance_due', 'warranty_expiry'
+            'completion_notes', 'next_maintenance_due', 'warranty_expiry', 'related_ticket'
         ]
 
 

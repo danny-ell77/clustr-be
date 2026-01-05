@@ -149,6 +149,16 @@ class MaintenanceLog(AbstractClusterModel):
         help_text=_("User who requested the maintenance"),
     )
 
+    related_ticket = models.ForeignKey(
+        verbose_name=_("related ticket"),
+        to="common.IssueTicket",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="maintenance_logs",
+        help_text=_("The issue ticket that initiated this maintenance work"),
+    )
+
     scheduled_date = models.DateTimeField(
         verbose_name=_("scheduled date"),
         null=True,

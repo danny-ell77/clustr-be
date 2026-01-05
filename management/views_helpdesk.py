@@ -35,7 +35,11 @@ from core.notifications.events import NotificationEvents
 from core.common.includes import notifications
 from core.common.includes.file_storage import FileStorage
 from accounts.permissions import IsClusterStaffOrAdmin
-
+from core.common.includes import maintenance
+from core.common.serializers.maintenance import MaintenanceLogSerializer
+from core.common.models import MaintenanceStatus
+from core.common.error_codes import CommonAPIErrorCodes
+from core.common.responses import error_response
 
 class ManagementIssueTicketFilter(django_filters.FilterSet):
     """Filter for management issue tickets"""
@@ -160,6 +164,82 @@ class ManagementIssueTicketViewSet(ModelViewSet):
         
         serializer = self.get_serializer(issue)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def create_maintenance(self, request, pk=None):
+        """
+        Create a maintenance log from this issue ticket.
+        """
+        issue = self.get_object()
+        
+        # Check if maintenance log already exists
+        if issue.maintenance_logs.exists():
+             return error_response(
+                error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
+                message="Maintenance log already exists for this ticket",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+            
+        property_location = request.data.get('property_location')
+        if not property_location:
+            return error_response(
+                error_code=CommonAPIErrorCodes.VALIDATION_ERROR,
+                message="property_location is required",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Map issue type to property type
+        from core.common.models.maintenance.property import PropertyType as MaintenancePropertyType
+        from core.common.models.helpdesk import IssueType
+
+        # Default mapping
+        property_type_mapping = {
+            IssueType.PLUMBING: MaintenancePropertyType.PLUMBING,
+            IssueType.ELECTRICAL: MaintenancePropertyType.ELECTRICAL,
+            IssueType.SECURITY: MaintenancePropertyType.SECURITY,
+            IssueType.CARPENTRY: MaintenancePropertyType.BUILDING,
+            IssueType.CLEANING: MaintenancePropertyType.BUILDING,
+            IssueType.OTHER: MaintenancePropertyType.OTHER,
+        }
+        
+        # Determine property type: 
+        # 1. Explicitly provided in request
+        # 2. Mapped from issue type
+        # 3. Default to OTHER
+        property_type = request.data.get('property_type')
+        if not property_type:
+            property_type = property_type_mapping.get(issue.issue_type, MaintenancePropertyType.OTHER)
+            
+        try:
+            # Prepare maintenance log data
+            maintenance_log = maintenance.create_log(
+                cluster=request.cluster_context,
+                requested_by=issue.reported_by,
+                title=f"From Ticket #{issue.issue_no}: {issue.title}",
+                description=issue.description,
+                priority=issue.priority, 
+                property_location=property_location,
+                related_ticket=issue,
+                property_type=property_type,
+                maintenance_type=request.data.get('maintenance_type', 'CORRECTIVE'),
+                status=MaintenanceStatus.SCHEDULED
+            )
+            
+            # Update issue status
+            issue.status = IssueStatus.IN_PROGRESS
+            issue.save()
+            
+            serializer = MaintenanceLogSerializer(maintenance_log)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            from core.common.includes.logging import logger
+            logger.error(f"Error creating maintenance from issue {issue.id}: {str(e)}")
+            return error_response(
+                error_code=CommonAPIErrorCodes.INTERNAL_SERVER_ERROR,
+                message="Failed to create maintenance log",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):

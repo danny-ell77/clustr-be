@@ -57,7 +57,9 @@ class MemberInvitationViewSet(ModelViewSet):
         """
         Create a new invitation and set the created_by field to the current user.
         """
-        serializer.save(created_by=self.request.user.id)
+        serializer.save(
+            created_by=self.request.user.id, cluster=self.request.user.primary_cluster
+        )
 
     @action(detail=True, methods=["post"], url_path="revoke", url_name="revoke")
     def revoke(self, request, pk=None):

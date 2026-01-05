@@ -6,7 +6,6 @@ from typing import Optional
 from uuid import uuid4
 
 from django.utils import timezone
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import AccountUser
 from accounts.utils import generate_strong_password
@@ -82,9 +81,13 @@ def create_cluster(name="Test Estate"):
 def authenticate_user(client, user: AccountUser):
     """
     Authenticate the user on the test client using JWT.
+    Includes cluster_id in the token to enable middleware cluster context setting.
     """
-    refresh = RefreshToken.for_user(user)
-    client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+    from accounts.authentication import generate_token
+
+    cluster_id = str(user.primary_cluster.id) if user.primary_cluster else None
+    tokens = generate_token(user, cluster_id=cluster_id)
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access_token']}")
 
 
 def create_announcement(cluster, author, title="Test Announcement", content="Test Content", is_published=True):
@@ -152,25 +155,47 @@ def create_issue_comment(issue, author, content="Test comment"):
     )
 
 
-def create_visitor(user, name="Test Visitor"):
+def create_visitor(user, name="Test Visitor", cluster=None):
     """
     Create and return a visitor.
     """
+    from django.utils import timezone
+    from uuid import uuid4
+
+    if cluster is None:
+        cluster = user.primary_cluster
+
+    now = timezone.now()
     return Visitor.objects.create(
-        invited_by_id=user.id,
+        cluster=cluster,
+        invited_by=user.id,
         name=name,
-        phone_number="+2348000000010",
+        phone="+2348000000010",
+        estimated_arrival=now + timedelta(hours=1),
+        valid_date=now.date() + timedelta(days=1),
+        access_code=uuid4().hex[:6].upper(),
         purpose="Visit",
     )
 
 
-def create_invitation(user, guest_name="Test Guest"):
+def create_invitation(user, title="Test Invitation", cluster=None):
     """
     Create and return an invitation.
     """
+    from django.utils import timezone
+
+    if cluster is None:
+        cluster = user.primary_cluster
+
+    visitor = create_visitor(user, cluster=cluster)
+    now = timezone.now()
     return Invitation.objects.create(
-        created_by_id=user.id,
-        guest_name=guest_name,
-        guest_phone="+2348000000011",
+        cluster=cluster,
+        visitor=visitor,
+        title=title,
+        start_date=now.date(),
+        end_date=now.date() + timedelta(days=7),
+        created_by=user.id,
         status=Invitation.Status.ACTIVE,
     )
+

@@ -36,7 +36,7 @@ class MemberVisitorViewSetTests(APITestCase):
         url = reverse("members:member-visitor-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data["results"]), 1)
 
     def test_list_does_not_show_other_users_visitors(self):
         """
@@ -48,7 +48,7 @@ class MemberVisitorViewSetTests(APITestCase):
         url = reverse("members:member-visitor-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data["results"]), 1)
 
     def test_create_visitor(self):
         """
@@ -58,13 +58,14 @@ class MemberVisitorViewSetTests(APITestCase):
         url = reverse("members:member-visitor-list")
         data = {
             "name": "New Visitor",
-            "phone_number": "+2348000000020",
+            "phone": "+2348000000020",
             "purpose": "Delivery",
-            "expected_arrival": "2025-12-25T14:00:00Z",
+            "estimated_arrival": "2025-12-25T14:00:00Z",
+            "valid_date": "2025-12-26",
         }
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Visitor.objects.filter(name="New Visitor", invited_by_id=self.member.id).exists())
+        self.assertTrue(Visitor.objects.filter(name="New Visitor", invited_by=self.member.id).exists())
 
     def test_create_visitor_missing_required_fields(self):
         """

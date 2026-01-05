@@ -22,6 +22,8 @@ from accounts.filters import AccountUserFilter
 from accounts.permissions import CanManageAccountUsers, IsClusterAdmin
 from accounts.serializers import (
     AccountSerializer,
+    AccountVerificationResponseSerializer,
+    EmailAccountVerificationSerializer,
     PasswordChangeSerializer,
     PermissionField,
     ResidentImportedDataSerializer,
@@ -306,3 +308,43 @@ class UserViewSet(
         resident.approved_by_admin = True
         resident.save(update_fields=["approved_by_admin"])
         return Response(status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        request_body=EmailAccountVerificationSerializer(),
+        responses={
+            status.HTTP_200_OK: AccountVerificationResponseSerializer(),
+            status.HTTP_404_NOT_FOUND: openapi.Response(
+                description="{'detail': 'Account with this email does not exist'}"
+            ),
+        },
+        operation_description="Verify account by email and return account information including admin approval status",
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        url_name="verify_account_by_email",
+        url_path="verify-by-email",
+        permission_classes=[AllowAny],
+    )
+    def verify_account_by_email(self, request: Request, *args, **kwargs) -> Response:
+        """
+        Endpoint to verify if an account exists for the given email address
+        and return account information including name, email, and admin approval status.
+        """
+        serializer = EmailAccountVerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email_address = serializer.validated_data["email_address"]
+        
+        user = AccountUser.objects.filter(
+            email_address__iexact=email_address
+        ).first()
+        
+        if not user:
+            return Response(
+                {"detail": "Account with this email does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        response_serializer = AccountVerificationResponseSerializer(user)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)

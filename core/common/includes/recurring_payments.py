@@ -197,12 +197,12 @@ def send_payment_reminders(cluster, days_before: int = 1) -> int:
         status=RecurringPaymentStatus.ACTIVE,
         next_payment_date__gte=now,
         next_payment_date__lte=reminder_date
-    )
+    ).annotate(user=Subquery(AccountUser.objects.filter(id=OuterRef("user_id")).values("id")))
     
     count = 0
     for payment in upcoming_payments:
         try:
-            user = AccountUser.objects.get(id=payment.user_id)
+            user = payment.user
             
             notifications.send(
                 event_name=NotificationEvents.RECURRING_PAYMENT_REMINDER,

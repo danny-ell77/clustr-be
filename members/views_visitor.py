@@ -41,7 +41,13 @@ class MemberVisitorViewSet(ModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Visitor.objects.none()
 
-        return Visitor.objects.filter(invited_by=self.request.user.id)
+        print(f"DEBUG: User: {self.request.user} ID: {self.request.user.id}")
+        print(f"DEBUG: Total Visitors: {Visitor.objects.count()}")
+        print(f"DEBUG: All Visitors: {list(Visitor.objects.values('name', 'invited_by'))}")
+        
+        qs = Visitor.objects.filter(invited_by=self.request.user.id)
+        print(f"DEBUG: Filtered Visitors: {qs.count()}")
+        return qs
 
     def get_serializer_class(self):
         """
@@ -57,13 +63,15 @@ class MemberVisitorViewSet(ModelViewSet):
         """
         Create a new visitor and set the invited_by field to the current user.
         """
-        serializer.save(invited_by=self.request.user.id)
+        serializer.save(
+            invited_by=self.request.user.id, cluster=self.request.user.primary_cluster
+        )
 
     @action(
         detail=True,
         methods=["post"],
         url_path="revoke-invitation",
-        url_name="revoke_invitation",
+        url_name="revoke-invitation",
     )
     def revoke_invitation(self, request, pk=None):
         """
@@ -86,7 +94,7 @@ class MemberVisitorViewSet(ModelViewSet):
 
             serializer = VisitorLogCreateSerializer(data=log_data)
             if serializer.is_valid():
-                serializer.save()
+                serializer.save(cluster=visitor.cluster)
                 return Response(
                     {"status": "invitation revoked"}, status=status.HTTP_200_OK
                 )

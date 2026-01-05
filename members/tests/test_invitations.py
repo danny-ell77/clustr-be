@@ -36,19 +36,20 @@ class MemberInvitationViewSetTests(APITestCase):
         url = reverse("members:member-invitation-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        print(response.data)
+        self.assertEqual(len(response.data["results"]), 1)
 
     def test_list_does_not_show_other_users_invitations(self):
         """
         User should not see invitations created by other users.
         """
         other_user = create_user(email="otherinvite@example.com", cluster=self.cluster)
-        create_invitation(other_user, guest_name="Other Guest")
+        create_invitation(other_user, title="Other Guest")
         authenticate_user(self.client, self.member)
         url = reverse("members:member-invitation-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data["results"]), 1)
 
     def test_create_invitation(self):
         """
@@ -57,12 +58,14 @@ class MemberInvitationViewSetTests(APITestCase):
         authenticate_user(self.client, self.member)
         url = reverse("members:member-invitation-list")
         data = {
-            "guest_name": "New Guest",
-            "guest_phone": "+2348000000030",
+            "title": "New Invitation",
+            "visitor": str(self.invitation.visitor.id),
+            "start_date": "2025-12-25",
+            "end_date": "2026-01-01",
         }
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Invitation.objects.filter(guest_name="New Guest", created_by_id=self.member.id).exists())
+        self.assertTrue(Invitation.objects.filter(title="New Invitation", created_by=self.member.id).exists())
 
     def test_create_invitation_missing_required_fields(self):
         """
@@ -70,7 +73,7 @@ class MemberInvitationViewSetTests(APITestCase):
         """
         authenticate_user(self.client, self.member)
         url = reverse("members:member-invitation-list")
-        data = {"guest_name": "Incomplete"}
+        data = {"title": "Incomplete"}
         response = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -135,8 +138,8 @@ class MemberInvitationViewSetTests(APITestCase):
         """
         authenticate_user(self.client, self.member)
         url = reverse("members:member-invitation-detail", kwargs={"pk": str(self.invitation.id)})
-        data = {"guest_name": "Updated Guest Name"}
+        data = {"title": "Updated Title"}
         response = self.client.patch(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.invitation.refresh_from_db()
-        self.assertEqual(self.invitation.guest_name, "Updated Guest Name")
+        self.assertEqual(self.invitation.title, "Updated Title")

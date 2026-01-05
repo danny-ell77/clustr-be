@@ -23,10 +23,9 @@ class ClusterFilteredManager(models.Manager):
         
         # Get the current request from thread local storage
         from django.core.handlers.wsgi import WSGIRequest
-        from threading import local
+        from core.common.middleware.request_middleware import get_current_request
         
-        thread_local = local()
-        request = getattr(thread_local, 'request', None)
+        request = get_current_request()
         
         if request and isinstance(request, WSGIRequest) and hasattr(request, 'cluster_context'):
             cluster = request.cluster_context

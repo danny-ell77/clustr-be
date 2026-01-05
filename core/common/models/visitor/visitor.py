@@ -6,6 +6,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.common.models.base import AbstractClusterModel
+from core.common.code_generator import CodeGenerator
 
 logger = logging.getLogger('clustr')
 

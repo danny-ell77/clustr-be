@@ -140,7 +140,8 @@ class ResetPasswordViewTests(APITestCase):
             VerifyMode.OTP, self.member, VerifyReason.PASSWORD_RESET
         )
 
-    def test_reset_password_success(self):
+    @patch("core.common.email_sender.sender.AccountEmailSender.send")
+    def test_reset_password_success(self, mock_send_mail):
         """
         Password should be reset with a valid verification key.
         """
@@ -151,6 +152,7 @@ class ResetPasswordViewTests(APITestCase):
             "password": new_password,
         }
         response = self.client.post(url, data, format="json")
+        print(response.json())
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.member.refresh_from_db()
         self.assertTrue(self.member.check_password(new_password))

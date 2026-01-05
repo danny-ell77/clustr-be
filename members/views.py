@@ -136,7 +136,10 @@ class RequestPhoneVerificationView(APIView):
         {
             ValidationException: lambda exc: error_response(
                 "VALIDATION_ERROR", str(exc), 400
-            )
+            ),
+            serializers.ValidationError: lambda exc: error_response(
+                "VALIDATION_ERROR", str(exc.detail), 400
+            ),
         }
     )
     def post(self, request, *args, **kwargs):
@@ -188,7 +191,10 @@ class VerifyPhoneView(APIView):
         {
             ValidationException: lambda exc: error_response(
                 "VALIDATION_ERROR", str(exc), 400
-            )
+            ),
+            serializers.ValidationError: lambda exc: error_response(
+                "VALIDATION_ERROR", str(exc.detail), 400
+            ),
         }
     )
     def post(self, request, *args, **kwargs):

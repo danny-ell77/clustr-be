@@ -39,10 +39,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
     Members can view, like, and comment on announcements but cannot create or modify them.
     """
 
-    permission_classes = [
-        permissions.IsAuthenticated,
-        HasClusterPermission.check_permissions(for_view=[CommunicationsPermissions.ViewAnnouncement]),
-    ]
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = AnnouncementSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MemberAnnouncementFilter
@@ -71,7 +68,8 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
 
         # Track the view
         view_obj, created = AnnouncementView.objects.get_or_create(
-            announcement=announcement, user_id=request.user.id
+            announcement=announcement, user_id=request.user.id,
+            defaults={"cluster": announcement.cluster}
         )
 
         # Update view count if this is a new view
@@ -82,7 +80,8 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
 
         # Mark as read
         read_status, _ = AnnouncementReadStatus.objects.get_or_create(
-            announcement=announcement, user_id=request.user.id
+            announcement=announcement, user_id=request.user.id,
+            defaults={"cluster": announcement.cluster}
         )
         if not read_status.is_read:
             read_status.is_read = True
@@ -105,7 +104,8 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         announcement = self.get_object()
 
         like_obj, created = AnnouncementLike.objects.get_or_create(
-            announcement=announcement, user_id=request.user.id
+            announcement=announcement, user_id=request.user.id,
+            defaults={"cluster": announcement.cluster}
         )
 
         if created:
@@ -184,7 +184,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         detail=True,
         methods=["post"],
         url_path="add-comment",
-        url_name="add_comment",
+        url_name="add-comment",
     )
     def add_comment(self, request, pk=None):
         """
@@ -196,7 +196,8 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         if serializer.is_valid():
             with transaction.atomic():
                 comment = serializer.save(
-                    announcement=announcement, author_id=request.user.id
+                    announcement=announcement, author_id=request.user.id,
+                    cluster=announcement.cluster
                 )
 
                 # Update comments count
@@ -230,7 +231,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         detail=True,
         methods=["post"],
         url_path="mark-as-read",
-        url_name="mark_as_read",
+        url_name="mark-as-read",
     )
     def mark_as_read(self, request, pk=None):
         """
@@ -239,7 +240,8 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         announcement = self.get_object()
 
         read_status, created = AnnouncementReadStatus.objects.get_or_create(
-            announcement=announcement, user_id=request.user.id
+            announcement=announcement, user_id=request.user.id,
+            defaults={"cluster": announcement.cluster}
         )
 
         if not read_status.is_read:
@@ -256,7 +258,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         detail=True,
         methods=["post"],
         url_path="mark-as-unread",
-        url_name="mark_as_unread",
+        url_name="mark-as-unread",
     )
     def mark_as_unread(self, request, pk=None):
         """
@@ -286,7 +288,7 @@ class MemberAnnouncementViewSet(ReadOnlyModelViewSet):
         detail=False,
         methods=["get"],
         url_path="unread-count",
-        url_name="unread_count",
+        url_name="unread-count",
     )
     def unread_count(self, request):
         """

@@ -130,6 +130,10 @@ class HasClusterPermission(BasePermission):
         view_perms = [for_view] if isinstance(for_view, str) else (for_view or [])
         obj_perms = [for_object] if isinstance(for_object, str) else (for_object or [])
         
+        # Normalize permissions by adding app label if missing
+        view_perms = [perm if "." in perm else f"accounts.{perm}" for perm in view_perms]
+        obj_perms = [perm if "." in perm else f"accounts.{perm}" for perm in obj_perms]
+        
         return type(
             "HasClusterPermission",
             (cls,),
