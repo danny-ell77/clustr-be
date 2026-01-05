@@ -21,7 +21,7 @@ class ClustRSchemaGenerator(OpenAPISchemaGenerator):
             "roles": "Roles",
             "core": "Core",
             "members": "Members",
-            "management": "Management",
+            # "management": "Management",
             # "health": "System Health",
         }
 
