@@ -25,6 +25,9 @@ from core.common.models import (
 )
 
 
+
+
+
 @admin.register(Cluster)
 class ClusterAdmin(admin.ModelAdmin):
     """Admin configuration for Cluster model."""

@@ -69,7 +69,7 @@ class EmergencyContact(AbstractClusterModel):
         verbose_name=_("user"),
         to="accounts.AccountUser",
         on_delete=models.CASCADE,
-        related_name="emergency_contacts",
+        related_name="common_emergency_contacts",
         null=True,
         blank=True,
         help_text=_("User who owns this contact (null for estate-wide contacts)"),
