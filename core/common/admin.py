@@ -552,17 +552,15 @@ class AnnouncementAdmin(admin.ModelAdmin):
     list_filter = ["category", "is_published", "created_at", "cluster"]
     search_fields = ["title", "content"]
 
-@admin.register(AnnouncementCategory)
-class AnnouncementCategoryAdmin(admin.ModelAdmin):
-    pass # Enum wrapper if needed, but imported as choices usually? Wait, imported as class from models.announcement. But in __init__ it says AnnouncementCategory. It might be a model or enum. 
-    # Checking import: from core.common.models.announcement import AnnouncementCategory (which is a TextChoices).
-    # You cannot register TextChoices. Remove this.
+# @admin.register(AnnouncementCategory)
+# class AnnouncementCategoryAdmin(admin.ModelAdmin):
+#     pass
 
 @admin.register(IssueTicket)
 class IssueTicketAdmin(admin.ModelAdmin):
-    list_display = ["title", "ticket_number", "status", "priority", "category", "assigned_to"]
-    list_filter = ["status", "priority", "category", "created_at", "cluster"]
-    search_fields = ["title", "description", "ticket_number"]
+    list_display = ["title", "issue_no", "status", "priority", "issue_type", "assigned_to"]
+    list_filter = ["status", "priority", "issue_type", "created_at", "cluster"]
+    search_fields = ["title", "description", "issue_no"]
 
 @admin.register(EmergencyContact)
 class EmergencyContactAdmin(admin.ModelAdmin):
@@ -578,25 +576,25 @@ class SOSAlertAdmin(admin.ModelAdmin):
 
 @admin.register(EmergencyResponse)
 class EmergencyResponseAdmin(admin.ModelAdmin):
-    list_display = ["alert", "responder", "status", "response_time"]
-    list_filter = ["status", "cluster"]
+    list_display = ["alert", "responder", "response_type", "estimated_arrival"]
+    list_filter = ["response_type", "cluster"]
     search_fields = ["alert__alert_id", "responder__name"]
 
 @admin.register(Shift)
 class ShiftAdmin(admin.ModelAdmin):
-    list_display = ["user", "shift_type", "start_time", "end_time", "status"]
+    list_display = ["assigned_staff", "shift_type", "start_time", "end_time", "status"]
     list_filter = ["shift_type", "status", "start_time", "cluster"]
-    search_fields = ["user__name", "notes"]
+    search_fields = ["assigned_staff__name", "notes"]
 
 @admin.register(ShiftSwapRequest)
 class ShiftSwapRequestAdmin(admin.ModelAdmin):
-    list_display = ["requester", "recipient", "original_shift", "target_shift", "status"]
+    list_display = ["requested_by", "requested_with", "original_shift", "target_shift", "status"]
     list_filter = ["status", "created_at", "cluster"]
 
 @admin.register(ShiftAttendance)
 class ShiftAttendanceAdmin(admin.ModelAdmin):
-    list_display = ["shift", "check_in_time", "check_out_time", "status"]
-    list_filter = ["status", "check_in_time", "cluster"]
+    list_display = ["shift", "clock_in_time", "clock_out_time"]
+    list_filter = ["clock_in_time", "cluster"]
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
@@ -615,43 +613,44 @@ class MaintenanceLogAdmin(admin.ModelAdmin):
     list_filter = ["maintenance_type", "status", "priority", "scheduled_date", "cluster"]
     search_fields = ["title", "description"]
 
-@admin.register(MaintenanceSchedule)
-class MaintenanceScheduleAdmin(admin.ModelAdmin):
-    list_display = ["name", "maintenance_type", "frequency", "next_due_date", "is_active"]
-    list_filter = ["maintenance_type", "frequency", "is_active", "cluster"]
+# @admin.register(MaintenanceSchedule)
+# class MaintenanceScheduleAdmin(admin.ModelAdmin):
+#     list_display = ["name", "maintenance_type", "frequency", "next_due_date", "is_active"]
+#     list_filter = ["maintenance_type", "frequency", "is_active", "cluster"]
 
 @admin.register(Wallet)
 class WalletAdmin(admin.ModelAdmin):
-    list_display = ["user", "balance", "currency", "status", "last_transaction_at"]
+    list_display = ["user_id", "balance", "currency", "status", "last_transaction_at"]
     list_filter = ["status", "currency", "cluster"]
-    search_fields = ["user__email_address", "wallet_id"]
+    search_fields = ["user_id", "wallet_id"]
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ["reference", "wallet", "amount", "transaction_type", "status", "created_at"]
-    list_filter = ["transaction_type", "status", "created_at", "cluster"]
+    list_display = ["reference", "wallet", "amount", "type", "status", "created_at"]
+    list_filter = ["type", "status", "created_at", "cluster"]
     search_fields = ["reference", "description"]
 
 @admin.register(Bill)
 class BillAdmin(admin.ModelAdmin):
-    list_display = ["bill_number", "user", "amount", "bill_type", "status", "due_date"]
-    list_filter = ["bill_type", "status", "due_date", "cluster"]
-    search_fields = ["bill_number", "user__email_address"]
+    list_display = ["bill_number", "user_id", "amount", "type", "due_date"]
+    # Status is a property, cannot be used in list_filter directly. Removed for now.
+    list_filter = ["type", "due_date", "cluster"] 
+    search_fields = ["bill_number"]
 
 @admin.register(BillDispute)
 class BillDisputeAdmin(admin.ModelAdmin):
-    list_display = ["bill", "raised_by", "status", "created_at"]
+    list_display = ["bill", "disputed_by", "status", "created_at"]
     list_filter = ["status", "cluster"]
 
 @admin.register(RecurringPayment)
 class RecurringPaymentAdmin(admin.ModelAdmin):
-    list_display = ["name", "user", "amount", "frequency", "status", "next_payment_date"]
+    list_display = ["title", "user_id", "amount", "frequency", "status", "next_payment_date"]
     list_filter = ["frequency", "status", "next_payment_date", "cluster"]
 
 @admin.register(UtilityProvider)
 class UtilityProviderAdmin(admin.ModelAdmin):
-    list_display = ["name", "provider_type", "is_active"]
-    list_filter = ["provider_type", "is_active", "cluster"]
+    list_display = ["name", "is_active"]
+    list_filter = ["is_active", "cluster"]
 
 @admin.register(Chat)
 class ChatAdmin(admin.ModelAdmin):
@@ -665,6 +664,6 @@ class MessageAdmin(admin.ModelAdmin):
 
 @admin.register(Meeting)
 class MeetingAdmin(admin.ModelAdmin):
-    list_display = ["title", "meeting_type", "status", "start_time", "organizer"]
-    list_filter = ["meeting_type", "status", "start_time", "cluster"]
+    list_display = ["title", "meeting_type", "status", "scheduled_start", "organizer"]
+    list_filter = ["meeting_type", "status", "scheduled_start", "cluster"]
     search_fields = ["title", "agenda"]
