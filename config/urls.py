@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.contrib import admin
 from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
@@ -51,6 +52,7 @@ v1_endpoints = [
 
 
 urlpatterns = [
+    path("admin/", admin.site.urls),
     path("api/health/", health_check, name="health-check"),
     re_path("api/v1/", include(v1_endpoints)),
     path(

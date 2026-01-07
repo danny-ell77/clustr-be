@@ -13,6 +13,15 @@ from core.common.models import (
     Child,
     ExitRequest,
     EntryExitLog,
+    Announcement, AnnouncementView, AnnouncementLike, AnnouncementComment, AnnouncementReadStatus, AnnouncementCategory,
+    IssueTicket, IssueComment, IssueAttachment, IssueStatusHistory, IssueType, IssueStatus, IssuePriority,
+    EmergencyContact, SOSAlert, EmergencyResponse, EmergencyType, EmergencyStatus, EmergencyContactType,
+    Shift, ShiftSwapRequest, ShiftAttendance, ShiftType, ShiftStatus,
+    Task, TaskAssignment, TaskAssignmentHistory, TaskAttachment, TaskStatusHistory, TaskEscalationHistory, TaskComment, TaskType, TaskStatus, TaskPriority,
+    MaintenanceLog, MaintenanceAttachment, MaintenanceSchedule, MaintenanceCost, MaintenanceComment, MaintenanceType, MaintenanceStatus, MaintenancePriority, PropertyType,
+    Wallet, Transaction, Bill, BillDispute, RecurringPayment, WalletStatus, TransactionType, TransactionStatus, PaymentProvider, BillType, BillCategory, BillStatus, DisputeStatus, RecurringPaymentStatus, RecurringPaymentFrequency, PaymentError, UtilityProvider,
+    Chat, ChatParticipant, Message, MessageAttachment, ChatType, ChatStatus, MessageType, MessageStatus,
+    Meeting, MeetingParticipant, MeetingRecording, MeetingType, MeetingStatus, ParticipantRole, ParticipantStatus, RecordingType, RecordingStatus,
 )
 
 
@@ -534,3 +543,128 @@ class EntryExitLogAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+# --- New Models Admin Registration ---
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ["title", "category", "is_published", "published_at", "views_count"]
+    list_filter = ["category", "is_published", "created_at", "cluster"]
+    search_fields = ["title", "content"]
+
+@admin.register(AnnouncementCategory)
+class AnnouncementCategoryAdmin(admin.ModelAdmin):
+    pass # Enum wrapper if needed, but imported as choices usually? Wait, imported as class from models.announcement. But in __init__ it says AnnouncementCategory. It might be a model or enum. 
+    # Checking import: from core.common.models.announcement import AnnouncementCategory (which is a TextChoices).
+    # You cannot register TextChoices. Remove this.
+
+@admin.register(IssueTicket)
+class IssueTicketAdmin(admin.ModelAdmin):
+    list_display = ["title", "ticket_number", "status", "priority", "category", "assigned_to"]
+    list_filter = ["status", "priority", "category", "created_at", "cluster"]
+    search_fields = ["title", "description", "ticket_number"]
+
+@admin.register(EmergencyContact)
+class EmergencyContactAdmin(admin.ModelAdmin):
+    list_display = ["name", "contact_type", "is_primary", "phone_number", "is_active"]
+    list_filter = ["contact_type", "is_primary", "is_active", "cluster"]
+    search_fields = ["name", "phone_number"]
+
+@admin.register(SOSAlert)
+class SOSAlertAdmin(admin.ModelAdmin):
+    list_display = ["alert_id", "status", "emergency_type", "user", "created_at"]
+    list_filter = ["status", "emergency_type", "created_at", "cluster"]
+    search_fields = ["alert_id", "user__name", "user__email_address"]
+
+@admin.register(EmergencyResponse)
+class EmergencyResponseAdmin(admin.ModelAdmin):
+    list_display = ["alert", "responder", "status", "response_time"]
+    list_filter = ["status", "cluster"]
+    search_fields = ["alert__alert_id", "responder__name"]
+
+@admin.register(Shift)
+class ShiftAdmin(admin.ModelAdmin):
+    list_display = ["user", "shift_type", "start_time", "end_time", "status"]
+    list_filter = ["shift_type", "status", "start_time", "cluster"]
+    search_fields = ["user__name", "notes"]
+
+@admin.register(ShiftSwapRequest)
+class ShiftSwapRequestAdmin(admin.ModelAdmin):
+    list_display = ["requester", "recipient", "original_shift", "target_shift", "status"]
+    list_filter = ["status", "created_at", "cluster"]
+
+@admin.register(ShiftAttendance)
+class ShiftAttendanceAdmin(admin.ModelAdmin):
+    list_display = ["shift", "check_in_time", "check_out_time", "status"]
+    list_filter = ["status", "check_in_time", "cluster"]
+
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ["title", "task_number", "status", "priority", "task_type", "assigned_to", "due_date"]
+    list_filter = ["status", "priority", "task_type", "due_date", "cluster"]
+    search_fields = ["title", "description", "task_number"]
+
+@admin.register(TaskAssignment)
+class TaskAssignmentAdmin(admin.ModelAdmin):
+    list_display = ["task", "assigned_to", "assigned_by", "assigned_at"]
+    list_filter = ["assigned_at", "cluster"]
+
+@admin.register(MaintenanceLog)
+class MaintenanceLogAdmin(admin.ModelAdmin):
+    list_display = ["title", "maintenance_type", "status", "priority", "scheduled_date"]
+    list_filter = ["maintenance_type", "status", "priority", "scheduled_date", "cluster"]
+    search_fields = ["title", "description"]
+
+@admin.register(MaintenanceSchedule)
+class MaintenanceScheduleAdmin(admin.ModelAdmin):
+    list_display = ["name", "maintenance_type", "frequency", "next_due_date", "is_active"]
+    list_filter = ["maintenance_type", "frequency", "is_active", "cluster"]
+
+@admin.register(Wallet)
+class WalletAdmin(admin.ModelAdmin):
+    list_display = ["user", "balance", "currency", "status", "last_transaction_at"]
+    list_filter = ["status", "currency", "cluster"]
+    search_fields = ["user__email_address", "wallet_id"]
+
+@admin.register(Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display = ["reference", "wallet", "amount", "transaction_type", "status", "created_at"]
+    list_filter = ["transaction_type", "status", "created_at", "cluster"]
+    search_fields = ["reference", "description"]
+
+@admin.register(Bill)
+class BillAdmin(admin.ModelAdmin):
+    list_display = ["bill_number", "user", "amount", "bill_type", "status", "due_date"]
+    list_filter = ["bill_type", "status", "due_date", "cluster"]
+    search_fields = ["bill_number", "user__email_address"]
+
+@admin.register(BillDispute)
+class BillDisputeAdmin(admin.ModelAdmin):
+    list_display = ["bill", "raised_by", "status", "created_at"]
+    list_filter = ["status", "cluster"]
+
+@admin.register(RecurringPayment)
+class RecurringPaymentAdmin(admin.ModelAdmin):
+    list_display = ["name", "user", "amount", "frequency", "status", "next_payment_date"]
+    list_filter = ["frequency", "status", "next_payment_date", "cluster"]
+
+@admin.register(UtilityProvider)
+class UtilityProviderAdmin(admin.ModelAdmin):
+    list_display = ["name", "provider_type", "is_active"]
+    list_filter = ["provider_type", "is_active", "cluster"]
+
+@admin.register(Chat)
+class ChatAdmin(admin.ModelAdmin):
+    list_display = ["name", "chat_type", "status", "created_at"]
+    list_filter = ["chat_type", "status", "created_at", "cluster"]
+
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ["chat", "sender", "message_type", "created_at"]
+    list_filter = ["message_type", "created_at"]
+
+@admin.register(Meeting)
+class MeetingAdmin(admin.ModelAdmin):
+    list_display = ["title", "meeting_type", "status", "start_time", "organizer"]
+    list_filter = ["meeting_type", "status", "start_time", "cluster"]
+    search_fields = ["title", "agenda"]
