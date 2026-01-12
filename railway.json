@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "releaseCommand": "python manage.py migrate --no-input && python scripts/load_initial_data.py",
     "restartPolicyType": "on_failure",
     "restartPolicyMaxRetries": 3
   }
