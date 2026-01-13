@@ -351,19 +351,31 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             )
 
             paginator = PageNumberPagination()
+            paginator.page_size = 20
             paginated_bills = paginator.paginate_queryset(queryset, request)
 
-            serializer = BillSerializer(paginated_bills, many=True)
-
-            response_data = {
-                "bills": serializer.data,
-                "pagination": {
-                    "page": paginator.page.number,
-                    "page_size": paginator.page_size,
-                    "total_count": paginator.page.paginator.count,
-                    "total_pages": paginator.page.paginator.num_pages,
-                },
-            }
+            if paginated_bills is not None:
+                serializer = BillSerializer(paginated_bills, many=True)
+                response_data = {
+                    "bills": serializer.data,
+                    "pagination": {
+                        "page": paginator.page.number,
+                        "page_size": paginator.page_size,
+                        "total_count": paginator.page.paginator.count,
+                        "total_pages": paginator.page.paginator.num_pages,
+                    },
+                }
+            else:
+                serializer = BillSerializer(queryset, many=True)
+                response_data = {
+                    "bills": serializer.data,
+                    "pagination": {
+                        "page": 1,
+                        "page_size": paginator.page_size,
+                        "total_count": queryset.count(),
+                        "total_pages": 1,
+                    },
+                }
 
             # response_serializer = BillListResponseSerializer(data=response_data)
             # response_serializer.is_valid(raise_exception=True)
@@ -430,20 +442,31 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             queryset = queryset.order_by("-created_at")
 
             paginator = PageNumberPagination()
+            paginator.page_size = 20
             paginated_transactions = paginator.paginate_queryset(queryset, request)
 
-            serializer = TransactionSerializer(paginated_transactions, many=True)
-
-
-            response_data = {
-                "transactions": serializer.data,
-                "pagination": {
-                    "page": paginator.page.number,
-                    "page_size": paginator.page_size,
-                    "total_count": paginator.page.paginator.count,
-                    "total_pages": paginator.page.paginator.num_pages,
-                },
-            }
+            if paginated_transactions is not None:
+                serializer = TransactionSerializer(paginated_transactions, many=True)
+                response_data = {
+                    "transactions": serializer.data,
+                    "pagination": {
+                        "page": paginator.page.number,
+                        "page_size": paginator.page_size,
+                        "total_count": paginator.page.paginator.count,
+                        "total_pages": paginator.page.paginator.num_pages,
+                    },
+                }
+            else:
+                serializer = TransactionSerializer(queryset, many=True)
+                response_data = {
+                    "transactions": serializer.data,
+                    "pagination": {
+                        "page": 1,
+                        "page_size": paginator.page_size,
+                        "total_count": queryset.count(),
+                        "total_pages": 1,
+                    },
+                }
 
 
             return success_response(
@@ -499,19 +522,31 @@ class PaymentManagementViewSet(viewsets.ViewSet):
             queryset = queryset.order_by("-created_at")
 
             paginator = PageNumberPagination()
+            paginator.page_size = 20
             paginated_payments = paginator.paginate_queryset(queryset, request)
 
-            serializer = RecurringPaymentSerializer(paginated_payments, many=True)
-
-            response_data = {
-                "recurring_payments": serializer.data,
-                "pagination": {
-                    "page": paginator.page.number,
-                    "page_size": paginator.page_size,
-                    "total_count": paginator.page.paginator.count,
-                    "total_pages": paginator.page.paginator.num_pages,
-                },
-            }
+            if paginated_payments is not None:
+                serializer = RecurringPaymentSerializer(paginated_payments, many=True)
+                response_data = {
+                    "recurring_payments": serializer.data,
+                    "pagination": {
+                        "page": paginator.page.number,
+                        "page_size": paginator.page_size,
+                        "total_count": paginator.page.paginator.count,
+                        "total_pages": paginator.page.paginator.num_pages,
+                    },
+                }
+            else:
+                serializer = RecurringPaymentSerializer(queryset, many=True)
+                response_data = {
+                    "recurring_payments": serializer.data,
+                    "pagination": {
+                        "page": 1,
+                        "page_size": paginator.page_size,
+                        "total_count": queryset.count(),
+                        "total_pages": 1,
+                    },
+                }
 
             response_serializer = RecurringPaymentListResponseSerializer(
                 data=response_data

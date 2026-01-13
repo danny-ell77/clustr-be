@@ -232,14 +232,22 @@ class WalletViewSet(viewsets.ViewSet):
             paginator = StandardResultsSetPagination()
             page = paginator.paginate_queryset(queryset, request)
 
-            transaction_serializer = TransactionSerializer(page, many=True)
-
-            pagination_data = {
-                "page": paginator.page.number,
-                "page_size": paginator.page_size,
-                "total_count": paginator.page.paginator.count,
-                "total_pages": paginator.page.paginator.num_pages,
-            }
+            if page is not None:
+                transaction_serializer = TransactionSerializer(page, many=True)
+                pagination_data = {
+                    "page": paginator.page.number,
+                    "page_size": paginator.page_size,
+                    "total_count": paginator.page.paginator.count,
+                    "total_pages": paginator.page.paginator.num_pages,
+                }
+            else:
+                transaction_serializer = TransactionSerializer(queryset, many=True)
+                pagination_data = {
+                    "page": 1,
+                    "page_size": paginator.page_size,
+                    "total_count": queryset.count(),
+                    "total_pages": 1,
+                }
 
             response_serializer = TransactionListResponseSerializer(
                 {
@@ -299,14 +307,22 @@ class BillViewSet(viewsets.ModelViewSet):
             paginator = StandardResultsSetPagination()
             page = paginator.paginate_queryset(queryset, request)
 
-            bill_serializer = BillSerializer(page, many=True)
-
-            pagination_data = {
-                "page": paginator.page.number,
-                "page_size": paginator.page_size,
-                "total_count": paginator.page.paginator.count,
-                "total_pages": paginator.page.paginator.num_pages,
-            }
+            if page is not None:
+                bill_serializer = BillSerializer(page, many=True)
+                pagination_data = {
+                    "page": paginator.page.number,
+                    "page_size": paginator.page_size,
+                    "total_count": paginator.page.paginator.count,
+                    "total_pages": paginator.page.paginator.num_pages,
+                }
+            else:
+                bill_serializer = BillSerializer(queryset, many=True)
+                pagination_data = {
+                    "page": 1,
+                    "page_size": paginator.page_size,
+                    "total_count": queryset.count(),
+                    "total_pages": 1,
+                }
 
             response_serializer = BillListResponseSerializer(
                 {"bills": bill_serializer.data, "pagination": pagination_data}
@@ -673,14 +689,22 @@ class RecurringPaymentViewSet(viewsets.ViewSet):
             paginator = StandardResultsSetPagination()
             page = paginator.paginate_queryset(queryset, request)
 
-            payment_serializer = RecurringPaymentSerializer(page, many=True)
-
-            pagination_data = {
-                "page": paginator.page.number,
-                "page_size": paginator.page_size,
-                "total_count": paginator.page.paginator.count,
-                "total_pages": paginator.page.paginator.num_pages,
-            }
+            if page is not None:
+                payment_serializer = RecurringPaymentSerializer(page, many=True)
+                pagination_data = {
+                    "page": paginator.page.number,
+                    "page_size": paginator.page_size,
+                    "total_count": paginator.page.paginator.count,
+                    "total_pages": paginator.page.paginator.num_pages,
+                }
+            else:
+                payment_serializer = RecurringPaymentSerializer(queryset, many=True)
+                pagination_data = {
+                    "page": 1,
+                    "page_size": paginator.page_size,
+                    "total_count": queryset.count(),
+                    "total_pages": 1,
+                }
 
             response_serializer = RecurringPaymentListResponseSerializer(
                 {
