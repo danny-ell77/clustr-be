@@ -17,6 +17,53 @@ django.setup()
 
 from django.core.management import call_command
 from django.db import transaction
+from django.conf import settings
+
+
+def ensure_fixture_encoding(fixture_name):
+    """
+    Ensure the fixture file is UTF-8 encoded.
+    
+    Windows may save JSON files as UTF-16, which Django's loaddata cannot read.
+    This function detects UTF-16 BOM and converts the file to UTF-8 in-place.
+    """
+    fixture_path = None
+    for fixtures_dir in settings.FIXTURE_DIRS:
+        candidate = os.path.join(fixtures_dir, fixture_name)
+        if os.path.exists(candidate):
+            fixture_path = candidate
+            break
+    
+    if not fixture_path:
+        base_dir = settings.BASE_DIR
+        candidate = os.path.join(base_dir, fixture_name)
+        if os.path.exists(candidate):
+            fixture_path = candidate
+    
+    if not fixture_path:
+        print(f"Fixture file '{fixture_name}' not found, skipping encoding check.")
+        return
+    
+    with open(fixture_path, 'rb') as f:
+        first_bytes = f.read(4)
+    
+    encoding = None
+    if first_bytes[:2] == b'\xff\xfe':
+        encoding = 'utf-16-le'
+    elif first_bytes[:2] == b'\xfe\xff':
+        encoding = 'utf-16-be'
+    elif first_bytes[:3] == b'\xef\xbb\xbf':
+        encoding = 'utf-8-sig'
+    
+    if encoding and encoding != 'utf-8-sig':
+        print(f"Detected {encoding.upper()} encoding in '{fixture_name}', converting to UTF-8...")
+        with open(fixture_path, 'r', encoding=encoding) as f:
+            content = f.read()
+        with open(fixture_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Successfully converted '{fixture_name}' to UTF-8.")
+    else:
+        print(f"Fixture '{fixture_name}' encoding is OK.")
 
 
 DEMO_CLUSTER_NAME = "ClustR-Prime"
@@ -104,6 +151,8 @@ def create_demo_account():
 
 def main():
     print("Checking if initial data should be loaded...")
+
+    ensure_fixture_encoding("initial_data.json")
 
     try:
         call_command("loaddata", "initial_data.json", verbosity=2)
