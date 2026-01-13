@@ -12,8 +12,6 @@ python scripts/ensure_db_exists.py
 echo "Running migrations..."
 python manage.py migrate --no-input
 
-python scripts/load_initial_data.py
-
 # Start the application
 echo "Starting application..."
 exec "$@"
