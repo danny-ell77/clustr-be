@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Ensure Python can find the app modules
+export PYTHONPATH="${PYTHONPATH}:/app"
+
 # Ensure database exists
 echo "Ensuring database exists..."
 python scripts/ensure_db_exists.py
