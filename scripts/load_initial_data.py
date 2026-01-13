@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """
-Load initial data fixture with duplicate handling.
+Load initial data fixture into a fresh database.
 
-This script loads the initial_data.json fixture and creates a demo account.
-Duplicate records are skipped gracefully to allow re-running without errors.
+This script flushes the database, loads the initial_data.json fixture using
+Django's standard loaddata command, and creates a demo account.
 """
-import json
 import os
 import sys
 
@@ -14,10 +13,9 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings_production")
 import django
 django.setup()
 
-from django.apps import apps
-from django.core.serializers.python import Deserializer
-from django.db import IntegrityError, transaction
 from django.conf import settings
+from django.core.management import call_command
+from django.db import transaction
 
 
 def ensure_fixture_encoding(fixture_name):
@@ -66,86 +64,45 @@ def ensure_fixture_encoding(fixture_name):
         print(f"Fixture '{fixture_name}' encoding is OK.")
 
 
-def load_fixture_skip_duplicates(fixture_name):
-    """
-    Load a JSON fixture file, skipping any records that cause duplicate key errors.
-    """
-    fixture_path = None
-    for fixtures_dir in settings.FIXTURE_DIRS:
-        candidate = os.path.join(fixtures_dir, fixture_name)
-        if os.path.exists(candidate):
-            fixture_path = candidate
-            break
-    
-    if not fixture_path:
-        base_dir = settings.BASE_DIR
-        candidate = os.path.join(base_dir, fixture_name)
-        if os.path.exists(candidate):
-            fixture_path = candidate
-    
-    if not fixture_path:
-        raise FileNotFoundError(f"Fixture file '{fixture_name}' not found.")
-    
-    print(f"Loading fixture from: {fixture_path}")
-    
-    with open(fixture_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    loaded = 0
-    skipped = 0
-    
-    for obj_data in data:
-        model_label = obj_data.get('model')
-        pk = obj_data.get('pk')
-        
-        try:
-            for deserialized_obj in Deserializer([obj_data]):
-                try:
-                    deserialized_obj.save()
-                    loaded += 1
-                except IntegrityError:
-                    skipped += 1
-                    print(f"  Skipped duplicate: {model_label} (pk={pk})")
-        except Exception as e:
-            skipped += 1
-            print(f"  Error deserializing {model_label} (pk={pk}): {e}")
-    
-    print(f"Fixture loaded: {loaded} objects created, {skipped} duplicates skipped.")
-
-
 DEMO_CLUSTER_NAME = "ClustR-Prime"
 DEMO_OWNER_EMAIL = "admin@demo.com"
 DEMO_OWNER_PASSWORD = os.environ.get("DEMO_OWNER_PASSWORD", "ClustR@Demo2026!")
 DEMO_OWNER_NAME = "Demo Administrator"
 DEMO_OWNER_PHONE = "+2348000000000"
 
+SUPERUSER_EMAIL = os.environ.get("DJANGO_SUPERUSER_EMAIL", "superadmin@clustr.com")
+SUPERUSER_PASSWORD = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "ClustR@Super2026!")
+SUPERUSER_NAME = os.environ.get("DJANGO_SUPERUSER_NAME", "Super Admin")
 
-def is_database_empty():
+
+def create_superuser():
     """
-    Check if foundational tables are empty.
-    Returns True if the database appears to be fresh/empty.
+    Create a Django superuser for admin access.
+    Credentials can be set via environment variables:
+    - DJANGO_SUPERUSER_EMAIL
+    - DJANGO_SUPERUSER_PASSWORD
+    - DJANGO_SUPERUSER_NAME
     """
     from accounts.models import AccountUser
-    from core.common.models import Cluster
 
-    checks = [
-        ("AccountUser", AccountUser.objects.exists()),
-        ("Cluster", Cluster.objects.exists()),
-    ]
+    if AccountUser.objects.filter(email_address=SUPERUSER_EMAIL).exists():
+        print(f"Superuser '{SUPERUSER_EMAIL}' already exists. Skipping creation.")
+        return
 
-    for table_name, has_data in checks:
-        if has_data:
-            print(f"Table '{table_name}' has existing data.")
-            return False
-
-    print("All foundational tables are empty.")
-    return True
+    print(f"Creating superuser '{SUPERUSER_EMAIL}'...")
+    AccountUser.objects.create_superuser(
+        email_address=SUPERUSER_EMAIL,
+        password=SUPERUSER_PASSWORD,
+        name=SUPERUSER_NAME,
+    )
+    print(f"Superuser created successfully.")
+    print(f"  Email: {SUPERUSER_EMAIL}")
+    print(f"  Password: {SUPERUSER_PASSWORD}")
 
 
 def create_demo_account():
     """
     Create a demo cluster and owner account for initial testing.
-    This runs after the fixture is loaded if the database was empty.
     """
     from accounts.models import AccountUser
     from core.common.models import Cluster
@@ -197,23 +154,47 @@ def create_demo_account():
 
 
 def main():
-    print("Loading initial data...")
+    print("=" * 60)
+    print("INITIAL DATA LOADER")
+    print("=" * 60)
 
+    print("\n[Step 1/5] Checking fixture encoding...")
     ensure_fixture_encoding("initial_data.json")
 
+    print("\n[Step 2/5] Flushing database (removing all existing data)...")
     try:
-        load_fixture_skip_duplicates("initial_data.json")
+        call_command("flush", "--no-input", verbosity=1)
+        print("Database flushed successfully.")
     except Exception as e:
-        print(f"Error loading initial data: {e}")
+        print(f"Error flushing database: {e}")
         sys.exit(1)
 
-    print("\nCreating demo account...")
+    print("\n[Step 3/5] Loading initial_data.json fixture...")
+    try:
+        call_command("loaddata", "initial_data.json", verbosity=2)
+        print("Fixture loaded successfully.")
+    except Exception as e:
+        print(f"Error loading fixture: {e}")
+        sys.exit(1)
+
+    print("\n[Step 4/5] Creating superuser for admin access...")
+    try:
+        create_superuser()
+    except Exception as e:
+        print(f"Error creating superuser: {e}")
+        sys.exit(1)
+
+    print("\n[Step 5/5] Creating demo account...")
     try:
         create_demo_account()
         print("Demo account setup complete.")
     except Exception as e:
         print(f"Error creating demo account: {e}")
         sys.exit(1)
+
+    print("\n" + "=" * 60)
+    print("INITIAL DATA LOAD COMPLETE")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
