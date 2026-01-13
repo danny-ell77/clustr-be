@@ -105,24 +105,20 @@ def create_demo_account():
 def main():
     print("Checking if initial data should be loaded...")
 
-    if is_database_empty():
-        print("Database is empty. Loading initial_data.json...")
-        try:
-            call_command("loaddata", "initial_data.json", verbosity=2)
-            print("Initial data loaded successfully.")
-        except Exception as e:
-            print(f"Error loading initial data: {e}")
-            sys.exit(1)
+    try:
+        call_command("loaddata", "initial_data.json", verbosity=2)
+        print("Initial data loaded successfully.")
+    except Exception as e:
+        print(f"Error loading initial data: {e}")
+        sys.exit(1)
 
-        print("\nCreating demo account...")
-        try:
-            create_demo_account()
-            print("Demo account setup complete.")
-        except Exception as e:
-            print(f"Error creating demo account: {e}")
-            sys.exit(1)
-    else:
-        print("Database already has data. Skipping initial data load.")
+    print("\nCreating demo account...")
+    try:
+        create_demo_account()
+        print("Demo account setup complete.")
+    except Exception as e:
+        print(f"Error creating demo account: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

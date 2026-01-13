@@ -49,7 +49,7 @@ class AccountUserAdmin(BaseUserAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email_address", "name", "password"),
+                "fields": ("email_address", "name", "password1", "password2"),
             },
         ),
     )
