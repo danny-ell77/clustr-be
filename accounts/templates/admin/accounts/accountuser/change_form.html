@@ -1,0 +1,11 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+{{ block.super }}
+{% if add_to_cluster_url %}
+<li>
+    <a href="{{ add_to_cluster_url }}" class="addlink">Add to Cluster</a>
+</li>
+{% endif %}
+{% endblock %}

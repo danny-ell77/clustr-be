@@ -194,6 +194,16 @@ class ClusterNotFoundException(ResourceNotFoundException):
     default_code = CommonAPIErrorCodes.CLUSTER_NOT_FOUND
 
 
+class ClusterAdminExistsException(ResourceConflictException):
+    """
+    Exception raised when attempting to add an admin to a cluster that already has one.
+    
+    Each cluster can have only one admin/owner. Use replace_admin() to change admins.
+    """
+    default_detail = "This cluster already has an admin."
+    default_code = CommonAPIErrorCodes.RESOURCE_CONFLICT
+
+
 class RateLimitException(ClustRBaseException):
     """
     Exception raised when rate limit is exceeded.

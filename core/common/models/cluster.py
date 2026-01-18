@@ -6,6 +6,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from core.common.models import UUIDPrimaryKey, ObjectHistoryTracker
+from core.common.exceptions import ClusterAdminExistsException
 
 if TYPE_CHECKING:
     from accounts.models.users import AccountUser
@@ -115,13 +116,61 @@ class Cluster(UUIDPrimaryKey, ObjectHistoryTracker):
     def get_all_users(self):
         """Get all users in this cluster."""
         return self.users.all()
+    
+    def get_admin(self):
+        """Get the admin/owner of this cluster, if one exists."""
+        return self.users.filter(is_cluster_admin=True).first()
 
     def add_admin(self, admin: "AccountUser"):
         """
-        Add an admin to this cluster.
-        There should be some logic though to figure out  which clustr to set as primary.
-        Currently the primary cluster is set to the latest cluster added.
+        Set the admin/owner of this cluster.
+        
+        Each cluster can have only one admin. If an admin already exists,
+        this will raise ClusterAdminExistsException. Use `replace_admin` to change admins.
+        
+        Raises:
+            ClusterAdminExistsException: If the cluster already has an admin
         """
+        existing_admin = self.get_admin()
+        if existing_admin is not None:
+            raise ClusterAdminExistsException(
+                f"Cluster '{self.name}' already has an admin ({existing_admin.email_address}). "
+                "Use replace_admin() to change admins."
+            )
+        
         admin.primary_cluster = self
-        admin.cluster.add(self)
-        admin.save(update_fields=["primary_cluster"])
+        admin.clusters.add(self)
+        admin.is_cluster_admin = True
+        admin.save(update_fields=["primary_cluster", "is_cluster_admin"])
+
+    def replace_admin(self, new_admin: "AccountUser"):
+        """
+        Replace the current admin with a new one.
+        The previous admin will have their is_cluster_admin flag cleared.
+        """
+        old_admin = self.get_admin()
+        if old_admin:
+            old_admin.is_cluster_admin = False
+            old_admin.save(update_fields=["is_cluster_admin"])
+        
+        new_admin.primary_cluster = self
+        new_admin.clusters.add(self)
+        new_admin.is_cluster_admin = True
+        new_admin.save(update_fields=["primary_cluster", "is_cluster_admin"])
+
+    def add_staff(self, staff: "AccountUser", set_as_primary: bool = True):
+        """
+        Add a staff member to this cluster.
+        Sets is_cluster_staff=True on the user.
+        
+        Args:
+            staff: The user to add as staff
+            set_as_primary: If True, sets this cluster as the user's primary cluster
+        """
+        staff.clusters.add(self)
+        staff.is_cluster_staff = True
+        update_fields = ["is_cluster_staff"]
+        if set_as_primary:
+            staff.primary_cluster = self
+            update_fields.append("primary_cluster")
+        staff.save(update_fields=update_fields)

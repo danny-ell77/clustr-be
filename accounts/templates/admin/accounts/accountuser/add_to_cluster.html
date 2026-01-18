@@ -1,0 +1,59 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<p>Add <strong>{{ user.email_address }}</strong> ({{ user.name }}) to a cluster:</p>
+
+<form method="post">
+{% csrf_token %}
+
+<fieldset class="module aligned">
+    <div class="form-row">
+        <label for="cluster">Select Cluster:</label>
+        <select name="cluster" id="cluster" required>
+            <option value="">---------</option>
+            {% for cluster in clusters %}
+                <option value="{{ cluster.pk }}" data-has-admin="{{ cluster.has_admin|yesno:'1,0' }}" data-admin-name="{{ cluster.admin_name }}">
+                    {{ cluster.name }} ({{ cluster.get_type_display }}, {{ cluster.city }}){% if cluster.has_admin %} - Admin: {{ cluster.admin_name }}{% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-row">
+        <label for="role_type">Add as:</label>
+        <select name="role_type" id="role_type" required>
+            <option value="">---------</option>
+            <option value="admin">Admin (new cluster only)</option>
+            <option value="replace_admin">Replace Existing Admin</option>
+            <option value="staff">Staff</option>
+        </select>
+        <p class="help" id="role_help"></p>
+    </div>
+</fieldset>
+
+<div class="submit-row">
+    <input type="submit" value="Add to Cluster" class="default">
+    <a href="{% url opts|admin_urlname:'change' user.pk %}" class="button cancel-link">Cancel</a>
+</div>
+
+</form>
+
+<script>
+document.getElementById('cluster').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const hasAdmin = selected.dataset.hasAdmin === '1';
+    const adminName = selected.dataset.adminName;
+    const helpText = document.getElementById('role_help');
+    
+    if (hasAdmin) {
+        helpText.textContent = 'This cluster already has an admin (' + adminName + '). Select "Replace Existing Admin" to change admins, or "Staff" to add as staff.';
+        helpText.style.color = '#c00';
+    } else {
+        helpText.textContent = '';
+    }
+});
+</script>
+{% endblock %}
