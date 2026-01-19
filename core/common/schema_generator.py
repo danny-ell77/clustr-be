@@ -1,3 +1,4 @@
+import re
 from drf_yasg.generators import OpenAPISchemaGenerator
 
 
@@ -44,8 +45,55 @@ class ClustRSchemaGenerator(OpenAPISchemaGenerator):
             tag = tag_mappings.get(target_key, target_key.replace("-", " ").title())
             operation.tags = [tag]
         
-        # Ensure operation_id is clean and consistent
-        # We use path segments to generate a unique ID
-        operation.operation_id = f"{method.lower()}_{'_'.join(path_segments)}"
+        # Generate plain English operation_id from view action and class name
+        action = getattr(view, 'action', None)
+        view_name = self.format_view_name(view.__class__.__name__)
+        
+        # Standard CRUD actions that need method prefix for clarity
+        standard_actions = {'list', 'create', 'retrieve', 'update', 'partial_update', 'destroy'}
+        
+        # Map standard actions to plain English
+        action_names = {
+            'list': 'List',
+            'create': 'Create',
+            'retrieve': 'Get',
+            'update': 'Update',
+            'partial_update': 'Patch',
+            'destroy': 'Delete',
+        }
+        
+        if action:
+            if action in standard_actions:
+                # Standard CRUD: use mapped name + view name
+                readable_action = action_names[action]
+                operation.operation_id = f"{readable_action} {view_name}"
+            else:
+                # Custom @action: action name already has semantic meaning
+                readable_action = action.replace('_', ' ').title()
+                readable_method = "Fetch" if method.upper() == "GET" else ""
+                operation.operation_id = f"{view_name} - {readable_method} {readable_action}"
+        else:
+            # Fallback for non-ViewSet views: use method + view name
+            method_names = {
+                'GET': 'Get',
+                'POST': 'Create',
+                'PUT': 'Update',
+                'PATCH': 'Patch',
+                'DELETE': 'Delete',
+            }
+            readable_method = method_names.get(method.upper(), method.title())
+            operation.operation_id = f"{readable_method} {view_name}"
 
         return operation
+
+
+    def format_view_name(self, name):
+        name = re.sub(r'(ViewSet|APIView|View)$', '', name)
+        
+        name = re.sub(r'Members?$', "Member's", name)
+        name = re.sub(r'Managements?$', "Management's", name)
+        
+        # Split PascalCase into words
+        name = re.sub(r'([a-z])([A-Z])', r'\1 \2', name)
+        
+        return name
