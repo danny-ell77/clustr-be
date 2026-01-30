@@ -32,17 +32,20 @@ class ShiftSwapRequest(AbstractClusterModel):
     
     requested_by = models.ForeignKey(
         verbose_name=_("requested by"),
-        to="accounts.AccountUser",
+        to="common.Staff",
         on_delete=models.CASCADE,
-        related_name="shift_swap_requests"
+        related_name="shift_swap_requests",
+        help_text=_("Staff member requesting the swap")
     )
     
     requested_with = models.ForeignKey(
         verbose_name=_("requested with"),
-        to="accounts.AccountUser",
+        to="common.Staff",
         on_delete=models.CASCADE,
-        related_name="shift_swap_offers"
+        related_name="shift_swap_offers",
+        help_text=_("Staff member to swap with")
     )
+
     
     target_shift = models.ForeignKey(
         verbose_name=_("target shift"),

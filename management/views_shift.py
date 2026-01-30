@@ -279,6 +279,47 @@ class ShiftViewSet(ModelViewSet):
         serializer = ShiftListSerializer(overdue_shifts, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def calendar(self, request):
+        """Get shifts for calendar view, expanding recurring ones."""
+        cluster = getattr(self.request, 'cluster_context', None)
+        if not cluster:
+            return Response(
+                {'error': 'Cluster context is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+
+        if not start_date or not end_date:
+            return Response(
+                {'error': 'start_date and end_date are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            start_date_obj = datetime.fromisoformat(start_date).date()
+            end_date_obj = datetime.fromisoformat(end_date).date()
+        except ValueError:
+            return Response(
+                {'error': 'Invalid date format. Use YYYY-MM-DD'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        filters = {
+            'staff_id': request.query_params.get('staff_id'),
+            'status': request.query_params.get('status'),
+            'shift_type': request.query_params.get('shift_type'),
+        }
+
+        calendar_shifts = shifts.get_calendar_shifts(
+            cluster, start_date_obj, end_date_obj, **filters
+        )
+
+        serializer = ShiftListSerializer(calendar_shifts, many=True)
+        return Response(serializer.data)
+
 
 class ShiftSwapRequestFilter(django_filters.FilterSet):
     """Filter for shift swap requests"""

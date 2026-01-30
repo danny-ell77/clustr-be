@@ -15,9 +15,32 @@ class AnnouncementCategory(models.TextChoices):
     """
     Categories for announcements.
     """
-    NEWS = "News", _("News")
-    ESTATE_ISSUES = "Estate Issues", _("Estate Issues")
-    OTHERS = "Others", _("Others")
+    GENERAL = "GENERAL", _("General")
+    MAINTENANCE = "MAINTENANCE", _("Maintenance")
+    SECURITY = "SECURITY", _("Security")
+    EVENT = "EVENT", _("Event")
+    EMERGENCY = "EMERGENCY", _("Emergency")
+    BILLING = "BILLING", _("Billing")
+    OTHER = "OTHER", _("Other")
+
+
+class AnnouncementPriority(models.TextChoices):
+    """
+    Priority levels for announcements.
+    """
+    LOW = "LOW", _("Low")
+    MEDIUM = "MEDIUM", _("Medium")
+    HIGH = "HIGH", _("High")
+    URGENT = "URGENT", _("Urgent")
+
+
+class AnnouncementStatus(models.TextChoices):
+    """
+    Status of announcements.
+    """
+    DRAFT = "DRAFT", _("Draft")
+    PUBLISHED = "PUBLISHED", _("Published")
+    ARCHIVED = "ARCHIVED", _("Archived")
 
 
 class Announcement(AbstractClusterModel):
@@ -38,8 +61,22 @@ class Announcement(AbstractClusterModel):
         verbose_name=_("category"),
         max_length=20,
         choices=AnnouncementCategory.choices,
-        default=AnnouncementCategory.NEWS,
+        default=AnnouncementCategory.GENERAL,
         help_text=_("Category of the announcement")
+    )
+    priority = models.CharField(
+        verbose_name=_("priority"),
+        max_length=10,
+        choices=AnnouncementPriority.choices,
+        default=AnnouncementPriority.MEDIUM,
+        help_text=_("Priority level of the announcement")
+    )
+    status = models.CharField(
+        verbose_name=_("status"),
+        max_length=10,
+        choices=AnnouncementStatus.choices,
+        default=AnnouncementStatus.DRAFT,
+        help_text=_("Current status of the announcement")
     )
     author_id = models.UUIDField(
         verbose_name=_("author ID"),

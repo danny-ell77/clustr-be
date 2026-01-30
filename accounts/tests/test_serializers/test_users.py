@@ -50,10 +50,10 @@ class BaseAccountSerializerTestCase:
     def test_invalid_name(self):
         invalid_data = self.valid_data.copy()
         for invalid_attr in ["", "Invalid Length" * 100]:
-            invalid_data["name"] = invalid_attr
+            invalid_data["first_name"] = invalid_attr
             serializer = self.serializer_class(data=invalid_data)
             self.assertFalse(serializer.is_valid())
-            self.assertIn("name", serializer.errors)
+            self.assertIn("first_name", serializer.errors)
             self.assertDictEqual(serializer.validated_data, {})
 
     def _create_instance(self) -> AccountUser:
@@ -69,7 +69,8 @@ class AccountOwnerSerializerTestCase(TestCase, BaseAccountSerializerTestCase):
     def setUpTestData(cls):
         cls.valid_data = {
             "email_address": "someuser@test.com",
-            "name": "Jonny Lenn",
+            "first_name": "Jonny",
+            "last_name": "Lenn",
             "password": "mock123testify",
         }
         cls.serializer_class = OwnerAccountSerializer
@@ -92,11 +93,11 @@ class AccountOwnerSerializerTestCase(TestCase, BaseAccountSerializerTestCase):
     @patch("core.common.email_sender.sender.AccountEmailSender.send")
     def test_update(self, mock_email_sender):
         instance = self._create_instance()
-        data = {"name": "New Name"}
+        data = {"first_name": "New", "last_name": "Name"}
         serializer = self.serializer_class(instance, data=data, partial=True)
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        self.assertEqual(instance.name, data["name"])
+        self.assertEqual(instance.name, "New Name")
 
 
 class SubuserAccountSerializerTestCase(TestCase, BaseAccountSerializerTestCase):
@@ -104,7 +105,8 @@ class SubuserAccountSerializerTestCase(TestCase, BaseAccountSerializerTestCase):
     def setUpTestData(cls):
         cls.valid_data = {
             "email_address": "subuser@test.com",
-            "name": "Sarah Lenn",
+            "first_name": "Sarah",
+            "last_name": "Lenn",
             "permissions": [str(value) for value in AccessControlPermissions],
         }
         cls.serializer_class = SubuserAccountSerializer
@@ -125,11 +127,11 @@ class SubuserAccountSerializerTestCase(TestCase, BaseAccountSerializerTestCase):
     @patch("core.common.email_sender.sender.AccountEmailSender.send")
     def test_update(self, mock_email_sender):
         instance = self._create_instance()
-        data = {"name": "New Name"}
+        data = {"first_name": "New", "last_name": "Name"}
         serializer = self.serializer_class(instance, data=data, partial=True)
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        self.assertEqual(instance.name, data["name"])
+        self.assertEqual(instance.name, "New Name")
 
 
 class StaffAccountSerializerTestCase(
@@ -140,7 +142,8 @@ class StaffAccountSerializerTestCase(
         super().setUpTestData()
         cls.valid_data = {
             "email_address": "staffuser@test.com",
-            "name": "William Duke",
+            "first_name": "William",
+            "last_name": "Duke",
             "roles": Role.objects.filter(
                 name=f"{cls.cluster_admin.pk}:Security"
             ).values_list("id", flat=True),
@@ -168,7 +171,8 @@ class ClusterAdminAccountTestCase(TestUsers, TestCase):
         cls.valid_data = {
             "admin": {
                 "email_address": "staffuser@test.com",
-                "name": "William Duke",
+                "first_name": "William",
+                "last_name": "Duke",
                 "password": "test123*&^()",
             },
             "name": "Oakridge Industrial Estate",

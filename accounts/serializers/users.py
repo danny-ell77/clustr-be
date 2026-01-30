@@ -6,17 +6,20 @@ from rest_framework import serializers
 
 from accounts.models import AccountUser, UserVerification, VerifyReason, VerifyMode
 from accounts.serializers.roles import PermissionField
+from accounts.serializers.mixins import NameSplitMixin
 from core.notifications.events import NotificationEvents
 from core.common.includes import notifications
 from core.common.models import Cluster
 
 
-class AccountSerializer(serializers.ModelSerializer):
+class AccountSerializer(NameSplitMixin, serializers.ModelSerializer):
     class Meta:
         model = AccountUser
         fields = [
             "email_address",
             "name",
+            "first_name",
+            "last_name",
             "phone_number",
             "profile_image_url",
             "is_verified",
@@ -24,7 +27,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "is_cluster_admin",
             "is_cluster_staff",
         ]
-        read_only_fields = ["is_verified"]
+        read_only_fields = ["is_verified", "name"]
 
 
 class OwnerAccountSerializer(AccountSerializer):
@@ -161,7 +164,7 @@ class ClusterAdminAccountSerializer(serializers.ModelSerializer):
         pass
 
 
-class UserSummarySerializer(serializers.ModelSerializer):
+class UserSummarySerializer(NameSplitMixin, serializers.ModelSerializer):
     """Serializer for user summary information"""
     
     class Meta:
@@ -169,10 +172,12 @@ class UserSummarySerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'name',
+            'first_name',
+            'last_name',
             'email_address',
             'profile_image_url',
         ]
-        read_only_fields = ['id', 'name', 'email_address', 'profile_image_url']
+        read_only_fields = ['id', 'name', 'first_name', 'last_name', 'email_address', 'profile_image_url']
 
 
 class EmailVerificationSerializer(serializers.Serializer):

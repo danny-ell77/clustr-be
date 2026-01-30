@@ -18,6 +18,9 @@ def get_current_request():
     """Get current request from thread local."""
     return getattr(_thread_local, 'request', None)
 
+def set_current_request(request):
+    """Set current request to thread local."""
+    setattr(_thread_local, 'request', request)
 
 def get_current_user_id():
     """Get current user ID."""

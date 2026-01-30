@@ -20,11 +20,36 @@ from core.common.models import Cluster
 from core.common.exceptions import ClusterAdminExistsException
 
 
+from django import forms
+
+class AccountUserAdminForm(forms.ModelForm):
+    first_name = forms.CharField(label=_("First name"), max_length=150, required=False)
+    last_name = forms.CharField(label=_("Last name"), max_length=150, required=False)
+
+    class Meta:
+        model = AccountUser
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.name:
+            parts = self.instance.name.split(maxsplit=1)
+            self.initial["first_name"] = parts[0] if parts else ""
+            self.initial["last_name"] = parts[1] if len(parts) > 1 else ""
+
+    def save(self, commit=True):
+        first_name = self.cleaned_data.get("first_name", "").strip()
+        last_name = self.cleaned_data.get("last_name", "").strip()
+        self.instance.name = f"{first_name} {last_name}".strip()
+        return super().save(commit=commit)
+
+
 @admin.register(AccountUser)
 class AccountUserAdmin(BaseUserAdmin):
+    form = AccountUserAdminForm
     ordering = ["email_address"]
     list_display = ["email_address", "name", "primary_cluster", "is_cluster_admin", "is_cluster_staff", "is_active"]
-    search_fields = ["email_address", "name"]
+    search_fields = ["email_address", "name", "first_name", "last_name"]
     filter_horizontal = ["clusters"]
     list_filter = ["is_active", "is_staff", "is_superuser", "is_cluster_admin", "is_cluster_staff", "primary_cluster"]
     autocomplete_fields = ["primary_cluster"]
@@ -32,7 +57,7 @@ class AccountUserAdmin(BaseUserAdmin):
     
     fieldsets = (
         (None, {"fields": ("email_address", "password")}),
-        (_("Personal info"), {"fields": ("name", "phone_number", "profile_image_url")}),
+        (_("Personal info"), {"fields": ("first_name", "last_name", "phone_number", "profile_image_url")}),
         (
             _("Cluster Membership"),
             {
@@ -64,7 +89,7 @@ class AccountUserAdmin(BaseUserAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email_address", "name", "password1", "password2"),
+                "fields": ("email_address", "first_name", "last_name", "password1", "password2"),
             },
         ),
     )

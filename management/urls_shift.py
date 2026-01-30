@@ -11,9 +11,11 @@ from management.views_shift import (
     StaffScheduleView,
     ShiftReportView
 )
+from management.views_staff import StaffViewSet
 
 # Create router for viewsets
 router = DefaultRouter()
+router.register(r'staff', StaffViewSet, basename='staff')
 router.register(r'shifts', ShiftViewSet, basename='shift')
 router.register(r'shift-swap-requests', ShiftSwapRequestViewSet, basename='shift-swap-request')
 

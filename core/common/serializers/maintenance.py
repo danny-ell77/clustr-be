@@ -4,7 +4,7 @@ Serializers for maintenance models.
 
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
-
+from django.utils import timezone
 from core.common.models import (
     MaintenanceLog, MaintenanceAttachment, MaintenanceSchedule,
     MaintenanceCost, MaintenanceComment, MaintenanceType,

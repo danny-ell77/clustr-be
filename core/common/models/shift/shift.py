@@ -3,6 +3,7 @@ Shift models for ClustR application.
 """
 
 import logging
+from datetime import timedelta
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -51,11 +52,12 @@ class Shift(AbstractClusterModel):
     
     assigned_staff = models.ForeignKey(
         verbose_name=_("assigned staff"),
-        to="accounts.AccountUser",
+        to="common.Staff",
         on_delete=models.CASCADE,
         related_name="assigned_shifts",
         help_text=_("Staff member assigned to this shift")
     )
+
     
     start_time = models.DateTimeField(
         verbose_name=_("start time"),

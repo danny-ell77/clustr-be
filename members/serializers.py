@@ -7,11 +7,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from accounts.models import AccountUser
+from accounts.serializers.mixins import NameSplitMixin
 from core.common.models.emergency import EmergencyContact, EmergencyContactType
 from accounts.serializers.auth import AuthTokenPairSerializer
 
 
-class MemberRegistrationSerializer(serializers.ModelSerializer):
+class MemberRegistrationSerializer(NameSplitMixin, serializers.ModelSerializer):
     """
     Serializer for member registration.
     """
@@ -33,6 +34,8 @@ class MemberRegistrationSerializer(serializers.ModelSerializer):
         fields = [
             "email_address",
             "name",
+            "first_name",
+            "last_name",
             "phone_number",
             "unit_address",
             "password",
@@ -111,7 +114,7 @@ class VerifyPhoneSerializer(serializers.Serializer):
     verification_code = serializers.CharField(required=True)
 
 
-class MemberProfileSerializer(serializers.ModelSerializer):
+class MemberProfileSerializer(NameSplitMixin, serializers.ModelSerializer):
     """
     Serializer for member profile.
     """
@@ -123,6 +126,8 @@ class MemberProfileSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "first_name",
+            "last_name",
             "email_address",
             "phone_number",
             "unit_address",
@@ -132,4 +137,4 @@ class MemberProfileSerializer(serializers.ModelSerializer):
             "is_phone_verified",
             "emergency_contacts",
         ]
-        read_only_fields = ["id", "email_address", "is_verified", "is_phone_verified"]
+        read_only_fields = ["id", "name", "email_address", "is_verified", "is_phone_verified"]

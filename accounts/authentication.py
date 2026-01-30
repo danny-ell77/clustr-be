@@ -14,6 +14,7 @@ from rest_framework.request import Request
 
 from accounts.models import AccountUser
 from core.common.error_utils import log_exception_with_context
+from core.common.middleware.request_middleware import set_current_request
 
 logger = logging.getLogger("clustr")
 
@@ -54,6 +55,8 @@ class JWTAuthentication(authentication.BaseAuthentication):
             # Record the authentication in the request for audit logging
             request._auth_user_id = str(user.id)
             request._auth_token = jwt_token
+
+            set_current_request(request)
 
             return (user, payload)
         except jwt.ExpiredSignatureError:
@@ -105,13 +108,14 @@ class JWTAuthentication(authentication.BaseAuthentication):
             user: The authenticated user
             payload: The token payload
         """
+        print(payload)
         if "cluster_id" in payload:
             cluster_id = payload["cluster_id"]
 
             if str(user.primary_cluster.pk) == str(cluster_id):
                 request.cluster_context = user.primary_cluster
             elif user.clusters.filter(id=cluster_id).exists():
-                request.cluster.cluster_context = user.clusters.get(id=cluster_id)
+                request.cluster_context = user.clusters.get(id=cluster_id)
             else:
                 raise exceptions.AuthenticationFailed(
                     _("Invalid cluster context in token.")
@@ -187,15 +191,15 @@ class JWTAuthentication(authentication.BaseAuthentication):
                 .get(id=user_id)
             )
 
-            if not user.is_active:
-                raise exceptions.AuthenticationFailed(_("User is inactive."))
+            # if not user.is_active:
+            #     raise exceptions.AuthenticationFailed(_("User is inactive."))
 
-            if (
-                getattr(settings, "REQUIRE_VERIFIED_EMAIL", not settings.DEBUG)
-                and not user.is_verified
-            ):
-                print("here ==>", getattr(settings, "REQUIRE_VERIFIED_EMAIL", False), settings.DEBUG, user.is_verified)
-                raise exceptions.AuthenticationFailed(_("Email address not verified."))
+            # if (
+            #     getattr(settings, "REQUIRE_VERIFIED_EMAIL", not settings.DEBUG)
+            #     and not user.is_verified
+            # ):
+            #     print("here ==>", getattr(settings, "REQUIRE_VERIFIED_EMAIL", False), settings.DEBUG, user.is_verified)
+            #     raise exceptions.AuthenticationFailed(_("Email address not verified."))
 
             return user
         except AccountUser.DoesNotExist:

@@ -40,6 +40,7 @@ from core.common.models.emergency import (
 )
 from core.common.models.shift import (
     Shift,
+    Staff,
     ShiftSwapRequest,
     ShiftAttendance,
     ShiftType,

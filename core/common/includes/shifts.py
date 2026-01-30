@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.db.models import Q, Count, Avg
 from django.core.exceptions import ValidationError
 
-from core.common.models import Shift, ShiftAttendance, ShiftSwapRequest, ShiftStatus
+from core.common.models import Shift, ShiftAttendance, ShiftSwapRequest, ShiftStatus, ShiftType
 from core.common.includes import notifications
 from core.notifications.events import NotificationEvents
 
@@ -112,6 +112,106 @@ def create_swap_request(original_shift_id, requested_by, requested_shift_id=None
     
     logger.info(f"Shift swap request created: {swap_request.id}")
     return swap_request
+
+
+def get_calendar_shifts(cluster, start_date, end_date, **filters):
+    """
+    Get shifts for a calendar view, including expanded recurring instances.
+    """
+    # Fetch base shifts that could fall into the range
+    # Non-recurring: must overlap with [start_date, end_date]
+    # Recurring: must have started on or before end_date
+    
+    base_shifts = Shift.objects.filter(cluster=cluster).select_related(
+        'assigned_staff', 'attendance'
+    )
+    
+    if filters.get('staff_id'):
+        base_shifts = base_shifts.filter(assigned_staff_id=filters['staff_id'])
+    if filters.get('status'):
+        base_shifts = base_shifts.filter(status=filters['status'])
+    if filters.get('shift_type'):
+        base_shifts = base_shifts.filter(shift_type=filters['shift_type'])
+
+    # Filter base shifts:
+    # 1. Non-recurring shifts starting or ending within the range
+    # 2. Recurring shifts that started before the range end
+    base_shifts = base_shifts.filter(
+        Q(is_recurring=True, start_time__date__lte=end_date) |
+        Q(is_recurring=False, start_time__date__lte=end_date, end_time__date__gte=start_date)
+    )
+
+    expanded_shifts = []
+    
+    for shift in base_shifts:
+        if not shift.is_recurring:
+            expanded_shifts.append(shift)
+            continue
+        
+        # Expand recurring shift
+        pattern = shift.recurrence_pattern.upper()
+        current_start = shift.start_time
+        duration = shift.end_time - shift.start_time
+        
+        # Fast-forward current_start to be just before or inside the start_date range for efficiency
+        if current_start.date() < start_date:
+            delta = start_date - current_start.date()
+            if pattern == 'DAILY':
+                current_start += timedelta(days=delta.days)
+            elif pattern == 'WEEKLY':
+                current_start += timedelta(weeks=delta.days // 7)
+            elif pattern == 'BIWEEKLY':
+                current_start += timedelta(weeks=(delta.days // 14) * 2)
+            # For MONTHLY, we'll just iterate for now as it's less frequent
+            
+        # Find all occurrences that could fall into our range
+        while current_start.date() <= end_date:
+            current_end = current_start + duration
+            
+            # Check if this occurrence is within the requested range
+            if current_start.date() >= start_date:
+                # Create a "virtual" shift instance for this occurrence
+                # Clone the original shift but set new times
+                instance = Shift(
+                    id=shift.id, # Keep original ID so viewing works
+                    cluster=shift.cluster,
+                    title=shift.title,
+                    shift_type=shift.shift_type,
+                    assigned_staff=shift.assigned_staff,
+                    start_time=current_start,
+                    end_time=current_end,
+                    status=shift.status,
+                    location=shift.location,
+                    responsibilities=shift.responsibilities,
+                    notes=shift.notes,
+                    is_recurring=True,
+                    recurrence_pattern=shift.recurrence_pattern
+                )
+                # Ensure the display methods/properties work
+                instance.assigned_staff_details = shift.assigned_staff 
+                instance.attendance = None # Virtual instances don't have attendance yet
+                
+                expanded_shifts.append(instance)
+            
+            # Move to next occurrence
+            if pattern == 'DAILY':
+                current_start += timedelta(days=1)
+            elif pattern == 'WEEKLY':
+                current_start += timedelta(weeks=1)
+            elif pattern == 'BIWEEKLY':
+                current_start += timedelta(weeks=2)
+            elif pattern == 'MONTHLY':
+                # Simple monthly increment (approximate)
+                import calendar as py_calendar
+                month = current_start.month
+                year = current_start.year + (month // 12)
+                month = (month % 12) + 1
+                day = min(current_start.day, py_calendar.monthrange(year, month)[1])
+                current_start = current_start.replace(year=year, month=month, day=day)
+            else:
+                break # Unknown pattern
+                
+    return sorted(expanded_shifts, key=lambda x: x.start_time)
 
 
 def get_staff_schedule(cluster, staff_member, start_date, end_date):

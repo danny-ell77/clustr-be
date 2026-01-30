@@ -6,17 +6,29 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import timedelta
 
-from core.common.models import Shift, ShiftSwapRequest, ShiftAttendance, ShiftType, ShiftStatus
-from accounts.models import AccountUser
+from core.common.models import Shift, ShiftSwapRequest, ShiftAttendance, ShiftType, ShiftStatus, Staff
 
 
-class StaffSummarySerializer(serializers.ModelSerializer):
-    """Serializer for staff summary information."""
+class StaffSerializer(serializers.ModelSerializer):
+    """Serializer for staff information."""
+    
+    staff_type_display = serializers.CharField(source='get_staff_type_display', read_only=True)
+    assigned_shifts_count = serializers.SerializerMethodField()
     
     class Meta:
-        model = AccountUser
-        fields = ['id', 'name', 'email_address', 'phone_number']
-        read_only_fields = ['id', 'name', 'email_address', 'phone_number']
+        model = Staff
+        fields = [
+            'id', 'name', 'email', 'phone_number', 'staff_type', 
+            'staff_type_display', 'employee_id', 'is_active', 
+            'date_joined', 'notes', 'assigned_shifts_count',
+            'created_at', 'last_modified_at'
+        ]
+        read_only_fields = ['id', 'date_joined', 'created_at', 'last_modified_at']
+    
+    def get_assigned_shifts_count(self, obj):
+        """Get count of assigned shifts."""
+        return obj.get_assigned_shifts_count()
+
 
 
 class ShiftAttendanceSerializer(serializers.ModelSerializer):
@@ -59,7 +71,7 @@ class ShiftAttendanceSerializer(serializers.ModelSerializer):
 class ShiftSerializer(serializers.ModelSerializer):
     """Serializer for shift information."""
     
-    assigned_staff_details = StaffSummarySerializer(source='assigned_staff', read_only=True)
+    assigned_staff_details = StaffSerializer(source='assigned_staff', read_only=True)
     attendance = ShiftAttendanceSerializer(read_only=True)
     duration_hours = serializers.SerializerMethodField()
     actual_duration_hours = serializers.SerializerMethodField()
@@ -204,9 +216,9 @@ class ShiftSwapRequestSerializer(serializers.ModelSerializer):
     
     original_shift_details = ShiftSerializer(source='original_shift', read_only=True)
     target_shift_details = ShiftSerializer(source='target_shift', read_only=True)
-    requested_by_details = StaffSummarySerializer(source='requested_by', read_only=True)
-    requested_with_details = StaffSummarySerializer(source='requested_with', read_only=True)
-    approved_by_details = StaffSummarySerializer(source='approved_by', read_only=True)
+    requested_by_details = StaffSerializer(source='requested_by', read_only=True)
+    requested_with_details = StaffSerializer(source='requested_with', read_only=True)
+    approved_by_details = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
@@ -237,6 +249,16 @@ class ShiftSwapRequestSerializer(serializers.ModelSerializer):
             'approved_at',
             'created_at'
         ]
+    
+    def get_approved_by_details(self, obj):
+        """Get approved_by user details (AccountUser)."""
+        if obj.approved_by:
+            return {
+                'id': str(obj.approved_by),
+                'name': 'Admin'  # We only have the UUID, not the full user object
+            }
+        return None
+
 
 
 class ShiftSwapRequestCreateSerializer(serializers.ModelSerializer):

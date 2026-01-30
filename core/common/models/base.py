@@ -93,7 +93,7 @@ class AbstractClusterModel(UUIDPrimaryKey, ObjectHistoryTracker):
             from core.common.middleware.request_middleware import get_current_request
 
             request = get_current_request()
-
+            print(request.cluster_context)
             if (
                 request
                 and hasattr(request, "cluster_context")

@@ -2,6 +2,7 @@
 Shift models package for core.common.
 """
 
+from core.common.models.shift.staff import Staff
 from core.common.models.shift.shift import (
     ShiftStatus,
     ShiftType,
@@ -15,6 +16,7 @@ from core.common.models.shift.shift_attendance import (
 )
 
 __all__ = [
+    "Staff",
     "Shift",
     "ShiftAttendance",
     "ShiftStatus",

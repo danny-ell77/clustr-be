@@ -16,7 +16,7 @@ from core.common.models import (
     Announcement, AnnouncementView, AnnouncementLike, AnnouncementComment, AnnouncementReadStatus, AnnouncementCategory,
     IssueTicket, IssueComment, IssueAttachment, IssueStatusHistory, IssueType, IssueStatus, IssuePriority,
     EmergencyContact, SOSAlert, EmergencyResponse, EmergencyType, EmergencyStatus, EmergencyContactType,
-    Shift, ShiftSwapRequest, ShiftAttendance, ShiftType, ShiftStatus,
+    Staff, Shift, ShiftSwapRequest, ShiftAttendance, ShiftType, ShiftStatus,
     Task, TaskAssignment, TaskAssignmentHistory, TaskAttachment, TaskStatusHistory, TaskEscalationHistory, TaskComment, TaskType, TaskStatus, TaskPriority,
     MaintenanceLog, MaintenanceAttachment, MaintenanceSchedule, MaintenanceCost, MaintenanceComment, MaintenanceType, MaintenanceStatus, MaintenancePriority, PropertyType,
     Wallet, Transaction, Bill, BillDispute, RecurringPayment, WalletStatus, TransactionType, TransactionStatus, PaymentProvider, BillType, BillCategory, BillStatus, DisputeStatus, RecurringPaymentStatus, RecurringPaymentFrequency, PaymentError, UtilityProvider,
@@ -583,11 +583,18 @@ class EmergencyResponseAdmin(admin.ModelAdmin):
     list_filter = ["response_type", "cluster"]
     search_fields = ["alert__alert_id", "responder__name"]
 
+@admin.register(Staff)
+class StaffAdmin(admin.ModelAdmin):
+    list_display = ["name", "staff_type", "phone_number", "employee_id", "is_active"]
+    list_filter = ["staff_type", "is_active", "cluster"]
+    search_fields = ["name", "email", "phone_number", "employee_id"]
+    readonly_fields = ["date_joined", "created_at", "last_modified_at"]
+
 @admin.register(Shift)
 class ShiftAdmin(admin.ModelAdmin):
-    list_display = ["assigned_staff", "shift_type", "start_time", "end_time", "status"]
+    list_display = ["title", "assigned_staff", "shift_type", "start_time", "end_time", "status"]
     list_filter = ["shift_type", "status", "start_time", "cluster"]
-    search_fields = ["assigned_staff__name", "notes"]
+    search_fields = ["title", "assigned_staff__name", "notes"]
 
 @admin.register(ShiftSwapRequest)
 class ShiftSwapRequestAdmin(admin.ModelAdmin):
