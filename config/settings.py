@@ -27,7 +27,7 @@ SECRET_KEY = "#zeq)d@+g5(i3it%0ehxv$+v*#czxw6w)s$5idb_om)1dtq-9!"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(os.getenv("DEBUG", "1")))
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["testserver"]
 
 
 # Application definition

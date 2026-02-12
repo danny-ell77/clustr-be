@@ -15,7 +15,7 @@ DEBUG = bool(int(os.getenv("DEBUG", "0")))
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "build-time-placeholder-not-for-production")
 
 # Allow all host headers
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = [*os.environ.get("ALLOWED_HOSTS", "").split(","), "testserver"]
 
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases

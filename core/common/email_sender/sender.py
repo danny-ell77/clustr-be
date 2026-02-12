@@ -7,7 +7,8 @@ from django.template import Template
 from django.template.loader import get_template
 from django.utils.safestring import SafeString
 
-from core.common import tasks
+from django.utils.safestring import SafeString
+
 from core.common.email_sender.email_attributes import DEFAULT_EMAIL_ATTRIBUTES
 from core.common.email_sender.types import (
     ClustRGenericNotification,
@@ -123,21 +124,18 @@ class AccountEmailSender:
             raise Exception("Invalid 'body' tag in email HTML")
 
     def _send_messages(self, email_messages):
-        """
-        Attempts async delivery via Celery first. Falls back to synchronous
-        SMTP when Celery/Redis is unavailable (e.g. local dev without Docker).
-        SMTP errors in DEBUG mode are logged instead of crashing the request.
-        """
-        if not settings.DEBUG:
-            tasks.send_account_email.apply_async(email_messages, serializer="pickle")
-            return
+        # if not settings.DEBUG:
+        #     from core.common import tasks
+        #     tasks.send_account_email.apply_async(email_messages, serializer="pickle")
+        #     return
 
+        # try:
+        #     from core.common import tasks
+        #     tasks.send_account_email.apply_async(email_messages, serializer="pickle")
+        # except Exception:
+        logger.info("Celery unavailable, falling back to synchronous SMTP")
         try:
-            tasks.send_account_email.apply_async(email_messages, serializer="pickle")
-        except Exception:
-            logger.info("Celery unavailable, falling back to synchronous SMTP")
-            try:
-                with mail.get_connection(fail_silently=False) as connection:
-                    connection.send_messages(email_messages)
-            except Exception as smtp_err:
-                logger.error("SMTP send failed: %s", smtp_err, exc_info=True)
+            with mail.get_connection(fail_silently=False) as connection:
+                connection.send_messages(email_messages)
+        except Exception as smtp_err:
+            logger.error("SMTP send failed: %s", smtp_err, exc_info=True)
