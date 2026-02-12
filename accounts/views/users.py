@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 
 from django.conf import settings
@@ -40,6 +41,9 @@ from core.common.includes import build_runtime_serializer
 from core.data_exchange.includes.generic_model_importer import GenericModelImporter
 from core.common.decorators import audit_viewset
 from core.common.error_utils import exception_to_response_mapper
+
+
+logger = logging.getLogger(__name__)
 
 
 @audit_viewset(resource_type='user')
@@ -142,9 +146,26 @@ class UserViewSet(
             mode = VerifyMode(value)
         except ValueError:
             raise InvalidDataException(detail="Invalid verification mode")
-        UserVerification.for_mode(
-            mode, user=user, reason=VerifyReason.ONBOARDING
-        ).send_mail()
+        
+        try:
+            UserVerification.for_mode(
+                mode, user=user, reason=VerifyReason.ONBOARDING
+            ).send_mail()
+        except Exception as e:
+            logger.error(f"Failed to send verification email: {e}", exc_info=True)
+            if settings.DEBUG:
+                return Response(
+                    {
+                        "detail": "Verification code created but email sending failed. Check logs.",
+                        "debug_info": str(e)
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            return Response(
+                {"detail": "Failed to send verification email. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         return Response(
             {"detail": "Verification email sent successfully"},
             status=status.HTTP_200_OK,

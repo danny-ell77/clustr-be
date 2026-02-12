@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.core import mail
 from django.core.mail import EmailMessage
@@ -12,6 +14,8 @@ from core.common.email_sender.types import (
     NotificationTypes,
     TransactionalEmail,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AccountEmailSender:
@@ -60,9 +64,7 @@ class AccountEmailSender:
     def _get_email_content(self, recipients, default_attribute, kwargs: dict):
         return TransactionalEmail(
             from_name=kwargs.setdefault("from_name", ClustRGenericNotification.name),
-            from_email_address=kwargs.setdefault(
-                "from_email_address", ClustRGenericNotification.email
-            ),
+            from_email_address=getattr(settings, "DEFAULT_FROM_EMAIL", "info@smuite.com"),
             to_emails=recipients,
             subject=kwargs.setdefault("subject", default_attribute.subject),
             body=get_template(template_name=default_attribute.template_name).template,
@@ -121,9 +123,21 @@ class AccountEmailSender:
             raise Exception("Invalid 'body' tag in email HTML")
 
     def _send_messages(self, email_messages):
-        if settings.DEBUG:
-            with mail.get_connection(fail_silently=False) as connection:
-                connection.send_messages(email_messages)
-            # TODO: here return a type of SentEmailContent probably for debugging purposes
-        else:
+        """
+        Attempts async delivery via Celery first. Falls back to synchronous
+        SMTP when Celery/Redis is unavailable (e.g. local dev without Docker).
+        SMTP errors in DEBUG mode are logged instead of crashing the request.
+        """
+        if not settings.DEBUG:
             tasks.send_account_email.apply_async(email_messages, serializer="pickle")
+            return
+
+        try:
+            tasks.send_account_email.apply_async(email_messages, serializer="pickle")
+        except Exception:
+            logger.info("Celery unavailable, falling back to synchronous SMTP")
+            try:
+                with mail.get_connection(fail_silently=False) as connection:
+                    connection.send_messages(email_messages)
+            except Exception as smtp_err:
+                logger.error("SMTP send failed: %s", smtp_err, exc_info=True)
