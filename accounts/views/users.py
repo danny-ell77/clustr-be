@@ -148,9 +148,10 @@ class UserViewSet(
             raise InvalidDataException(detail="Invalid verification mode")
         
         try:
-            UserVerification.for_mode(
+            verification = UserVerification.for_mode(
                 mode, user=user, reason=VerifyReason.ONBOARDING
-            ).send_mail()
+            )
+            verification.send_mail()
         except Exception as e:
             logger.error(f"Failed to send verification email: {e}", exc_info=True)
             if settings.DEBUG:
@@ -166,8 +167,12 @@ class UserViewSet(
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        response_data = {"detail": "Verification email sent successfully"}
+        if settings.DEBUG:
+            response_data["verification_pin"] = verification.otp or verification.token
+
         return Response(
-            {"detail": "Verification email sent successfully"},
+            response_data,
             status=status.HTTP_200_OK,
         )
 

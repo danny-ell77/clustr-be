@@ -124,18 +124,13 @@ class AccountEmailSender:
             raise Exception("Invalid 'body' tag in email HTML")
 
     def _send_messages(self, email_messages):
-        # if not settings.DEBUG:
-        #     from core.common import tasks
-        #     tasks.send_account_email.apply_async(email_messages, serializer="pickle")
-        #     return
-
-        # try:
-        #     from core.common import tasks
-        #     tasks.send_account_email.apply_async(email_messages, serializer="pickle")
-        # except Exception:
-        logger.info("Celery unavailable, falling back to synchronous SMTP")
         try:
-            with mail.get_connection(fail_silently=False) as connection:
-                connection.send_messages(email_messages)
-        except Exception as smtp_err:
-            logger.error("SMTP send failed: %s", smtp_err, exc_info=True)
+            from core.common import tasks
+            tasks.send_account_email.apply_async(email_messages, serializer="pickle")
+        except Exception:
+            logger.info("Celery unavailable, falling back to synchronous SMTP")
+            try:
+                with mail.get_connection(fail_silently=False) as connection:
+                    connection.send_messages(email_messages)
+            except Exception as smtp_err:
+                logger.error("SMTP send failed: %s", smtp_err, exc_info=True)
