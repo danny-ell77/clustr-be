@@ -8,5 +8,13 @@ wheels/
 
 # Virtual environments
 .venv
-logs/
 .env
+
+# Logs
+logs/
+*.log
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.*
+celerybeat.pid
