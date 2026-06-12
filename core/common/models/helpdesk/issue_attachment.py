@@ -79,7 +79,7 @@ class IssueAttachment(AbstractClusterModel):
         ]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(issue__isnull=False) | models.Q(comment__isnull=False),
+                condition=models.Q(issue__isnull=False) | models.Q(comment__isnull=False),
                 name="attachment_belongs_to_issue_or_comment"
             )
         ]
