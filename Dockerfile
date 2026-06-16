@@ -7,8 +7,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=config.settings_production
 
-# Create non-root user with group
-RUN addgroup --system appuser && adduser --system --no-create-home --ingroup appuser appuser
+# Create non-root user with a real, writable home directory.
+# (A missing home -> /nonexistent, which breaks the Uvicorn worker's control server.)
+RUN addgroup --system appuser \
+    && adduser --system --home /home/appuser --ingroup appuser appuser \
+    && mkdir -p /home/appuser \
+    && chown -R appuser:appuser /home/appuser
+ENV HOME=/home/appuser
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
