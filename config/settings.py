@@ -14,20 +14,31 @@ from datetime import timedelta
 import os
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
+
+# Load environment variables from a local .env file (gitignored) if present.
+# In hosted environments (Railway, etc.) variables are injected directly and no
+# .env file exists — read_env silently no-ops in that case.
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "#zeq)d@+g5(i3it%0ehxv$+v*#czxw6w)s$5idb_om)1dtq-9!"
+# Real value lives in .env (local) or the host's env vars; the fallback below is an
+# obviously-insecure dev placeholder and must never be used in a deployed environment.
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY", "django-insecure-dev-only-placeholder-change-me"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(int(os.getenv("DEBUG", "1")))
 
-ALLOWED_HOSTS = ["testserver", *os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")]
+ALLOWED_HOSTS = ["testserver", "localhost"]
 
 
 # Application definition

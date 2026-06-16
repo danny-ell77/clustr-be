@@ -39,4 +39,6 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "config.wsgi:application"]
+# Shell form so ${PORT} (injected by Railway) is expanded at runtime; defaults to 8000 locally.
+# Served via Uvicorn ASGI workers so HTTP *and* WebSockets (Django Channels) work in one process.
+CMD gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 --access-logfile - --error-logfile -

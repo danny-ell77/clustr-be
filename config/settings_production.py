@@ -36,6 +36,13 @@ DATABASES = {
 
 # Security settings
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Trusted origins for CSRF (Django admin / session POSTs over the HTTPS Railway domain).
+# Comma-separated full origins, e.g. "https://my-staging.up.railway.app".
+CSRF_TRUSTED_ORIGINS = [
+    origin for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",") if origin
+] or ["https://*.up.railway.app"]
+
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
