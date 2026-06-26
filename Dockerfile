@@ -41,7 +41,8 @@ RUN chmod +x entrypoint.sh
 
 USER appuser
 
-EXPOSE 8000
+# Must match the PORT the app binds to (Railway routes its public domain here).
+EXPOSE 8080
 
 ENTRYPOINT ["./entrypoint.sh"]
 # Shell form so ${PORT} (injected by Railway) is expanded at runtime; defaults to 8000 locally.
