@@ -16,6 +16,7 @@ class AccountSerializer(NameSplitMixin, serializers.ModelSerializer):
     class Meta:
         model = AccountUser
         fields = [
+            "id",
             "email_address",
             "name",
             "first_name",
@@ -27,7 +28,7 @@ class AccountSerializer(NameSplitMixin, serializers.ModelSerializer):
             "is_cluster_admin",
             "is_cluster_staff",
         ]
-        read_only_fields = ["is_verified", "name"]
+        read_only_fields = ["id", "is_verified", "name"]
 
 
 class OwnerAccountSerializer(AccountSerializer):

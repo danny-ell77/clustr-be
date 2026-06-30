@@ -18,6 +18,7 @@ from accounts.serializers import (
     ForgotPasswordSerializer,
     OwnerAccountSerializer,
     ResetPasswordSerializer,
+    VerifyOTPSerializer,
 )
 from accounts.utils import change_password
 from accounts.authentication_utils import handle_user_login
@@ -236,6 +237,29 @@ class ResetPasswordAPIView(APIView):
             {"detail": "Password changed successfully"},
             status=status.HTTP_205_RESET_CONTENT,
         )
+
+
+class VerifyOTPAPIView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = VerifyOTPSerializer
+
+    @swagger_auto_schema(
+        request_body=VerifyOTPSerializer,
+        responses={
+            status.HTTP_200_OK: "OTP verified successfully",
+            status.HTTP_400_BAD_REQUEST: "Invalid or expired OTP",
+        },
+        operation_description="Verify an OTP code sent via email or SMS",
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        otp = serializer.validated_data["otp"]
+        verification = _run_verification_key_checks(otp)
+        verification.mark_as_verified()
+
+        return Response({"detail": "OTP verified successfully"}, status=status.HTTP_200_OK)
 
 
 def _run_verification_key_checks(verification_key):

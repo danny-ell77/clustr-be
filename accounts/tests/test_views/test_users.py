@@ -148,6 +148,7 @@ class UserViewSetTestCase(TestUsers, APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["email_address"], self.owner.email_address)
+        self.assertEqual(str(response.data["id"]), str(self.owner.pk))
 
     def test_permission_changes(self):
         perms = self.subuser.user_permissions.values_list("codename", flat=True)

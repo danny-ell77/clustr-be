@@ -7,6 +7,7 @@ from accounts.views.auth import (
     ForgotPasswordAPIView,
     ResetPasswordAPIView,
     SigninView,
+    VerifyOTPAPIView,
     check_token_status,
     signout,
 )
@@ -28,6 +29,7 @@ urlpatterns = [
     ),
     path("forgot-password/", ForgotPasswordAPIView.as_view(), name="forgot_password"),
     path("reset-password/", ResetPasswordAPIView.as_view(), name="reset_password"),
+    path("verify-otp/", VerifyOTPAPIView.as_view(), name="verify_otp"),
     path("token-status/", check_token_status, name="check_token_status"),
     path("signout/", signout, name="signout"),
 ]

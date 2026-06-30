@@ -1,0 +1,37 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+python-slugify = "*"
+pillow = "*"
+argon2-cffi = "*"
+whitenoise = "*"
+redis = "*"
+celery = "*"
+django-celery-beat = "*"
+django = "*"
+django-environ = "*"
+django-model-utils = "*"
+django-redis = "*"
+djangorestframework = "*"
+django-cors-headers = "*"
+djangorestframework-simplejwt = "*"
+drf-yasg = "*"
+django-filter = "*"
+channels = "*"
+channels-redis = "*"
+numpy = "*"
+pandas = "*"
+drf-nested-routers = "*"
+gunicorn = "*"
+hiredis = "*"
+psycopg = {extras = ["c"], version = "*"}
+django-storages = {extras = ["s3"], version = "*"}
+django-anymail = {extras = ["mailgun"], version = "*"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"

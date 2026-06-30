@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounts.models import VerifyMode
+from accounts.models import VerifyMode, UserVerification
 
 
 class AuthTokenPairSerializer(serializers.Serializer):
@@ -25,6 +25,14 @@ class ResetPasswordSerializer(serializers.Serializer):
     verification_key = serializers.CharField(required=True)
     password = serializers.CharField(required=True, min_length=8, write_only=True)
     force_logout = serializers.BooleanField(default=False)
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    otp = serializers.CharField(
+        required=True,
+        max_length=UserVerification.OTP_MAX_LENGTH,
+        min_length=UserVerification.OTP_MAX_LENGTH,
+    )
 
 
 class PasswordChangeSerializer(serializers.Serializer):
